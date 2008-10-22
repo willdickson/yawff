@@ -57,9 +57,9 @@
 
 // Function prototypes
 extern void init_test_config(config_t *config);
-extern void init_test_kine(array_t *kine, config_t config);
+extern int init_test_kine(array_t *kine, config_t config);
 extern void free_test_kine(array_t *kine);
-extern void init_test_data(data_t *data, int N);
+extern int init_test_data(data_t *data, int N);
 extern void free_test_data(data_t *data);
 
 #endif // INC_TEST_H_ 

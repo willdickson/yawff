@@ -12,8 +12,13 @@ const int PRIORITY=1;
 const int STACK_SIZE=4096;
 const int MSG_SIZE=0;
 
+
+// Function prototypes
+int init_comedi(void);
+int init_rtai(void);
+
 // Global variables
-int sigint_flag = 0;
+volatile int sigint_flag = 0;
 
 // -------------------------------------------------------------------
 // Function: yawff
@@ -35,28 +40,27 @@ int yawff(
 	  int *end_pos
 	  )
 {
-  
+
+
+  void *sighandler = NULL;
+  int rtn_flag = SUCCESS;
+
   // Startup method 
   printf("\n");
   printf("                  Starting yawff \n");
   printf("=======================================================\n");
 
-  // Check configuration
+  // Check inputs
+  if (check_yawff_input(kine,config,data) != SUCCESS) {
+    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"bad input data");
+    return FAIL;
+  }
   print_config(config);
-  if (check_config(config)==FAIL) {
-    print_err_msg(__FILE__,__LINE__,"bad configuration");
-    return FAIL;
-  }
 
-  // Check kinematics
-  if (check_kine(kine)==FAIL) {
-    print_err_msg(__FILE__,__LINE__,"kinematics invalid");
-    return FAIL;
-  }
-
-  // Check that compatibility
-  if (check_compat(config,kine)==FAIL){
-    print_err_msg(__FILE__,__LINE__,"compatibility");
+  // Setup SIGINT handler
+  sighandler = signal(SIGINT,sigint_func);
+  if (sighandler == SIG_ERR) {
+    print_err_msg(__FILE__,__LINE__,__FUNCTION__, "assigning SIGINT handler");
     return FAIL;
   }
 
@@ -66,12 +70,22 @@ int yawff(
 
   // Take zero reading from yaw torque sensor
 
+
  
-  
-  
+  // Clean up
+
+
+  // Restore old SIGINT handler
+  sighandler = signal(SIGINT,sighandler);
+  if (sighandler == SIG_ERR) {
+    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"restoring signal handler failed");
+    rtn_flag = FAIL;
+  }
+
   // Temporary
-  return SUCCESS;
+  return rtn_flag;
 }
+
 
 
 // ------------------------------------------------------------------

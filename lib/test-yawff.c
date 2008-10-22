@@ -15,12 +15,18 @@
 // Function prototypes -------------------------------------------
 int testsuite_setup(void);
 int testsuite_teardown(void);
+
 void test_init_array(void);
 void test_set_array_val(void);
 void test_get_array_val(void);
+
 void test_check_config(void);
 void test_check_kine(void);
-void test_check_compat(void);
+void test_check_kine_compat(void);
+void test_check_data(void);
+void test_check_data_compat(void);
+void test_check_yawff_input(void);
+
 void test_lowpass_filt1(void);
 void test_integrator(void);
 
@@ -32,52 +38,41 @@ void test_integrator(void);
 // --------------------------------------------------------------
 int main(int argc, char *argv[]) 
 {
-  CU_pSuite pSuite = NULL;
-
-  /* Initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry()) {
+  CU_TestInfo array_test_array[] = {
+    {"init_array",    test_init_array},
+    {"set_array_val", test_set_array_val},
+    {"get_array_val", test_get_array_val},
+    CU_TEST_INFO_NULL,
+  };
+  CU_TestInfo check_test_array[] = {
+    {"check_config",      test_check_config},
+    {"check_kine",        test_check_kine},
+    {"check_kine_compat", test_check_kine_compat},
+    {"check_data",        test_check_data},
+    {"check_data_compat", test_check_data_compat},
+    {"check_yawff_input", test_check_yawff_input},
+    CU_TEST_INFO_NULL,
+  };
+  CU_TestInfo yawff_test_array[] = {
+    {"lowpass_filt1", test_lowpass_filt1},
+    {"integrator",    test_integrator},
+    CU_TEST_INFO_NULL,
+  }; 
+  CU_SuiteInfo suites[] = {
+    {"array testsuite", testsuite_setup, testsuite_teardown, array_test_array},
+    {"check testsuite", testsuite_setup, testsuite_teardown, check_test_array},
+    {"yawff testsuite", testsuite_setup, testsuite_teardown, yawff_test_array},
+    CU_SUITE_INFO_NULL,
+  };
+  
+  // Initialize the CUnit test registry and register test suites 
+  if (CU_initialize_registry() != CUE_SUCCESS) {
+    fprintf(stderr, "Cunit Error: %s\n", CU_get_error_msg());
     return CU_get_error();
   }
-  
-  // Add test suit
-  pSuite = CU_add_suite("yawff testsuite", testsuite_setup, testsuite_teardown);
-  if(pSuite == NULL) {
-    print_err_msg(__FILE__,__LINE__, "adding testsuite failed");
-    goto exit;
-  }
-
-  // Add tests - kind of a kludgey way to add tests
-  if (NULL == CU_add_test(pSuite, "test of init_array()", test_init_array)) {
-    print_err_msg(__FILE__,__LINE__,"adding test_init_array to testsuite failed");
-    goto exit;
-  }
-  if (NULL == CU_add_test(pSuite, "test of set_array_val()", test_set_array_val)) {
-    print_err_msg(__FILE__,__LINE__,"adding test_set_array_val to testsuite failed");
-    goto exit;
-  }
-  if (NULL == CU_add_test(pSuite, "test of get_array_val()", test_get_array_val)) {
-    print_err_msg(__FILE__,__LINE__,"adding test_get_array_val to testsuite failed");
-    goto exit;
-  }
-  if (NULL == CU_add_test(pSuite, "test of check_config()", test_check_config)) {
-    print_err_msg(__FILE__,__LINE__,"adding test_check_config to testsuite failed");
-    goto exit;
-  }
-  if (NULL == CU_add_test(pSuite, "test of check_kine()", test_check_kine)) {
-    print_err_msg(__FILE__,__LINE__,"adding test_check_kine to testsuite failed");
-    goto exit;
-  }
-  if (NULL == CU_add_test(pSuite, "test of check_compat()", test_check_compat)) {
-    print_err_msg(__FILE__,__LINE__,"adding test_check_compat to testsuite failed");
-    goto exit;
-  }
-  if (NULL == CU_add_test(pSuite, "test of lowpass_filt1()", test_lowpass_filt1)) {
-    print_err_msg(__FILE__,__LINE__,"adding test_lowpass_filt1 to testsuite failed");
-    goto exit;
-  }
-  if (NULL == CU_add_test(pSuite, "test of integrator()", test_integrator)) {
-    print_err_msg(__FILE__,__LINE__,"adding test_integrator to testsuite failed");
-    goto exit;
+  if (CU_register_suites(suites) != CUE_SUCCESS) {
+    fprintf(stderr, "Cunit Error: %s\n", CU_get_error_msg());
+    return CU_get_error();
   }
   
   // Run unit tests
@@ -87,7 +82,6 @@ int main(int argc, char *argv[])
   freopen("/dev/tty", "w", stderr);  // Return stderr to terminal
 
   // Clean up
- exit:
   CU_cleanup_registry();
   return CU_get_error();
 
@@ -167,7 +161,7 @@ void test_set_array_val(void)
   for (i=0; i<nrow; i++) {
     for (j=0; j<ncol; j++) {
       ival = i + j;
-      CU_ASSERT(set_array_val(&array,i,j,&ival)==SUCCESS);
+      CU_ASSERT(set_array_val(array,i,j,&ival)==SUCCESS);
     }
   }
 
@@ -181,10 +175,10 @@ void test_set_array_val(void)
   }
   
   // Set values out of bounds - should FAIL 
-  CU_ASSERT(set_array_val(&array,nrow,0,0)==FAIL);
-  CU_ASSERT(set_array_val(&array,-1,0,0)==FAIL);
-  CU_ASSERT(set_array_val(&array,0,ncol,0)==FAIL);
-  CU_ASSERT(set_array_val(&array,0,-1,0)==FAIL);
+  CU_ASSERT(set_array_val(array,nrow,0,0)==FAIL);
+  CU_ASSERT(set_array_val(array,-1,0,0)==FAIL);
+  CU_ASSERT(set_array_val(array,0,ncol,0)==FAIL);
+  CU_ASSERT(set_array_val(array,0,-1,0)==FAIL);
 
   free_array(&array);
 
@@ -193,7 +187,7 @@ void test_set_array_val(void)
   for (i=0; i<nrow; i++) {
     for (j=0; j<ncol; j++) {
       fval = 10.0*(i + j);
-      CU_ASSERT(set_array_val(&array,i,j,&fval)==SUCCESS);
+      CU_ASSERT(set_array_val(array,i,j,&fval)==SUCCESS);
     }
   }
 
@@ -232,7 +226,7 @@ void test_get_array_val(void)
   for (i=0; i<nrow;i++) {
     for (j=0; j<ncol;j++) {
       ival = 2*i*j;
-      CU_ASSERT(set_array_val(&array,i,j,&ival)==SUCCESS);
+      CU_ASSERT(set_array_val(array,i,j,&ival)==SUCCESS);
     }
   }
   
@@ -240,16 +234,16 @@ void test_get_array_val(void)
   s1 = array.s1;
   for (i=0;i<nrow;i++) {
     for (j=0;j<ncol; j++) {
-      CU_ASSERT(get_array_val(&array,i,j,&ival)==SUCCESS);
+      CU_ASSERT(get_array_val(array,i,j,&ival)==SUCCESS);
       CU_ASSERT(ival == 2*i*j);
     }
   }
 
   // Get values out of bounds - should fail
-  CU_ASSERT(get_array_val(&array,nrow,0,0)==FAIL);
-  CU_ASSERT(get_array_val(&array,-1,0,0)==FAIL);
-  CU_ASSERT(get_array_val(&array,0,ncol,0)==FAIL);
-  CU_ASSERT(get_array_val(&array,0,-1,0)==FAIL);
+  CU_ASSERT(get_array_val(array,nrow,0,0)==FAIL);
+  CU_ASSERT(get_array_val(array,-1,0,0)==FAIL);
+  CU_ASSERT(get_array_val(array,0,ncol,0)==FAIL);
+  CU_ASSERT(get_array_val(array,0,-1,0)==FAIL);
   
   free_array(&array);
 
@@ -258,7 +252,7 @@ void test_get_array_val(void)
   for (i=0; i<nrow;i++) {
     for (j=0; j<ncol;j++) {
       fval = 0.5*i*j;
-      CU_ASSERT(set_array_val(&array,i,j,&fval)==SUCCESS);
+      CU_ASSERT(set_array_val(array,i,j,&fval)==SUCCESS);
     }
   }
   
@@ -266,7 +260,7 @@ void test_get_array_val(void)
   s1 = array.s1;
   for (i=0;i<nrow;i++) {
     for (j=0;j<ncol; j++) {
-      CU_ASSERT(get_array_val(&array,i,j,&fval)==SUCCESS);
+      CU_ASSERT(get_array_val(array,i,j,&fval)==SUCCESS);
       CU_ASSERT(fval == 0.5*i*j);
     }
   }
@@ -350,13 +344,13 @@ void test_check_kine(void)
   array_t  kine;
   int val;
 
-  init_array(&kine,nrow,ncol,INT_ARRAY);
+  CU_ASSERT(init_array(&kine,nrow,ncol,INT_ARRAY)==SUCCESS);
   
   // Kinematics which should pass
   for (i=0; i<kine.nrow; i++) {
     for (j=0; j<kine.ncol; j++) {
       val = i + j;
-      CU_ASSERT_FATAL(set_array_val(&kine,i,j,&val)==SUCCESS);
+      CU_ASSERT_FATAL(set_array_val(kine,i,j,&val)==SUCCESS);
     }
   }
   CU_ASSERT(check_kine(kine)==SUCCESS);
@@ -365,7 +359,7 @@ void test_check_kine(void)
   for (i=0; i<kine.nrow; i++) {
     for (j=0; j<kine.ncol; j++) {
       val = i*(j+1);
-      CU_ASSERT_FATAL(set_array_val(&kine,i,j,&val)==SUCCESS);
+      CU_ASSERT_FATAL(set_array_val(kine,i,j,&val)==SUCCESS);
     }
   }
   CU_ASSERT_FALSE(check_kine(kine)==SUCCESS);
@@ -374,7 +368,7 @@ void test_check_kine(void)
   for (i=0; i<kine.nrow; i++) {
     for (j=0; j<kine.ncol; j++) {
       val = i + j;
-      set_array_val(&kine,i,j,&val);
+      set_array_val(kine,i,j,&val);
     }
   }
   // Kinematics which should fail with bad # of rows
@@ -404,12 +398,12 @@ void test_check_kine(void)
 
 
 // -----------------------------------------------------------
-// Function: test_check_compat
+// Function: test_check_kine_compat
 //
 // Purpose: unit test for check_compat function
 //
 // ------------------------------------------------------------
-void test_check_compat(void)
+void test_check_kine_compat(void)
 {
   array_t kine;
   config_t config;
@@ -421,17 +415,161 @@ void test_check_compat(void)
   init_test_kine(&kine, config);
     
   // Kinematics and config which should be compatible
-  CU_ASSERT(check_compat(config,kine)==SUCCESS);
+  CU_ASSERT(check_kine_compat(config,kine)==SUCCESS);
 
   // Kinematics and config which shouldn't be compatible
   config.num_motor = KINE_NCOL+2;
-  CU_ASSERT_FALSE(check_compat(config,kine)==SUCCESS);
+  CU_ASSERT_FALSE(check_kine_compat(config,kine)==SUCCESS);
 
   free_array(&kine);
 
   return;
 }
 
+// -------------------------------------------------------------
+// Function: test_check_data
+//
+// Purpose: unit test of check_data function
+// -------------------------------------------------------------
+void test_check_data(void)
+{
+  int N = 100;
+  data_t data;
+  data_t test_data;
+
+  CU_ASSERT(init_test_data(&data,N)==SUCCESS);
+
+  CU_ASSERT(check_data(data)==SUCCESS);
+
+  // Test column check
+  test_data = data;
+  test_data.t.ncol = 2;
+  CU_ASSERT(check_data(test_data) == FAIL);
+  test_data = data;
+  test_data.pos.ncol = 2;
+  CU_ASSERT(check_data(test_data) == FAIL);
+  test_data = data;
+  test_data.vel.ncol = 2;
+  CU_ASSERT(check_data(test_data) == FAIL);
+  test_data = data;
+  test_data.torq.ncol = 2;
+  CU_ASSERT(check_data(test_data) == FAIL);
+
+  // Test type check
+  test_data = data;
+  test_data.t.type = INT_ARRAY;
+  CU_ASSERT(check_data(test_data) == FAIL);
+  test_data = data;
+  test_data.pos.type = INT_ARRAY;
+  CU_ASSERT(check_data(test_data) == FAIL);
+  test_data = data;
+  test_data.vel.type = INT_ARRAY;
+  CU_ASSERT(check_data(test_data) == FAIL);
+  test_data = data;
+  test_data.torq.type = INT_ARRAY;
+  CU_ASSERT(check_data(test_data) == FAIL);
+  
+  // Clean up
+  free_test_data(&data);
+  
+  return;
+}
+
+// -------------------------------------------------------------
+// Function: test_check_data_compat
+//
+// Purpose: Unit test for check_data_compat function
+//
+// -------------------------------------------------------------
+void test_check_data_compat(void)
+{
+  config_t config;
+  array_t kine;
+  data_t data;
+  data_t test_data;
+  
+  // Set up kine and data structures
+  init_test_config(&config);
+  CU_ASSERT(init_test_kine(&kine,config)==SUCCESS);
+  CU_ASSERT(init_test_data(&data,kine.nrow)==SUCCESS);
+
+  // Check for compatibility 
+  CU_ASSERT(check_data_compat(kine,data)==SUCCESS);
+  
+  // Check for incompatbility
+  test_data = data;
+  test_data.t.nrow = 2;
+  CU_ASSERT(check_data_compat(kine,test_data)==FAIL);
+  test_data = data;
+  test_data.pos.nrow = -1;
+  CU_ASSERT(check_data_compat(kine,test_data)==FAIL);
+  test_data = data;
+  test_data.vel.nrow = 20;
+  CU_ASSERT(check_data_compat(kine,test_data)==FAIL);
+  test_data = data;
+  test_data.torq.nrow = 8;
+  CU_ASSERT(check_data_compat(kine,test_data)==FAIL);
+  
+  // Clean up
+  free_test_data(&data);
+  free_test_kine(&kine);
+
+  return;
+}
+
+// -------------------------------------------------------------
+// Fucntion: test_check_yawff_input
+//
+// Purpose: Unit test of check_yawff_input function
+//
+// -------------------------------------------------------------
+void test_check_yawff_input(void)
+{
+  config_t config, test_config;
+  array_t kine, test_kine;
+  data_t data, test_data;
+  
+  // Intialize test inputs
+  init_test_config(&config);
+  CU_ASSERT(init_test_kine(&kine,config) == SUCCESS);
+  CU_ASSERT(init_test_data(&data,kine.nrow) == SUCCESS); 
+
+  // Try with passing data
+  CU_ASSERT(check_yawff_input(kine,config,data)==SUCCESS);
+
+  // Try w/ bad configuration
+  test_config = config;
+  test_config.num_motor = -1;
+  CU_ASSERT(check_yawff_input(kine,test_config,data)==FAIL);
+  
+  // Try w/ bad kinematics
+  test_kine = kine;
+  test_kine.ncol = -1;
+  CU_ASSERT(check_yawff_input(test_kine,config,data)==FAIL);
+
+  // Try w/ bad data
+  test_data = data;
+  test_data.t.ncol = -1;
+  CU_ASSERT(check_yawff_input(kine,config,test_data)==FAIL);
+  
+  // Try with incompatible kine and config
+  test_kine = kine;
+  test_config = config;
+  test_kine.ncol = test_config.num_motor+1;
+  CU_ASSERT(check_yawff_input(test_kine,test_config,data)==FAIL);
+  
+  // Try w/ incompatible kine and data
+  test_data = data;
+  test_kine = kine;
+  test_data.pos.nrow = test_kine.nrow+1;
+  CU_ASSERT(check_yawff_input(test_kine,config,test_data)==FAIL);
+
+  // Clean up
+  free_test_data(&data);
+  free_test_kine(&kine);
+
+  return;
+}
 
 // -------------------------------------------------------------
 // Function: test_lowpass_filt1

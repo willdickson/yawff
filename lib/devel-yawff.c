@@ -13,9 +13,25 @@ int main(int argc, char *argv[])
 
   // Initialize 
   init_test_config(&config);
-  init_test_kine(&kine,config);
-  init_test_data(&data,kine.nrow);
+  if (init_test_kine(&kine,config) != SUCCESS) {
+    print_err_msg(
+		  __FILE__,
+		  __LINE__,
+		  __FUNCTION__,
+		  "unable to initialize kinematics"
+		  );
+  }
+  if (init_test_data(&data,kine.nrow) != SUCCESS) {
+    print_err_msg(
+		  __FILE__,
+		  __LINE__,
+		  __FUNCTION__,
+		  "unable to initialize data"
+		  );
+  }
 
+  
+  // Run yawff
   ret_val = yawff(kine,config,data,&end_pos);
   
   
@@ -23,7 +39,8 @@ int main(int argc, char *argv[])
   // Clean up
   free_test_kine(&kine);
   free_test_data(&data);
-  
+
+ 
   return 0;
 }
 

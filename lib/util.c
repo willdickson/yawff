@@ -43,7 +43,7 @@ state_t dynamics_func(
 // Arguments:
 //   state_curr  = dynamic state (position + velocity) at current 
 //                 time step
-//   state_next  = dynamic state ate next time step (output) 
+//   state_next  = dynamic state a the next time step (output) 
 //   force       = external force or torque 
 //   mass        = mass or moment of inertia
 //   damping     = damping constant
@@ -100,7 +100,12 @@ int integrator(
     
   default: // Error unkown integration method
     
-    print_err_msg(__FILE__,__LINE__,"unknown integration method");
+    print_err_msg(
+		  __FILE__,
+		  __LINE__,
+		  __FUNCTION__,
+		  "unknown integration method"
+		  );
     ret_flag = FAIL;
     break;
 
@@ -152,14 +157,13 @@ float lowpass_filt1(float x,float y_old, float f_cut, float dt)
   return y_new;
 }
 
-
 // ----------------------------------------------------------------
 // Function: get_array_val
 //
 // Puropse: gets value of array at given row and column
 //
 // -----------------------------------------------------------------
-int get_array_val(array_t *array, int row, int col, void *val)
+int get_array_val(array_t array, int row, int col, void *val)
 {
   int s0, s1;
   int *iptr;
@@ -167,40 +171,53 @@ int get_array_val(array_t *array, int row, int col, void *val)
   int rtn_val = SUCCESS;
 
   // Check row and col ranges
-  if ((row < 0) || (row >= (array -> nrow))) {
-    print_err_msg(__FILE__,__LINE__,"get_array_val, row out of range");
+  if ((row < 0) || (row >= array.nrow)) {
+    print_err_msg(
+		  __FILE__,
+		  __LINE__,
+		  __FUNCTION__,
+		  "row out of range"
+		  );
     return FAIL;
   }
-  if ((col < 0) || (col >= array ->ncol)) {
-    print_err_msg(__FILE__,__LINE__,"get_array_val, col out of range");
+  if ((col < 0) || (col >= array.ncol)) {
+    print_err_msg(
+		  __FILE__,
+		  __LINE__,
+		  __FUNCTION__,
+		  "col out of range");
     return FAIL;
   }
 
   // Get array value
-  s0 = array -> s0;
-  s1 = array -> s1;
+  s0 = array.s0;
+  s1 = array.s1;
 
-  switch(array->type) {
+  switch(array.type) {
     
   case INT_ARRAY:
     iptr = val;
-    *iptr = *((int*)( (array -> data) + row*s0 + col*s1));
+    *iptr = *((int*)(array.data + row*s0 + col*s1));
     break;
 
   case FLT_ARRAY:
     fptr = val;
-    *fptr = *((float*)( (array -> data) + row*s0 + col*s1));
+    *fptr = *((float*)(array.data + row*s0 + col*s1));
     break;
 
   default:
-    print_err_msg(__FILE__,__LINE__,"get_array_val, unknown array type");
+    print_err_msg(
+		  __FILE__,
+		  __LINE__,
+		  __FUNCTION__,
+		  "unknown array type"
+		  );
     rtn_val = FAIL;
     break;
 
   }
   return rtn_val;
 }
-
 
 // -------------------------------------------------------------------
 // Function: set_array_val
@@ -209,7 +226,7 @@ int get_array_val(array_t *array, int row, int col, void *val)
 // and column.
 //
 // --------------------------------------------------------------------
-int set_array_val(array_t *array, int row, int col, void *val)
+int set_array_val(array_t array, int row, int col, void *val)
 {
   int s0, s1;
   int *iptr;
@@ -217,33 +234,48 @@ int set_array_val(array_t *array, int row, int col, void *val)
   int rtn_val = SUCCESS;
 
   // Check row and col ranges
-  if ((row < 0) || (row >= (array -> nrow))) {
-    print_err_msg(__FILE__,__LINE__,"get_array_val, row out of range");
+  if ((row < 0) || (row >= array.nrow)) {
+    print_err_msg(
+		  __FILE__,
+		  __LINE__,
+		  __FUNCTION__,
+		  "row out of range"
+		  );
     return FAIL;
   }
-  if ((col < 0) || (col >= array ->ncol)) {
-    print_err_msg(__FILE__,__LINE__,"get_array_val, col out of range");
+  if ((col < 0) || (col >= array.ncol)) {
+    print_err_msg(
+		  __FILE__,
+		  __LINE__,
+		  __FUNCTION__,
+		  "col out of range"
+		  );
     return FAIL;
   }
   
   // Set array value
-  s0 = array -> s0;
-  s1 = array -> s1;
+  s0 = array.s0;
+  s1 = array.s1;
 
-  switch(array->type) {
+  switch(array.type) {
 
   case INT_ARRAY:
     iptr = val;
-    *((int*)((array -> data) + row*s0 + col*s1)) = *iptr;
+    *((int*)((array.data) + row*s0 + col*s1)) = *iptr;
     break;
 
   case FLT_ARRAY:
     fptr = val;
-    *((float*)((array -> data) + row*s0 + col*s1)) = *fptr;    
+    *((float*)((array.data) + row*s0 + col*s1)) = *fptr;    
     break;
 
   default:
-    print_err_msg(__FILE__,__LINE__,"set_array_val, unknown array type");
+    print_err_msg(
+		  __FILE__,
+		  __LINE__,
+		  __FUNCTION__,
+		  "unknown array type"
+		  );
     rtn_val = FAIL;
     break;
     
@@ -264,11 +296,21 @@ int init_array(array_t *array, int nrow, int ncol, int type)
 
   // Check dimensions
   if (nrow <= 0) {
-    print_err_msg(__FILE__,__LINE__,"init_array, nrow <= 0");
+    print_err_msg(
+		  __FILE__,
+		  __LINE__,
+		  __FUNCTION__,
+		  "nrow <= 0"
+		  );
     return FAIL;
   }
   if (ncol <= 0) {
-    print_err_msg(__FILE__,__LINE__,"init_array, ncol <= 0");
+    print_err_msg(
+		  __FILE__,
+		  __LINE__,
+		  __FUNCTION__,
+		  "ncol <= 0"
+		  );
     return FAIL;
   }
   
@@ -284,7 +326,12 @@ int init_array(array_t *array, int nrow, int ncol, int type)
     break;
     
   default:
-    print_err_msg(__FILE__,__LINE__,"init_array, unknown type");
+    print_err_msg(
+		  __FILE__,
+		  __LINE__,
+		  __FUNCTION__,
+		  "unknown type"
+		  );
     return FAIL;
     break;
   }
@@ -298,7 +345,12 @@ int init_array(array_t *array, int nrow, int ncol, int type)
   array -> type = type;
 
   if (array->data == NULL) {
-    print_err_msg(__FILE__,__LINE__,"init_array unable to allocate memory");
+    print_err_msg(
+		  __FILE__,
+		  __LINE__,
+		  __FUNCTION__,
+		  "unable to allocate memory"
+		  );
     return FAIL;
   }
   else {
@@ -317,6 +369,12 @@ void free_array(array_t *array)
 {
   if (array->data != NULL) {
     free(array -> data);
+    array -> data = NULL;
+    array -> nrow = 0;
+    array -> ncol = 0;
+    array -> s0 = 0;
+    array -> s1 = 0;
+    array -> type = EMPTY_ARRAY;
   }
 }
 
@@ -376,9 +434,9 @@ void print_config(config_t config)
 //
 // Purpose: prints simple error message
 // -----------------------------------------------------------------
-void print_err_msg(char *file, int line, char *err_msg)
+void print_err_msg(const char *file, int line, const char *func, char *err_msg)
 {
-  fprintf(stderr, "%s:%d Error, %s\n",file, line, err_msg);
+  fprintf(stderr, "%s:%d, %s, Error: %s\n",file, line, func, err_msg);
   return;
 }
 

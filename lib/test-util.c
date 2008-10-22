@@ -49,25 +49,33 @@ void init_test_config(config_t *config)
 // Purpose: Initialize kinematics
 //
 // -----------------------------------------------------
-void init_test_kine(array_t *kine, config_t config)
+int init_test_kine(array_t *kine, config_t config)
 {
   int i;
   int j;
   int pos;
+  int flag = SUCCESS;
 
-  init_array(kine,KINE_NROW, KINE_NCOL, INT_ARRAY);
+  if (init_array(kine,KINE_NROW, KINE_NCOL, INT_ARRAY) != SUCCESS) {
+    flag = FAIL;
+  }
     
   // Create kinematics
   for (i=0; i<kine->nrow; i++) {
     for (j=0; j<kine->ncol; j++) {
       pos = i + j;
-      if(set_array_val(kine,i,j,&pos)==FAIL) { 
-	print_err_msg(__FILE__,__LINE__,"error writing kinematic position");
-	exit(-1);
+      if(set_array_val(*kine,i,j,&pos)==FAIL) { 
+	print_err_msg(
+		      __FILE__,
+		      __LINE__,
+		      __FUNCTION__,
+		      "error writing kinematic position"
+		      );
+	flag = FAIL;
       }
     }
   }
-  return;
+  return flag;
 }
 
 // -----------------------------------------------------
@@ -88,13 +96,23 @@ void free_test_kine(array_t *kine)
 // Purpose: initize return data structure
 //
 // -----------------------------------------------------
-void init_test_data(data_t *data, int N)
+int init_test_data(data_t *data, int N)
 {
-  init_array(&(data -> t), N, 1, FLT_ARRAY);
-  init_array(&(data -> pos), N, 1, FLT_ARRAY);
-  init_array(&(data -> vel), N, 1, FLT_ARRAY);
-  init_array(&(data -> torq), N, 1, FLT_ARRAY);
+  int flag = SUCCESS;
 
+  if (init_array(&(data -> t), N, 1, FLT_ARRAY) != SUCCESS) {
+    flag = FAIL;
+  }
+  if (init_array(&(data -> pos), N, 1, FLT_ARRAY) != SUCCESS) {
+    flag = FAIL;
+  }
+  if (init_array(&(data -> vel), N, 1, FLT_ARRAY) != SUCCESS) {
+    flag = FAIL;
+  }
+  if (init_array(&(data -> torq), N, 1, FLT_ARRAY) != SUCCESS) {
+    flag = FAIL;
+  }
+  return flag;
 }
 
 // -----------------------------------------------------

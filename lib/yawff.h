@@ -37,6 +37,7 @@
 #define INTEG_UNKNOWN 2    // Const for unknown integration method 
                            //(used for unit testing)
 
+#define EMPTY_ARRAY 0      // Indicates array type is empty
 #define INT_ARRAY 1        // Indicates array type ingeter
 #define FLT_ARRAY 2        // Indicates array type float
 #define UNKNOWN_ARRAY 3    // Indicates array of unkown type
@@ -95,22 +96,26 @@ extern int integrator(state_t state_curr, state_t *state_next, float force,
 extern float lowpass_filt1(float x,float y, float f_cut, float dt);
 extern int init_array(array_t *array, int nrow, int ncol, int type);
 extern void free_array(array_t *array);
-extern int get_array_val(array_t *array, int row, int col, void *val);
-extern int set_array_val(array_t *array, int row, int col, void *val);
+extern int get_array_val(array_t array, int row, int col, void *val);
+extern int set_array_val(array_t array, int row, int col, void *val);
 extern void print_config(config_t config);
-extern void print_err_msg(char *file, int line, char *err_msg);
+extern void print_err_msg(const char *file, int line, const char *func, char *err_msg);
 extern int get_max_motor(void);
 extern int get_max_dt(void);
 extern int get_min_dt(void);
 extern int get_clock_hi_ns(void);
 
 // Prototype for functions in check.c
+extern int check_yawff_input(array_t kine, config_t config, data_t data);
 extern int check_config(config_t config);
 extern int check_ranges(config_t config);
 extern int check_clkdir(config_t config);
 extern int check_kine_map(config_t config);
 extern int check_kine(array_t kine);
-extern int check_compat(config_t config, array_t kine);
+extern int check_kine_compat(config_t config, array_t kine);
+extern int check_array(array_t array);
+extern int check_data(data_t data);
+extern int check_data_compat(array_t kine, data_t data);
 
 #endif // INC_YAWFF_H_
 

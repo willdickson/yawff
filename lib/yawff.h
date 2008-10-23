@@ -100,6 +100,7 @@ extern int get_array_val(array_t array, int row, int col, void *val);
 extern int set_array_val(array_t array, int row, int col, void *val);
 extern void print_config(config_t config);
 extern void print_err_msg(const char *file, int line, const char *func, char *err_msg);
+extern void fflush_printf(const char *format, ...);
 extern int get_max_motor(void);
 extern int get_max_dt(void);
 extern int get_min_dt(void);

@@ -17,16 +17,16 @@ CFLAGS= -fPIC -c
 all: $(TARGET) test devel
 
 $(TARGET): $(OBJ)
-	${CC} -shared -W1,-soname,$@ -o $@.$(RELEASE_NUM) $? -lm 
+	${CC} -shared -W1,-soname,$@ -o $@.$(RELEASE_NUM) $? -lm $(LXRT_LDFLAGS)
 
 $(OBJ): $(SRC)	
-	$(CC) $(CFLAGS) $(LXRT_CFLAGS) $? 
+	$(CC) $(CFLAGS) $(LXRT_CFLAGS) $?  
 
 test: $(SRC) test-$(LIBRARY_NAME).c
-	$(CC) $(LXRT_CFLAGS) $? -o test-$(LIBRARY_NAME) $(TEST_LDFLAGS) -lm
+	$(CC) $(LXRT_CFLAGS) $? -o test-$(LIBRARY_NAME) $(TEST_LDFLAGS) -lm $(LXRT_LDFLAGS)
 
 devel: $(SRC) devel-$(LIBRARY_NAME).c
-	$(CC) $(LXRT_CFLAGS) $? -o devel-$(LIBRARY_NAME) $(TEST_LDFLAGS) -lm
+	$(CC) $(LXRT_CFLAGS) $? -o devel-$(LIBRARY_NAME) $(TEST_LDFLAGS) -lm $(LXRT_LDFLAGS)
 
 .PHONY: clean install uninstall
 

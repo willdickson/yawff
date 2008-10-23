@@ -15,6 +15,7 @@
 //   lowpass_filt1      = firat order lowpass filter
 //   print_config       = prints configuration structure
 //   print_err_msg      = prints error messages
+//   fflush_printf      = printf followed by fflush(stdout)
 //   get_max_motor      = returns maximum allowed number of motors
 //   get_max_dt         = returns maximum allowed real-time period
 //   get_min_dt         = returns minimum allowed real-time period
@@ -36,9 +37,9 @@ state_t dynamics_func(
 // ----------------------------------------------------------------
 // Function: integrator
 //
-// Purpose: 2nd order integrator for turning yaw torque into 
-// position. Currently can select bewteen 1st order Euler method 
-// and 4th order Runge-Kutta 
+// Purpose: integrator for turning yaw torque into position. 
+// Currently can select bewteen 1st order Euler method and 4-5th 
+// order Runge-Kutta. 
 //
 // Arguments:
 //   state_curr  = dynamic state (position + velocity) at current 
@@ -437,6 +438,21 @@ void print_config(config_t config)
 void print_err_msg(const char *file, int line, const char *func, char *err_msg)
 {
   fprintf(stderr, "%s:%d, %s, Error: %s\n",file, line, func, err_msg);
+  return;
+}
+
+// -----------------------------------------------------------------
+// Function: fflush_printf
+//
+// Purpose: print and flush stream
+// -----------------------------------------------------------------
+void fflush_printf(const char *format, ...)
+{
+  va_list ap;
+  va_start(ap, format);
+  vfprintf(stdout, format, ap);
+  va_end(ap);
+  fflush(stdout);
   return;
 }
 

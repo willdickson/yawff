@@ -28,7 +28,7 @@ typedef struct {
 // Function prototypes
 static void *rt_handler(void *args);
 int rt_cleanup(int level, void *comedi_device, RT_TASK *rt_task);
-
+int init_comedi(void **comedi_device, config_t config);
 
 // Global variables
 volatile int end = 0;
@@ -122,7 +122,7 @@ static void *rt_handler(void *args)
   array_t kine;
   config_t config;
   data_t data;
-    
+   
   int ind[MAX_MOTOR];
   int i,j;
 
@@ -132,13 +132,15 @@ static void *rt_handler(void *args)
   config = *(thread_args -> config);
   data = *(thread_args -> data);
 
-  // Open comedi device
-  fflush_printf("opening comedi device\n");
-  comedi_device = comedi_open(config.dev_name);
-  if (comedi_device == NULL) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"unable to open comedi device");
+
+  // Initialize comedi device
+  if (init_comedi(&comedi_device, config) != SUCCESS) {
+    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"unable to initialize comedi device");
+    end = 1;
     return 0;
   }
+
+  // Zero torque input
 
   // Initialize rt_task
   fflush_printf("Initializing rt_task \n");
@@ -146,11 +148,11 @@ static void *rt_handler(void *args)
   rt_task = rt_task_init_schmod(nam2num("MOTOR"),0, 0, 0, SCHED_FIFO, 0xF); 
   if (!rt_task) {          
     print_err_msg(__FILE__,__LINE__,__FUNCTION__, "cannot initialize rt task");
-    end = 1;
     // clean up and exit
     if (rt_cleanup(RT_CLEANUP_LEVEL_1,comedi_device,rt_task) != SUCCESS) {
       print_err_msg(__FILE__,__LINE__,__FUNCTION__,"rt_cleanup failed");
     }
+    end = 1;
     return 0;
   }
 
@@ -175,10 +177,64 @@ static void *rt_handler(void *args)
   return 0;
 }
 
+
+// ------------------------------------------------------------------
+// Function: init_comedi
+//
+// Purpose: Opens comedi device and sets clock and direction dio 
+// lines to output.
+//
+// ------------------------------------------------------------------
+int init_comedi(void **comedi_device, config_t config)
+{
+  int i;
+  int rval;
+  char err_msg[ERR_SZ];
+  int ret_flag = SUCCESS;
+  
+  // Open comedi device
+  fflush_printf("opening comedi device\n");
+  *comedi_device = comedi_open(config.dev_name);
+  if (comedi_device == NULL) {
+    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"unable to open comedi device");
+    return FAIL;
+  }
+
+  // Configure comedi dio 
+  for (i=0; i<config.num_motor; i++) {    
+    // Set clock lines to output
+    rval = comedi_dio_config(*comedi_device, 
+				config.dio_subdev, 
+				config.dio_clk[i],
+				COMEDI_OUTPUT);
+    if (rval != 1 ) {
+      snprintf(err_msg, ERR_SZ, "unable to configure dio_clk[%d]", i);
+      print_err_msg(__FILE__,__LINE__,__FUNCTION__, err_msg);
+      ret_flag = FAIL;
+    }
+    // Set direction lines to output 
+    rval = comedi_dio_config(*comedi_device, 
+				config.dio_subdev, 
+				config.dio_dir[i],
+				COMEDI_OUTPUT);
+    if (rval != 1) {
+      snprintf(err_msg, ERR_SZ, "unable to configure dio_dir[%d]", i);
+      print_err_msg(__FILE__,__LINE__,__FUNCTION__,err_msg);
+      ret_flag = FAIL;
+    }
+  } // End for i
+ 
+  return ret_flag;
+}
+
 // ------------------------------------------------------------------
 // Function: rt_cleanup
 //
-// Purpose: Cleanup function for real-time task
+// Purpose: Cleanup function for real-time task. Cleans up based on 
+// cleanup level. 
+// 
+// level 1 => closes comedi device
+// level 2 => deletes rt_task and then closes comedi device.
 //
 // ------------------------------------------------------------------
 int rt_cleanup(int level, void *comedi_device, RT_TASK *rt_task)

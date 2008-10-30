@@ -25,7 +25,7 @@
 #define DT_NS 300000
 
 // Kinematics test parameters
-#define KINE_NROW 200
+#define KINE_NROW 100000
 #define KINE_NCOL NUM_MOTOR
 #define KINE_PERIOD 5 // seconds
 #define KINE_AMP 200  // indices

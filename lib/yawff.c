@@ -6,6 +6,17 @@
 // Author: Will Dickson 09/30/2008
 // -------------------------------------------------------------------
 #include "yawff.h"
+#include <unistd.h>
+
+// RT-task parameters
+#define PRIORITY 1
+#define STACK_SIZE 4096
+#define MSG_SIZE 0
+
+// RT-task cleanup levels
+#define RT_CLEANUP_LEVEL_1 1
+#define RT_CLEANUP_LEVEL_2 2
+#define RT_CLEANUP_ALL 2
 
 // Structure for arguments pass to real time thread
 typedef struct {
@@ -14,19 +25,13 @@ typedef struct {
   data_t *data;
 } thread_args_t;
 
-// RT-task parameters
-const int PRIORITY=1;
-const int STACK_SIZE=4096;
-const int MSG_SIZE=0;
-
 // Function prototypes
 static void *rt_handler(void *args);
-int init_comedi(void);
-int init_rtai(void);
+int rt_cleanup(int level, void *comedi_device, RT_TASK *rt_task);
+
 
 // Global variables
 volatile int end = 0;
-
 
 // -------------------------------------------------------------------
 // Function: yawff
@@ -53,8 +58,6 @@ int yawff(
   void *sighandler = NULL;
   int rtn_flag = SUCCESS;
   thread_args_t thread_args;
-  int i;
-  float val;
 
   // Startup method 
   printf("\n");
@@ -74,10 +77,6 @@ int yawff(
     print_err_msg(__FILE__,__LINE__,__FUNCTION__, "assigning SIGINT handler");
     return FAIL;
   }
-
-  // Initialize comedi device
-
-  // Take zero reading from yaw torque sensor
   
   // Pack arguments to thread
   thread_args.kine = &kine;
@@ -88,10 +87,12 @@ int yawff(
   fflush_printf("starting rt_thread\n");
   rt_thread = rt_thread_create(rt_handler, ((void *)&thread_args), STACK_SIZE);
   
+  // Run time display
+  do {
+    sleep(4);
+  } while (!end);
 
-  // Print information 
 
- 
   // Clean up
   rt_thread_join(rt_thread);
   fflush_printf("rt_thread joined\n");
@@ -103,14 +104,6 @@ int yawff(
     rtn_flag = FAIL;
   }
   
-  ///////////////////////////////////////////
-  // Test reading data out of data array
-  //for (i=0; i<data.t.nrow; i++) {
-  //  get_array_val(data.t,i,0,&val);
-  //  printf("%f\n", val);
-  //}
-  //////////////////////////////////////////
-
   // Temporary
   return rtn_flag;
 }
@@ -123,13 +116,15 @@ int yawff(
 // ------------------------------------------------------------------
 static void *rt_handler(void *args)
 {
-  RT_TASK *rt_task;
-  thread_args_t *thread_args;
+  RT_TASK *rt_task=NULL;
+  thread_args_t *thread_args=NULL;
+  void *comedi_device=NULL;
   array_t kine;
   config_t config;
   data_t data;
-  int i;
-  float val;
+    
+  int ind[MAX_MOTOR];
+  int i,j;
 
   // Unpack arguments passed to thread
   thread_args = (thread_args_t *) args;
@@ -137,31 +132,86 @@ static void *rt_handler(void *args)
   config = *(thread_args -> config);
   data = *(thread_args -> data);
 
+  // Open comedi device
+  fflush_printf("opening comedi device\n");
+  comedi_device = comedi_open(config.dev_name);
+  if (comedi_device == NULL) {
+    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"unable to open comedi device");
+    return 0;
+  }
+
   // Initialize rt_task
   fflush_printf("Initializing rt_task \n");
   rt_allow_nonroot_hrt();
   rt_task = rt_task_init_schmod(nam2num("MOTOR"),0, 0, 0, SCHED_FIFO, 0xF); 
   if (!rt_task) {          
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__, "cannot initialize rt task\n");
+    print_err_msg(__FILE__,__LINE__,__FUNCTION__, "cannot initialize rt task");
     end = 1;
+    // clean up and exit
+    if (rt_cleanup(RT_CLEANUP_LEVEL_1,comedi_device,rt_task) != SUCCESS) {
+      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"rt_cleanup failed");
+    }
     return 0;
   }
 
-  
-  ///////////////////////////////////////
-  // Test copying data into data array
-  //for (i=0; i<data.t.nrow; i++) {
-  //  val = 10.0*( (float) i);
-  //  set_array_val(data.t,i,0,&val);
-  //}
-  ///////////////////////////////////////
-
+  // Loop over motor indices
+  for (i=0; i<kine.nrow; i++) {
+    //printf("%d: ", i);
+    for (j=0; j<kine.ncol;j++) {
+      if (get_array_val(kine,i,0,&ind[j]) != SUCCESS) {
+	print_err_msg(__FILE__,__LINE__,__FUNCTION__, "error accessing kine");
+      }
+      //printf("%d, ", ind[j]);
+    }
+    //printf("\n");
+  }
 
   // Clean up
-  fflush_printf("deleting rt_task \n");
-  rt_task_delete(rt_task);
+  if (rt_cleanup(RT_CLEANUP_ALL, comedi_device, rt_task)!=SUCCESS) {
+    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"rt_cleanup failed");
+  }
+  end = 1;
 
   return 0;
+}
+
+// ------------------------------------------------------------------
+// Function: rt_cleanup
+//
+// Purpose: Cleanup function for real-time task
+//
+// ------------------------------------------------------------------
+int rt_cleanup(int level, void *comedi_device, RT_TASK *rt_task)
+{
+  
+  int ret_flag = SUCCESS;
+
+  fflush_printf("starting rt_cleanup: level=%d\n", level);
+  
+  switch (level) {
+    
+  case RT_CLEANUP_LEVEL_2:
+    fflush_printf("  %d: deleting rt_task\n", RT_CLEANUP_LEVEL_2);
+    if (rt_task_delete(rt_task) != 0) {
+      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"unable to delete rt_task");
+      ret_flag = FAIL;
+    }
+    
+  case RT_CLEANUP_LEVEL_1:
+   
+    fflush_printf("  %d: closing comedi device\n", RT_CLEANUP_LEVEL_1);
+    if (comedi_close(comedi_device)!=0) {
+      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"unable to close comedi device");
+      ret_flag = FAIL;
+    }
+
+  default:
+    break;
+  }
+
+  fflush_printf("rt_cleanup complete\n");
+
+  return ret_flag;
 }
 
 

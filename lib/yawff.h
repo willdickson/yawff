@@ -94,7 +94,6 @@ typedef struct {
 
 // Prototypes for functions in yawff.c
 extern int yawff(array_t kine, config_t config, data_t data, int *end_pos); 
-extern void sigint_func(int sig);
 
 // Prototypes for functions if util.c
 extern int integrator(state_t state_curr, state_t *state_next, float force, 

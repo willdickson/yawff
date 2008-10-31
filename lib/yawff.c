@@ -26,7 +26,7 @@ typedef struct {
   data_t *data;
 } thread_args_t;
 
-// Comedi device information 
+// Structure for comedi device information 
 typedef struct {
   void *device;
   comedi_krange krange;
@@ -39,6 +39,7 @@ int rt_cleanup(int level, comedi_info_t comedi_info, RT_TASK *rt_task);
 int init_comedi(comedi_info_t *comedi_info, config_t config);
 int get_ain_zero(comedi_info_t comedi_info,  config_t config, float *ain_zero);
 int ain_to_phys(lsampl_t data, comedi_info_t comedi_info, float *volts);
+void sigint_func(int sig);
 
 // Global variables
 volatile int end = 0;
@@ -56,12 +57,7 @@ volatile int end = 0;
 //  end_pod  = pointer to final position in motor ind
 //  
 // -------------------------------------------------------------------
-int yawff(
-	  array_t kine, 
-	  config_t config, 
-	  data_t data, 
-	  int *end_pos
-	  )
+int yawff(array_t kine, config_t config, data_t data, int *end_pos)
 {
 
   int rt_thread;
@@ -237,7 +233,7 @@ int get_ain_zero(comedi_info_t comedi_info, config_t config, float *ain_zero)
     }
 	 
     // Convert integer analog input value to volts
-    if (ain_to_phys(ain_lsampl, comedi_info, &ain_volt)!=SUCCESS) {
+    if (ain_to_phys(ain_lsampl, comedi_info, &ain_volt) != SUCCESS) {
       snprintf(err_msg, ERR_SZ, "ain_to_phys failed at i = %d", i);
       print_err_msg(__FILE__,__LINE__,__FUNCTION__,err_msg);
       ret_flag = FAIL;
@@ -247,7 +243,7 @@ int get_ain_zero(comedi_info_t comedi_info, config_t config, float *ain_zero)
     // Compute running mean
     *ain_zero = (((float) i)/((float) i+1))*(*ain_zero)+(1.0/((float) i+1))*ain_volt;
     
-    // Sleep for a bit
+    // Sleep for AIN_SLEEP_DT seconds
     nanosleep(&sleep_req, NULL);
   }
   fflush_printf("ain_zero: %f(V)\n", *ain_zero);

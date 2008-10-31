@@ -43,17 +43,23 @@
 #define UNKNOWN_ARRAY 3    // Indicates array of unkown type
                            //(use for unit testing)
 
+#define AIN_ZERO_DT 0.01   // Sample time interval for zeroing analog input 
+#define AIN_ZERO_NUM 500   // Number of samples to acquire when zeroing analog input
+#define AIN_RANGE 0        // Analog input range
+#define AIN_AREF AREF_GROUND // Analog input reference
+
+
 // Structure for configuration
 typedef struct {
   char *dev_name;          // Comedi device name  
-  int ain_subdev;          // Analog input subdevice
+  unsigned int ain_subdev; // Analog input subdevice
   int dio_subdev;          // Digital IO subdevice
   int num_motor;           // Total number of motors
   int yaw_motor;           // Yaw motor number
   int dio_clk[MAX_MOTOR];  // DIO clock pins
   int dio_dir[MAX_MOTOR];  // DIO direction pins
   int kine_map[MAX_MOTOR]; // Map from kinematics to motors
-  int yaw_ain;             // Analog input channel for yaw torque
+  unsigned int yaw_ain;    // Analog input channel for yaw torque
   float yaw_volt2torq;     // Voltage to torque conversion
   float yaw_inertia;       // Moment of inertia about yaw axis
   float yaw_ind2deg;       // Index to degree conversion for yaw

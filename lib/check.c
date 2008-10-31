@@ -121,7 +121,7 @@ int check_ranges(config_t config)
     flag = FAIL;
   }
   // Check analog input range
-  if ((config.yaw_ain < 0) || (config.yaw_ain > MAX_AIN)) {
+  if (config.yaw_ain > MAX_AIN) {
     print_err_msg(
 		  __FILE__,
 		  __LINE__,

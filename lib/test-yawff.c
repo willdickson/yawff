@@ -296,9 +296,6 @@ void test_check_config(void)
 
   // Analog input range test
   config_test = config;
-  config_test.yaw_ain = -1;
-  CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
-  config_test = config;
   config_test.yaw_ain = MAX_AIN+1;
   CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
   

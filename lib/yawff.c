@@ -38,6 +38,9 @@ static void *rt_handler(void *args);
 int rt_cleanup(int level, comedi_info_t comedi_info, RT_TASK *rt_task);
 int init_comedi(comedi_info_t *comedi_info, config_t config);
 int get_ain_zero(comedi_info_t comedi_info,  config_t config, float *ain_zero);
+int get_torq_zero(comedi_info_t comedi_info, config_t config, float *torq_zero);
+int get_ain(comedi_info_t comedi_info, config_t config, float *ain);
+int get_torq(comedi_info_t comedi_info, config_t config, float *torq);
 int ain_to_phys(lsampl_t data, comedi_info_t comedi_info, float *volts);
 void sigint_func(int sig);
 
@@ -128,8 +131,7 @@ static void *rt_handler(void *args)
   array_t kine;
   config_t config;
   data_t data;
-  float ain_zero;
-  float yaw_torq_zero;
+  float torq_zero;
   int ind[MAX_MOTOR];
   int i,j;
 
@@ -147,7 +149,7 @@ static void *rt_handler(void *args)
   }
 
   // Find yaw torque zero
-  if (get_ain_zero(comedi_info, config, &ain_zero) != SUCCESS) {
+  if (get_torq_zero(comedi_info, config, &torq_zero) != SUCCESS) {
     print_err_msg(__FILE__,__LINE__,__FUNCTION__,"failed to get ain zero");
     // Error, clean up and exit
     if (rt_cleanup(RT_CLEANUP_LEVEL_1,comedi_info,rt_task) != SUCCESS) {
@@ -156,7 +158,6 @@ static void *rt_handler(void *args)
     end =1;
     return 0;
   }  
-  yaw_torq_zero = ain_zero*config.yaw_volt2torq;
 
   // Initialize rt_task
   fflush_printf("Initializing rt_task \n");
@@ -194,20 +195,44 @@ static void *rt_handler(void *args)
   return 0;
 }
 
-// -----------------------------------------------------------------
+// ----------------------------------------------------------------------
+// Function: get_torq_zero
+//
+// Purpose: Determines the zero value (Nm) for yaw torque sensor. 
+//
+// ----------------------------------------------------------------------
+int get_torq_zero(comedi_info_t comedi_info, config_t config, float *torq_zero)
+{
+
+  float ain_zero;
+
+  // Get analog input zero
+  if (get_ain_zero(comedi_info, config, &ain_zero) != SUCCESS) {
+    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"unable to get ain zero");
+    return FAIL;
+  }
+
+  // Convert to torque
+  *torq_zero = ain_zero*config.yaw_volt2torq;
+  
+  fflush_printf("torque zero: %f(Nm)\n", *torq_zero);
+
+  return SUCCESS;
+}
+
+// -----------------------------------------------------------------------
 // Function: get_ain_zero
 //
-// Purpose: 
+// Purpose: Determines the zero value in volts for the yaw torque
+// analog input.
 //
-// -----------------------------------------------------------------
+// -----------------------------------------------------------------------
 int get_ain_zero(comedi_info_t comedi_info, config_t config, float *ain_zero)
 {
   int i;
-  int rval;
+  float ain;
   int ret_flag = SUCCESS;
-  lsampl_t ain_lsampl; 
   char err_msg[ERR_SZ];
-  float ain_volt;
   struct timespec sleep_req;
 
   fflush_printf("finding ain zero, T = %1.3f(s) \n", AIN_ZERO_DT*AIN_ZERO_NUM);
@@ -219,37 +244,75 @@ int get_ain_zero(comedi_info_t comedi_info, config_t config, float *ain_zero)
   // Get samples and find mean
   *ain_zero = 0;
   for (i=0; i<AIN_ZERO_NUM; i++) {
-    rval = comedi_data_read(comedi_info.device,
-			    config.ain_subdev,
-			    config.yaw_ain,
-			    AIN_RANGE,
-			    AIN_AREF,
-			    &ain_lsampl);
-    if (rval!=1) {
-      snprintf(err_msg, ERR_SZ, "comedi_data_read failed at i = %d", i);
+
+    if (get_ain(comedi_info, config, &ain) != SUCCESS) {
+      snprintf(err_msg, ERR_SZ, "unable to read ain, i = %d", i);
       print_err_msg(__FILE__,__LINE__,__FUNCTION__,err_msg);
       ret_flag = FAIL;
       break;
     }
-	 
-    // Convert integer analog input value to volts
-    if (ain_to_phys(ain_lsampl, comedi_info, &ain_volt) != SUCCESS) {
-      snprintf(err_msg, ERR_SZ, "ain_to_phys failed at i = %d", i);
-      print_err_msg(__FILE__,__LINE__,__FUNCTION__,err_msg);
-      ret_flag = FAIL;
-      break;
-    }
-    
+
     // Compute running mean
-    *ain_zero = (((float) i)/((float) i+1))*(*ain_zero)+(1.0/((float) i+1))*ain_volt;
+    *ain_zero = (((float) i)/((float) i+1))*(*ain_zero)+(1.0/((float) i+1))*ain;
     
     // Sleep for AIN_SLEEP_DT seconds
     nanosleep(&sleep_req, NULL);
   }
   fflush_printf("ain_zero: %f(V)\n", *ain_zero);
+
   return ret_flag;
 }
 
+// ------------------------------------------------------------------
+// Function: get_ain
+//
+// Prupose: Read yaw torq analog input
+//
+// ------------------------------------------------------------------
+int get_ain(comedi_info_t comedi_info, config_t config, float *ain)
+{
+  int rval;
+  lsampl_t ain_lsampl; 
+
+  // Read value from daq card
+  rval = comedi_data_read(comedi_info.device,
+			  config.ain_subdev,
+			  config.yaw_ain,
+			  AIN_RANGE,
+			  AIN_AREF,
+			  &ain_lsampl);
+  if (rval!=1) {
+    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"comedi_data_read failed");
+    return FAIL;
+  }
+  
+  // Convert integer analog input value to volts
+  if (ain_to_phys(ain_lsampl, comedi_info, ain) != SUCCESS) {
+    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"ain_to_phys failed");
+    return FAIL;
+  }
+  return SUCCESS;
+}
+// ------------------------------------------------------------------
+// Function: get_torq
+//
+// Purpose: Read yaw torque from sensor
+//
+// ------------------------------------------------------------------
+int get_torq(comedi_info_t comedi_info, config_t config, float *torq)
+{
+
+  float ain;
+  
+  if (get_ain(comedi_info, config, &ain) != SUCCESS) {
+    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"unable to read analog input");
+    return FAIL;
+  }
+
+  *torq = ain*config.yaw_volt2torq;
+
+  return SUCCESS;
+}
 
 // ------------------------------------------------------------------
 // Function: init_comedi

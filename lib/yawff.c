@@ -63,6 +63,7 @@ volatile int end = 0;
 int yawff(array_t kine, config_t config, data_t data, int *end_pos)
 {
 
+  RT_TASK *yawff_task;
   int rt_thread;
   void *sighandler = NULL;
   int rtn_flag = SUCCESS;
@@ -87,7 +88,19 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
     return FAIL;
   }
   
-  // Pack arguments to thread
+  //Initialize RT task
+  fflush_printf("initializing yawff_task\n");
+  rt_allow_nonroot_hrt();
+  yawff_task = rt_task_init(nam2num("YAWFF"),PRIORITY,STACK_SIZE,MSG_SIZE);
+  if (!yawff_task) {
+    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"error initializing yawff_task\n");
+    return FAIL;
+  }
+  rt_set_oneshot_mode();
+  start_rt_timer(0);
+
+
+  // Assign arguments to thread
   thread_args.kine = &kine;
   thread_args.config = &config;
   thread_args.data = &data;
@@ -101,10 +114,12 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
     sleep(4);
   } while (!end);
 
-
   // Clean up
   rt_thread_join(rt_thread);
   fflush_printf("rt_thread joined\n");
+  stop_rt_timer();
+  rt_task_delete(yawff_task);
+  fflush_printf("yawff_task deleted\n");
 
   // Restore old SIGINT handler
   sighandler = signal(SIGINT,sighandler);
@@ -131,7 +146,11 @@ static void *rt_handler(void *args)
   array_t kine;
   config_t config;
   data_t data;
+  RTIME now_ns;
+  int period;
   float torq_zero;
+  float torq;
+  float runtime;
   int ind[MAX_MOTOR];
   int i,j;
 
@@ -155,14 +174,13 @@ static void *rt_handler(void *args)
     if (rt_cleanup(RT_CLEANUP_LEVEL_1,comedi_info,rt_task) != SUCCESS) {
       print_err_msg(__FILE__,__LINE__,__FUNCTION__,"rt_cleanup failed");
     }
-    end =1;
+    end = 1;
     return 0;
   }  
 
   // Initialize rt_task
   fflush_printf("Initializing rt_task \n");
-  rt_allow_nonroot_hrt();
-  rt_task = rt_task_init_schmod(nam2num("MOTOR"),0, 0, 0, SCHED_FIFO, 0xF); 
+  rt_task = rt_task_init_schmod(nam2num("MOTOR"),0, 0, 0, SCHED_FIFO, 0xF);
   if (!rt_task) {          
     print_err_msg(__FILE__,__LINE__,__FUNCTION__, "cannot initialize rt task");
     // Error, clean up and exit
@@ -172,19 +190,64 @@ static void *rt_handler(void *args)
     end = 1;
     return 0;
   }
+  rt_task_use_fpu(rt_task,1); // Enable use of floating point math
+  
+  // Setup periodic timer
+  fflush_printf("setting up periodic timer\n");
+  period = nano2count(config.dt);
+  
+  // Go to hard real-time
+  runtime = ((float) config.dt)*((float) kine.nrow)*NS2S;
+  fflush_printf("going to hard real-time, T = %f\n", runtime);
+  mlockall(MCL_CURRENT|MCL_FUTURE);
+  rt_make_hard_real_time();
 
   // Loop over motor indices
   for (i=0; i<kine.nrow; i++) {
-    for (j=0; j<kine.ncol;j++) {
 
-      ///////////////////////////////////////////////////
-      // Temposrary
+    now_ns = rt_get_time_ns();
+
+    // DEBUG ///////////////////////////////////
+    comedi_dio_write(comedi_info.device,config.dio_subdev,0,DIO_HI);
+    ////////////////////////////////////////////
+
+    // Read torque sensor
+    if (get_torq(comedi_info, config, &torq) != SUCCESS) {
+      print_err_msg(__FILE__,__LINE__,__FUNCTION__, "error reading torque");
+      goto RT_LOOP_EXIT;
+    }
+
+    // Loop over motors 
+    for (j=0; j<kine.ncol;j++) {
       if (get_array_val(kine,i,0,&ind[j]) != SUCCESS) {
 	print_err_msg(__FILE__,__LINE__,__FUNCTION__, "error accessing kine");
+	goto RT_LOOP_EXIT;
       }
-      ///////////////////////////////////////////////////
+    } // End for j
+
+    // Sleep for CLOCK_HI_NS and then set clock lines low
+    rt_sleep_until(nano2count(now_ns + (RTIME) CLOCK_HI_NS));
+
+    // DEBUG ///////////////////////////////////
+    comedi_dio_write(comedi_info.device,config.dio_subdev,0,DIO_LO);
+    ////////////////////////////////////////////    
+
+    // Check if end has been set to 1 by SIGINT
+    if (end == 1) {
+      fflush_printf("SIGINT - exiting real-time\n");
+      goto RT_LOOP_EXIT;
     }
-  }
+
+    // Sleep until next period
+    rt_sleep_until(nano2count(now_ns + config.dt));
+
+  } // End for i
+
+ RT_LOOP_EXIT:
+  // Leave realtime
+  rt_make_soft_real_time();
+  munlockall();
+  fflush_printf("leaving hard real-time\n");
 
   // Clean up
   if (rt_cleanup(RT_CLEANUP_ALL, comedi_info, rt_task)!=SUCCESS) {
@@ -203,7 +266,6 @@ static void *rt_handler(void *args)
 // ----------------------------------------------------------------------
 int get_torq_zero(comedi_info_t comedi_info, config_t config, float *torq_zero)
 {
-
   float ain_zero;
 
   // Get analog input zero
@@ -349,7 +411,7 @@ int init_comedi(comedi_info_t *comedi_info, config_t config)
       ret_flag = FAIL;
     }
     // Set direction lines to output 
-    rval = comedi_dio_config(comedi_info -> device, 
+    rval = comedi_dio_config(comedi_info->device, 
 			     config.dio_subdev, 
 			     config.dio_dir[i],
 			     COMEDI_OUTPUT);

@@ -28,10 +28,10 @@
 #define ERR_SZ 200
 #define MAX_DT_NS 10000000 // 100 Hz 
 #define MIN_DT_NS 40000    // 25 kHz
-#define CLOCK_HI_NS 20000  // 50 Hz
+#define CLOCK_HI_NS 40000  
 #define MIN_TORQ_LIM 0.0   // Nm
 #define MAX_TORQ_LIM 0.5   // Nm
-#define TASK_NAME "yawff"
+#define NS2S 1.0e-9        // Convert nanoseconds to seconds 
 #define INTEG_EULER 0      // Const for integration by Euler method 
 #define INTEG_RKUTTA 1     // Const for integration by Runge-Kutta
 #define INTEG_UNKNOWN 2    // Const for unknown integration method 
@@ -44,7 +44,7 @@
                            //(use for unit testing)
 
 #define AIN_ZERO_DT 0.01   // Sample time interval for zeroing analog input 
-#define AIN_ZERO_NUM 500   // Number of samples to acquire when zeroing analog input
+#define AIN_ZERO_NUM 50    // Number of samples to acquire when zeroing analog input
 #define AIN_RANGE 0        // Analog input range
 #define AIN_AREF AREF_GROUND // Analog input reference
 

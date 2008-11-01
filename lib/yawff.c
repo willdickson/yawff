@@ -33,6 +33,12 @@ typedef struct {
   int maxdata;
 } comedi_info_t;
 
+// Structure for torque data
+typedef struct {
+  float zero;
+  float last;
+} torq_info_t;
+ 
 // Function prototypes
 static void *rt_handler(void *args);
 int rt_cleanup(int level, comedi_info_t comedi_info, RT_TASK *rt_task);
@@ -42,6 +48,7 @@ int get_torq_zero(comedi_info_t comedi_info, config_t config, float *torq_zero);
 int get_ain(comedi_info_t comedi_info, config_t config, float *ain);
 int get_torq(comedi_info_t comedi_info, config_t config, float *torq);
 int ain_to_phys(lsampl_t data, comedi_info_t comedi_info, float *volts);
+int update_state(state_t *state, torq_info_t *torq_info, comedi_info_t comedi_info, config_t config);
 void sigint_func(int sig);
 
 // Global variables
@@ -99,7 +106,6 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
   rt_set_oneshot_mode();
   start_rt_timer(0);
 
-
   // Assign arguments to thread
   thread_args.kine = &kine;
   thread_args.config = &config;
@@ -147,9 +153,8 @@ static void *rt_handler(void *args)
   config_t config;
   data_t data;
   RTIME now_ns;
-  int period;
-  float torq_zero;
-  float torq;
+  torq_info_t torq_info;
+  state_t state[2]; // state[0] = previous state, state[1] = current state
   float runtime;
   int ind[MAX_MOTOR];
   int i,j;
@@ -168,7 +173,7 @@ static void *rt_handler(void *args)
   }
 
   // Find yaw torque zero
-  if (get_torq_zero(comedi_info, config, &torq_zero) != SUCCESS) {
+  if (get_torq_zero(comedi_info, config, &torq_info.zero) != SUCCESS) {
     print_err_msg(__FILE__,__LINE__,__FUNCTION__,"failed to get ain zero");
     // Error, clean up and exit
     if (rt_cleanup(RT_CLEANUP_LEVEL_1,comedi_info,rt_task) != SUCCESS) {
@@ -194,8 +199,12 @@ static void *rt_handler(void *args)
   
   // Setup periodic timer
   fflush_printf("setting up periodic timer\n");
-  period = nano2count(config.dt);
-  
+
+  // Initialize dynamic state
+  for (i=0; i<2; i++) {
+    state[i].pos = 0.0;
+    state[i].vel = 0.0;
+  }  
   // Go to hard real-time
   runtime = ((float) config.dt)*((float) kine.nrow)*NS2S;
   fflush_printf("going to hard real-time, T = %f\n", runtime);
@@ -207,17 +216,17 @@ static void *rt_handler(void *args)
 
     now_ns = rt_get_time_ns();
 
-    // DEBUG ///////////////////////////////////
+    // DEBUG ///////////////////////////////////////////////////////
     comedi_dio_write(comedi_info.device,config.dio_subdev,0,DIO_HI);
-    ////////////////////////////////////////////
-
-    // Read torque sensor
-    if (get_torq(comedi_info, config, &torq) != SUCCESS) {
-      print_err_msg(__FILE__,__LINE__,__FUNCTION__, "error reading torque");
+    ////////////////////////////////////////////////////////////////
+      
+    // Update dynamic state
+    if (update_state(state,&torq_info,comedi_info,config) != SUCCESS) {
+      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"updating dynamic state failed");
       goto RT_LOOP_EXIT;
     }
-
-    // Loop over motors 
+    
+    // Loop wing motors and update positions
     for (j=0; j<kine.ncol;j++) {
       if (get_array_val(kine,i,0,&ind[j]) != SUCCESS) {
 	print_err_msg(__FILE__,__LINE__,__FUNCTION__, "error accessing kine");
@@ -225,12 +234,16 @@ static void *rt_handler(void *args)
       }
     } // End for j
 
+    // Update yaw motor position
+    state[0] = state[1];
+    
+
     // Sleep for CLOCK_HI_NS and then set clock lines low
     rt_sleep_until(nano2count(now_ns + (RTIME) CLOCK_HI_NS));
 
-    // DEBUG ///////////////////////////////////
+    // DEBUG ///////////////////////////////////////////////////////
     comedi_dio_write(comedi_info.device,config.dio_subdev,0,DIO_LO);
-    ////////////////////////////////////////////    
+    ////////////////////////////////////////////////////////////////    
 
     // Check if end has been set to 1 by SIGINT
     if (end == 1) {
@@ -257,6 +270,56 @@ static void *rt_handler(void *args)
 
   return 0;
 }
+
+// ----------------------------------------------------------------------
+// Function: update_state
+//
+// Purpose: Get reading from torque sensor and update dynamic state.
+//
+// ---------------------------------------------------------------------- 
+int update_state(state_t *state, 
+		 torq_info_t *torq_info,
+		 comedi_info_t comedi_info, 
+		 config_t config
+		 )
+{
+
+  float dt;
+  float torq_raw;
+  float torq_filt;
+  int rval;
+
+  // Get time step in secs
+  dt = config.dt*NS2S;
+  
+  // Get data from  torque sensor and zero 
+  if (get_torq(comedi_info, config, &torq_raw) != SUCCESS) {
+    print_err_msg(__FILE__,__LINE__,__FUNCTION__, "error reading torque");
+    return FAIL;
+  }
+  torq_raw = torq_raw-(torq_info->zero);
+
+  // Zero and filter torque
+  torq_filt = lowpass_filt1(torq_raw,torq_info->last,config.yaw_filt_cut,dt);
+  torq_info -> last = torq_filt;
+
+  // Update state one time step
+  state[0] = state[1];
+  rval = integrator(state[1],
+		    &state[1],
+		    torq_filt,
+		    config.yaw_inertia, 
+		    config.yaw_damping, 
+		    dt,
+		    INTEG_RKUTTA);
+  if (rval != SUCCESS ) {
+    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"integrator failed");
+    return FAIL;
+  }
+ 
+  return SUCCESS;
+}
+
 
 // ----------------------------------------------------------------------
 // Function: get_torq_zero

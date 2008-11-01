@@ -65,6 +65,7 @@ typedef struct {
   float yaw_ind2deg;       // Index to degree conversion for yaw
   float yaw_torq_lim;      // Yaw torque limit (Nm)
   float yaw_filt_cut;      // Yaw torque lowpass filter cutoff (Hz)
+  float yaw_damping;       // Damping constant for yaw axis
   int dt;                  // Realtime loop timestep (ns)
 } config_t;
 

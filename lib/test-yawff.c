@@ -318,6 +318,11 @@ void test_check_config(void)
   config_test = config;
   config_test.yaw_filt_cut = -1.0;
   CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
+
+  // Yaw damping constant
+  config_test = config;
+  config_test.yaw_damping = -1.0;
+  CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
   
   // dt range tests
   config_test = config;

@@ -186,6 +186,17 @@ int check_ranges(config_t config)
     flag = FAIL;
   }
 
+  // Check damping constant
+  if (config.yaw_damping  < 0.0) {
+    print_err_msg(
+		  __FILE__,
+		  __LINE__,
+		  __FUNCTION__,
+		  "damping < 0"
+		  );
+    flag = FAIL;
+  }
+
   // Check realtime step range
   if ((config.dt > MAX_DT_NS) || (config.dt < MIN_DT_NS)) {
     print_err_msg(

@@ -22,6 +22,7 @@
 #define YAW_IND2DEG 1.5
 #define YAW_TORQ_LIM 0.5
 #define YAW_FILT_CUT 2.0
+#define YAW_DAMPING 0.0
 #define DT_NS 300000
 
 // Kinematics test parameters

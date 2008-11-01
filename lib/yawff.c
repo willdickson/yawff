@@ -211,7 +211,7 @@ static void *rt_handler(void *args)
   mlockall(MCL_CURRENT|MCL_FUTURE);
   rt_make_hard_real_time();
 
-  // Loop over motor indices
+  // Loop over kinematic indices
   for (i=0; i<kine.nrow; i++) {
 
     now_ns = rt_get_time_ns();
@@ -226,7 +226,7 @@ static void *rt_handler(void *args)
       goto RT_LOOP_EXIT;
     }
     
-    // Loop wing motors and update positions
+    // Loop over wing motors and update motor positions
     for (j=0; j<kine.ncol;j++) {
       if (get_array_val(kine,i,0,&ind[j]) != SUCCESS) {
 	print_err_msg(__FILE__,__LINE__,__FUNCTION__, "error accessing kine");
@@ -303,8 +303,10 @@ int update_state(state_t *state,
   torq_filt = lowpass_filt1(torq_raw,torq_info->last,config.yaw_filt_cut,dt);
   torq_info -> last = torq_filt;
 
-  // Update state one time step
+  // Set previous state to current state
   state[0] = state[1];
+  
+  // Integrate one time step
   rval = integrator(state[1],
 		    &state[1],
 		    torq_filt,
@@ -319,7 +321,6 @@ int update_state(state_t *state,
  
   return SUCCESS;
 }
-
 
 // ----------------------------------------------------------------------
 // Function: get_torq_zero

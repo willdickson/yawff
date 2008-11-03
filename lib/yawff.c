@@ -38,6 +38,12 @@ typedef struct {
   float zero;
   float last;
 } torq_info_t;
+
+// Structure for motor information
+typedef struct {
+  int pos;
+  int vel;
+} motor_info_t;
  
 // Function prototypes
 static void *rt_handler(void *args);
@@ -49,6 +55,10 @@ int get_ain(comedi_info_t comedi_info, config_t config, float *ain);
 int get_torq(comedi_info_t comedi_info, config_t config, float *torq);
 int ain_to_phys(lsampl_t data, comedi_info_t comedi_info, float *volts);
 int update_state(state_t *state, torq_info_t *torq_info, comedi_info_t comedi_info, config_t config);
+void init_ind(int motor_ind[][2], config_t config);
+int update_ind(int motor_ind[][2], array_t kine, int kine_ind, state_t *state, config_t config);
+int update_motor(int motor_ind[][2], comedi_info_t comedi_info, config_t config);
+int set_clks_lo(comedi_info_t comedi_info, config_t config);
 void sigint_func(int sig);
 
 // Global variables
@@ -61,8 +71,8 @@ volatile int end = 0;
 //
 // Arguments:
 //   
-//  kine     = wing kinematics function
-//  config   = system configuration data
+//  kine     = wing kinematics array
+//  config   = system configuration structure
 //  data     = structure of return data arrays
 //  end_pod  = pointer to final position in motor ind
 //  
@@ -147,17 +157,17 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
 static void *rt_handler(void *args)
 {
   RT_TASK *rt_task=NULL;
+  RTIME now_ns;
   thread_args_t *thread_args=NULL;
   comedi_info_t comedi_info;
   array_t kine;
   config_t config;
   data_t data;
-  RTIME now_ns;
   torq_info_t torq_info;
-  state_t state[2]; // state[0] = previous state, state[1] = current state
+  state_t state[2];            // state[0] = previous, state[1] = current 
+  int motor_ind[MAX_MOTOR][2]; // Motor index position [i][0] previous, [i][1] current
   float runtime;
-  int ind[MAX_MOTOR];
-  int i,j;
+  int i;
 
   // Unpack arguments passed to thread
   thread_args = (thread_args_t *) args;
@@ -172,6 +182,15 @@ static void *rt_handler(void *args)
     return 0;
   }
 
+  // Initialize dynamic state
+  for (i=0; i<2; i++) {
+    state[i].pos = 0.0;
+    state[i].vel = 0.0;
+  }  
+
+  // Initialize motor indices
+  init_ind(motor_ind,config);
+  
   // Find yaw torque zero
   if (get_torq_zero(comedi_info, config, &torq_info.zero) != SUCCESS) {
     print_err_msg(__FILE__,__LINE__,__FUNCTION__,"failed to get ain zero");
@@ -200,11 +219,7 @@ static void *rt_handler(void *args)
   // Setup periodic timer
   fflush_printf("setting up periodic timer\n");
 
-  // Initialize dynamic state
-  for (i=0; i<2; i++) {
-    state[i].pos = 0.0;
-    state[i].vel = 0.0;
-  }  
+
   // Go to hard real-time
   runtime = ((float) config.dt)*((float) kine.nrow)*NS2S;
   fflush_printf("going to hard real-time, T = %f\n", runtime);
@@ -215,40 +230,35 @@ static void *rt_handler(void *args)
   for (i=0; i<kine.nrow; i++) {
 
     now_ns = rt_get_time_ns();
-
-    // DEBUG ///////////////////////////////////////////////////////
-    comedi_dio_write(comedi_info.device,config.dio_subdev,0,DIO_HI);
-    ////////////////////////////////////////////////////////////////
-      
+    
     // Update dynamic state
     if (update_state(state,&torq_info,comedi_info,config) != SUCCESS) {
       print_err_msg(__FILE__,__LINE__,__FUNCTION__,"updating dynamic state failed");
-      goto RT_LOOP_EXIT;
+      break;
+    }
+
+    // Update motor index array
+    if (update_ind(motor_ind,kine,i,state,config) != SUCCESS) {
+      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"updating motor indices failed");
+      break;
+    }
+    // Update motor positions
+    if (update_motor(motor_ind, comedi_info, config) != SUCCESS) {
+      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"updating motor positions failed");
+      break;
     }
     
-    // Loop over wing motors and update motor positions
-    for (j=0; j<kine.ncol;j++) {
-      if (get_array_val(kine,i,0,&ind[j]) != SUCCESS) {
-	print_err_msg(__FILE__,__LINE__,__FUNCTION__, "error accessing kine");
-	goto RT_LOOP_EXIT;
-      }
-    } // End for j
-
-    // Update yaw motor position
-    state[0] = state[1];
-    
-
     // Sleep for CLOCK_HI_NS and then set clock lines low
     rt_sleep_until(nano2count(now_ns + (RTIME) CLOCK_HI_NS));
-
-    // DEBUG ///////////////////////////////////////////////////////
-    comedi_dio_write(comedi_info.device,config.dio_subdev,0,DIO_LO);
-    ////////////////////////////////////////////////////////////////    
-
+    if (set_clks_lo(comedi_info, config) != SUCCESS) {
+      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"setting dio clks failed");
+      break;
+    }
+  
     // Check if end has been set to 1 by SIGINT
     if (end == 1) {
       fflush_printf("SIGINT - exiting real-time\n");
-      goto RT_LOOP_EXIT;
+      break;
     }
 
     // Sleep until next period
@@ -256,7 +266,6 @@ static void *rt_handler(void *args)
 
   } // End for i
 
- RT_LOOP_EXIT:
   // Leave realtime
   rt_make_soft_real_time();
   munlockall();
@@ -270,6 +279,173 @@ static void *rt_handler(void *args)
 
   return 0;
 }
+
+// ---------------------------------------------------------------------
+// Function: set_clks_lo
+//
+// Purpose: set clock dio lines to DIO_LO.
+//
+// Arguments:
+//   comedi_info = structure of comedi daq/dio device information/
+//   config      = system configuration structure.
+//
+// Return: SUCCESS or FAIL
+//
+// ---------------------------------------------------------------------
+int set_clks_lo(comedi_info_t comedi_info, config_t config)
+{
+  int rval;
+  int i;
+
+  for (i=0; i<config.num_motor; i++) {
+    rval = comedi_dio_write(comedi_info.device,
+			    config.dio_subdev,
+			    config.dio_clk[i],
+			    DIO_LO);
+    if (rval != 1) {
+      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"comedi_dio_write failed");
+      return FAIL;
+    }
+  }
+  return SUCCESS;
+}
+
+
+// ---------------------------------------------------------------------
+// Function: update_motor
+//
+// Purpose: Updates the position of motors based on the (updated) motor 
+// index array.
+//
+// Arguments: 
+//   motor_ind   = array of motor indices for current and previous time 
+//                 steps.  motor[i][j] where i is motor # and j = 0 is 
+//                 previous time step and j = 1 is current time step.
+//   comedi_info = structure of comedi daq/dio card information.
+//   config      = system configuration structure.
+// 
+// Return: SUCCESS or FAIL
+//
+// ---------------------------------------------------------------------
+
+int update_motor(int motor_ind[][2], 
+		 comedi_info_t comedi_info, 
+		 config_t config)
+{
+  int i;
+  int dpos;
+  int dir_val;
+  int rval;
+
+  for (i=0; i<config.num_motor; i++) {
+    
+    dpos = motor_ind[i][1] - motor_ind[i][0];
+    
+    // Set direction DIO
+    dir_val = dpos >= 1 ? DIO_HI : DIO_LO;
+    rval = comedi_dio_write(comedi_info.device,
+			    config.dio_subdev,
+			    config.dio_dir[i],
+			    dir_val);
+    if (rval!=1) {
+      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"comedi write dio dir failed");
+      return FAIL;
+    }
+
+    // Set clock DIO
+    if (abs(dpos) > 0) {
+      rval = comedi_dio_write(comedi_info.device,
+			      config.dio_subdev,
+			      config.dio_clk[i],
+			      DIO_HI);
+      
+      if (rval != 1) {
+	print_err_msg(__FILE__,__LINE__,__FUNCTION__,"conedi write dio clk failed");
+	return FAIL;
+	
+      }
+    }
+  } // End for i
+
+  return SUCCESS;
+}
+
+// ---------------------------------------------------------------------
+// Function: update_ind
+//
+// Purpose: Updates array of motor indices based on kinematics, 
+// kinematics  index, and the dynamic state (for the yaw motor).
+//
+// Arguments:
+//   motor_ind = array of motor indices for current and previous time 
+//               steps.  motor[i][j] where i is motor # and j = 0 is 
+//               previous time step and j = 1 is current time step.
+//   kine      = kinematics array
+//   kine_ind  = current kinematics index
+//   state     = array of dynamic states (previous and current) for the
+//               yaw motor.
+//   config    = system configuration structure.
+//
+// Return: SUCCESS or FAIL
+//
+// ---------------------------------------------------------------------
+int update_ind(int motor_ind[][2],
+	       array_t kine, 
+	       int kine_ind,
+	       state_t *state, 
+	       config_t config)
+{
+  int i;
+  int ind;
+  int kine_num;
+  int motor_num;
+  
+  // Set current indices to previous indices 
+  for (i=0; i<config.num_motor; i++) {
+    motor_ind[i][0] = motor_ind[i][1];
+  }
+
+  // Set current index
+  kine_num = 0;
+  for (i=0; i<config.num_motor; i++) {
+    if (i == config.yaw_motor) {
+      // This is the yaw motor get index from current state
+      ind = (int)((1.0/config.yaw_ind2deg)*state[1].pos);
+      motor_num = config.yaw_motor;
+    }
+    else {
+      // This is a wing kinematics motor get index from kine array
+      if (get_array_val(kine,kine_ind,kine_num,&ind) != SUCCESS) {
+	print_err_msg(__FILE__,__LINE__,__FUNCTION__,"problem accessing kine array");
+	return FAIL;
+      }
+      motor_num = config.kine_map[kine_num];
+      kine_num += 1;
+    }
+    motor_ind[motor_num][1] = ind;
+  }
+  return SUCCESS;
+}
+
+// ---------------------------------------------------------------------
+// Function: init_indices
+//
+// Purpose: Initialize motor indices (previous and current)  to zero.
+//
+// ---------------------------------------------------------------------
+void init_ind(int motor_ind[][2], config_t config)
+{
+  int i,j; 
+
+  for (i=0; i<config.num_motor; i++) {
+    for (j=0; j<2; j++) {
+      motor_ind[i][j] = 0.0;
+    }
+  }
+  return;
+}
+
+
 
 // ----------------------------------------------------------------------
 // Function: update_state

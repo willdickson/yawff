@@ -93,8 +93,35 @@ typedef struct {
   array_t torq;
 } data_t;
 
+// Structure for comedi device information 
+typedef struct {
+  void *device;
+  comedi_krange krange;
+  int maxdata;
+} comedi_info_t;
+
+// Structure for torque data
+typedef struct {
+  float zero;
+  float last;
+} torq_info_t;
+
+
 // Prototypes for functions in yawff.c
 extern int yawff(array_t kine, config_t config, data_t data, int *end_pos); 
+extern int rt_cleanup(int level, comedi_info_t comedi_info, RT_TASK *rt_task);
+extern int init_comedi(comedi_info_t *comedi_info, config_t config);
+extern int get_ain_zero(comedi_info_t comedi_info,  config_t config, float *ain_zero);
+extern int get_torq_zero(comedi_info_t comedi_info, config_t config, float *torq_zero);
+extern int get_ain(comedi_info_t comedi_info, config_t config, float *ain);
+extern int get_torq(comedi_info_t comedi_info, config_t config, float *torq);
+extern int ain_to_phys(lsampl_t data, comedi_info_t comedi_info, float *volts);
+extern int update_state(state_t *state, torq_info_t *torq_info, comedi_info_t comedi_info, config_t config);
+extern void init_ind(int motor_ind[][2], config_t config);
+extern int update_ind(int motor_ind[][2], array_t kine, int kine_ind, state_t *state, config_t config);
+extern int update_motor(int motor_ind[][2], comedi_info_t comedi_info, config_t config);
+extern int update_data(data_t data, int ind, float t, state_t *state, torq_info_t torq_info); 
+extern int set_clks_lo(comedi_info_t comedi_info, config_t config);
 
 // Prototypes for functions if util.c
 extern int integrator(state_t state_curr, state_t *state_next, float force, 

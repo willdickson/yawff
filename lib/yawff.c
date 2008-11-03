@@ -26,18 +26,6 @@ typedef struct {
   data_t *data;
 } thread_args_t;
 
-// Structure for comedi device information 
-typedef struct {
-  void *device;
-  comedi_krange krange;
-  int maxdata;
-} comedi_info_t;
-
-// Structure for torque data
-typedef struct {
-  float zero;
-  float last;
-} torq_info_t;
 
 // Structure for motor information
 typedef struct {
@@ -47,18 +35,6 @@ typedef struct {
  
 // Function prototypes
 static void *rt_handler(void *args);
-int rt_cleanup(int level, comedi_info_t comedi_info, RT_TASK *rt_task);
-int init_comedi(comedi_info_t *comedi_info, config_t config);
-int get_ain_zero(comedi_info_t comedi_info,  config_t config, float *ain_zero);
-int get_torq_zero(comedi_info_t comedi_info, config_t config, float *torq_zero);
-int get_ain(comedi_info_t comedi_info, config_t config, float *ain);
-int get_torq(comedi_info_t comedi_info, config_t config, float *torq);
-int ain_to_phys(lsampl_t data, comedi_info_t comedi_info, float *volts);
-int update_state(state_t *state, torq_info_t *torq_info, comedi_info_t comedi_info, config_t config);
-void init_ind(int motor_ind[][2], config_t config);
-int update_ind(int motor_ind[][2], array_t kine, int kine_ind, state_t *state, config_t config);
-int update_motor(int motor_ind[][2], comedi_info_t comedi_info, config_t config);
-int set_clks_lo(comedi_info_t comedi_info, config_t config);
 void sigint_func(int sig);
 
 // Global variables
@@ -167,6 +143,7 @@ static void *rt_handler(void *args)
   state_t state[2];            // state[0] = previous, state[1] = current 
   int motor_ind[MAX_MOTOR][2]; // Motor index position [i][0] previous, [i][1] current
   float runtime;
+  float t;
   int i;
 
   // Unpack arguments passed to thread
@@ -182,14 +159,13 @@ static void *rt_handler(void *args)
     return 0;
   }
 
-  // Initialize dynamic state
+  // Initialize, time, dynamic state, and motor indices
   for (i=0; i<2; i++) {
     state[i].pos = 0.0;
     state[i].vel = 0.0;
   }  
-
-  // Initialize motor indices
   init_ind(motor_ind,config);
+  t = 0;
   
   // Find yaw torque zero
   if (get_torq_zero(comedi_info, config, &torq_info.zero) != SUCCESS) {
@@ -222,11 +198,11 @@ static void *rt_handler(void *args)
 
   // Go to hard real-time
   runtime = ((float) config.dt)*((float) kine.nrow)*NS2S;
-  fflush_printf("going to hard real-time, T = %f\n", runtime);
+  fflush_printf("starting hard real-time, T = %1.3f(s)\n", runtime);
   mlockall(MCL_CURRENT|MCL_FUTURE);
   rt_make_hard_real_time();
 
-  // Loop over kinematic indices
+  // Loop over kinematics 
   for (i=0; i<kine.nrow; i++) {
 
     now_ns = rt_get_time_ns();
@@ -247,6 +223,12 @@ static void *rt_handler(void *args)
       print_err_msg(__FILE__,__LINE__,__FUNCTION__,"updating motor positions failed");
       break;
     }
+
+    // Update data
+    if (update_data(data,i,t,state,torq_info) != SUCCESS) {
+      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"updating data arrays failed");
+      break;
+    }
     
     // Sleep for CLOCK_HI_NS and then set clock lines low
     rt_sleep_until(nano2count(now_ns + (RTIME) CLOCK_HI_NS));
@@ -264,6 +246,9 @@ static void *rt_handler(void *args)
     // Sleep until next period
     rt_sleep_until(nano2count(now_ns + config.dt));
 
+    // Update time
+    t += NS2S*config.dt;
+
   } // End for i
 
   // Leave realtime
@@ -279,6 +264,48 @@ static void *rt_handler(void *args)
 
   return 0;
 }
+
+// ---------------------------------------------------------------------
+// Function: update_data
+//
+// Purpose: write new time, position, velocity, and torq data to data 
+// array structure.
+//
+// Arguments:
+//   data      = structure of data arrays
+//   ind       = index at which to place new data
+//   t         = current outscan time in seconds
+//   state     = yaw dynamics state vector structure
+//   torq_info = torque information  
+// 
+// return: SUCCESS or FAIL
+//
+// --------------------------------------------------------------------- 
+int update_data(data_t data, 
+		 int ind, 
+		 float t,
+		 state_t *state, 
+		 torq_info_t torq_info)
+{
+  if (set_array_val(data.t,ind,0,&t) != SUCCESS) {
+    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"setting time array value failed");
+    return FAIL;
+  }
+  if (set_array_val(data.pos,ind,0,&state[1].pos) != SUCCESS) {
+    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"setting pos array value failed");
+    return FAIL;
+  }
+  if (set_array_val(data.vel,ind,0,&state[1].vel) != SUCCESS) {
+    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"setting vel array value failed");
+    return FAIL;
+  }
+  if (set_array_val(data.torq,ind,0,&torq_info.last) != SUCCESS) {
+    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"setting torq array value failed");
+    return FAIL;
+  }
+  return SUCCESS;
+}
+
 
 // ---------------------------------------------------------------------
 // Function: set_clks_lo

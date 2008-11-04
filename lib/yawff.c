@@ -78,6 +78,11 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
   thread_args_t thread_args;
   struct timespec sleep_ts;
 
+  // Initialize globals
+  end = 0;
+  rt_msg = 0;
+  rt_disp = 0;
+
   // Startup method 
   printf("\n");
   printf("                  Starting yawff \n");

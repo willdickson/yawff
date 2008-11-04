@@ -28,7 +28,6 @@ typedef struct {
   data_t *data;
 } thread_args_t;
 
-
 // Structure for motor information
 typedef struct {
   int pos;
@@ -58,7 +57,10 @@ volatile status_info_t status_info;
 // -------------------------------------------------------------------
 // Function: yawff
 //
-// Puropse: Force-feedback yaw turn. 
+// Puropse: Main function for yaw turn force-feedback task. Spawns
+// real-time thread to handle kinematics outscan, data acquisition, 
+// and yaw dynamics. During outscaning displays information regarding
+// ongoing real-time task.   
 //
 // Arguments:
 //   
@@ -67,6 +69,8 @@ volatile status_info_t status_info;
 //  data     = structure of return data arrays
 //  end_pod  = pointer to final position in motor ind
 //  
+// Return: SUCCESS or FAIL
+//
 // -------------------------------------------------------------------
 int yawff(array_t kine, config_t config, data_t data, int *end_pos)
 {
@@ -89,7 +93,7 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
   printf("=======================================================\n");
 
   // Check inputs
-  if (check_yawff_input(kine,config,data) != FAIL) {
+  if (check_yawff_input(kine,config,data) != SUCCESS) {
     PRINT_ERR_MSG("bad input data");
     return FAIL;
   }
@@ -172,7 +176,16 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
 // ------------------------------------------------------------------
 // Function: rt_handler
 //
-// Purpose: Realtime thread function. Description ... 
+// Purpose: Realtime thread function. Performs real-time yaw turn 
+// force-feedback task which consists of:
+// 1.) Outscanning wing kinematics,
+// 2.) Acquiring data from torque sensor
+// 3.) Controlling yaw dynamics using acquired torque 
+//
+// Arguments:
+//   args = pointer to thread_args structure.
+// 
+// Return: void.
 //
 // ------------------------------------------------------------------
 static void *rt_handler(void *args)
@@ -329,6 +342,15 @@ static void *rt_handler(void *args)
 // Purpose: updates data in global variable status_info which is used
 // for reporting runtime data to the user via the main thread.
 //
+// Arguments:
+//
+//   i          = current kinematics index
+//   t          = current time in seconds
+//   state      = current state vector array
+//   torq_info  = current torq infor structure
+//
+// Return: void
+//
 // ---------------------------------------------------------------------
 void update_status_info(int i, 
 			float t, 
@@ -342,7 +364,6 @@ void update_status_info(int i,
   status_info.torq = torq_info.last;
   return;
 }
-
 
 // ---------------------------------------------------------------------
 // Function: update_data
@@ -416,7 +437,6 @@ int set_clks_lo(comedi_info_t comedi_info, config_t config)
   return SUCCESS;
 }
 
-
 // ---------------------------------------------------------------------
 // Function: update_motor
 //
@@ -433,7 +453,6 @@ int set_clks_lo(comedi_info_t comedi_info, config_t config)
 // Return: SUCCESS or FAIL
 //
 // ---------------------------------------------------------------------
-
 int update_motor(int motor_ind[][2], 
 		 comedi_info_t comedi_info, 
 		 config_t config)
@@ -538,6 +557,14 @@ int update_ind(int motor_ind[][2],
 //
 // Purpose: Initialize motor indices (previous and current)  to zero.
 //
+// Arguments:
+//   motor_ind  = array of motor indices. Note, motor_ind[i][0] gives 
+//                index for preivous time step for motor i, and 
+//                motor_ind[i][1] gives index for current time step. 
+//   config     = system configuration structure.
+//
+// Return: void
+//  
 // ---------------------------------------------------------------------
 void init_ind(int motor_ind[][2], config_t config)
 {
@@ -554,7 +581,18 @@ void init_ind(int motor_ind[][2], config_t config)
 // ----------------------------------------------------------------------
 // Function: update_state
 //
-// Purpose: Get reading from torque sensor and update dynamic state.
+// Purpose: Get reading from torque sensor and update dynamic state 
+// structure. The raw torque reading is lowpass filtered and the lowpass
+// filtered torque is checked against the system configuration torque 
+// limit. If the abs value is too great an error occurs. 
+//
+// Arguments:
+//   state        = array of dyanmic state vectors
+//   torque_info  = torque information structure
+//   comedi_info  = daq/dio device information structure
+//   config       = system configuration structure
+//
+// Return: SUCCESS or FAIL
 //
 // ---------------------------------------------------------------------- 
 int update_state(state_t *state, 
@@ -579,7 +617,7 @@ int update_state(state_t *state,
   }
   torq_raw = torq_raw-(torq_info->zero);
 
-  // Zero and filter torque
+  // Lowpass filter torque
   torq_filt = lowpass_filt1(torq_raw,torq_info->last,config.yaw_filt_cut,dt);
   torq_info->last = torq_filt;
 
@@ -619,7 +657,14 @@ int update_state(state_t *state,
 // ----------------------------------------------------------------------
 // Function: get_torq_zero
 //
-// Purpose: Determines the zero value (Nm) for yaw torque sensor. 
+// Purpose: Determines the zero bais value in (Nm) for yaw torque sensor. 
+//
+// Arguments:
+//   comedi_info  = daq/dio device information structure
+//   config       = system configuration structure
+//   torq_zero    = pointer to float for torque zero bias 
+//
+// Return: SUCCESS or FAIL
 //
 // ----------------------------------------------------------------------
 int get_torq_zero(comedi_info_t comedi_info, config_t config, float *torq_zero)
@@ -643,8 +688,15 @@ int get_torq_zero(comedi_info_t comedi_info, config_t config, float *torq_zero)
 // -----------------------------------------------------------------------
 // Function: get_ain_zero
 //
-// Purpose: Determines the zero value in volts for the yaw torque
+// Purpose: Determines the zero bias value in volts for the yaw torque
 // analog input.
+//
+// Arguments:
+//   comedi_info  = daq/dio device information structure
+//   config       = system configuration structure
+//   ain_zero     = pointer to float for analog input zero bias
+//
+// Return: SUCCESS or FAIL
 //
 // -----------------------------------------------------------------------
 int get_ain_zero(comedi_info_t comedi_info, config_t config, float *ain_zero)
@@ -686,7 +738,14 @@ int get_ain_zero(comedi_info_t comedi_info, config_t config, float *ain_zero)
 // ------------------------------------------------------------------
 // Function: get_ain
 //
-// Prupose: Read yaw torq analog input
+// Prupose: Read yaw torq analog input voltage.
+//
+// Arguments:
+//   comedi_info  = daq/dio device information structure
+//   config       = system configuration structure
+//   ain          = pointer to float for analog input value
+//
+// Return: SUCCESS or FAIL
 //
 // ------------------------------------------------------------------
 int get_ain(comedi_info_t comedi_info, config_t config, float *ain)
@@ -716,7 +775,14 @@ int get_ain(comedi_info_t comedi_info, config_t config, float *ain)
 // ------------------------------------------------------------------
 // Function: get_torq
 //
-// Purpose: Read yaw torque from sensor
+// Purpose: Read yaw torque in Nm from torque sensor.
+//
+// Arguments:
+//   comedi_info  = daq/dio device information structure
+//   config       = system configuration structure
+//   torq         = pointer to float for torque value
+//
+// Return: SUCCESS or FAIL
 //
 // ------------------------------------------------------------------
 int get_torq(comedi_info_t comedi_info, config_t config, float *torq)
@@ -728,9 +794,7 @@ int get_torq(comedi_info_t comedi_info, config_t config, float *torq)
     PRINT_ERR_MSG("unable to read analog input");
     return FAIL;
   }
-
   *torq = ain*config.yaw_volt2torq;
-
   return SUCCESS;
 }
 
@@ -739,6 +803,12 @@ int get_torq(comedi_info_t comedi_info, config_t config, float *torq)
 //
 // Purpose: Opens comedi device and sets clock and direction dio 
 // lines to output.
+//
+// Arguments:
+//   comedi_info  = daq/dio device informtation structure
+//   config       = system configuration structure.
+//
+// Return: SUCCESS or FAIL
 //
 // ------------------------------------------------------------------
 int init_comedi(comedi_info_t *comedi_info, config_t config)
@@ -805,6 +875,13 @@ int init_comedi(comedi_info_t *comedi_info, config_t config)
 // level 1 => closes comedi device
 // level 2 => deletes rt_task and then closes comedi device.
 //
+// Arguments:
+//   level        = integer representing clean up level
+//   comedi_info  = daq/dio device information structure
+//   rt_task      = real-time task
+//
+// Return: SUCCESS or FAIL
+//
 // ------------------------------------------------------------------
 int rt_cleanup(int level, comedi_info_t comedi_info, RT_TASK *rt_task)
 {
@@ -843,7 +920,16 @@ int rt_cleanup(int level, comedi_info_t comedi_info, RT_TASK *rt_task)
 // -------------------------------------------------------------------
 // Function: ain_to_phys
 //
-// Purpose: Converts analog input reading to physical units (volts)
+// Purpose: Converts analog input reading to physical units (volts). 
+// This function is necessary because the lxrt-comedi library does not
+// provide it, unlike the comedi library.
+//
+// Arguments:
+//   data         = raw integer reading from daq card
+//   comedi_info  = daq/dio device information structure
+//   volts        = pointer to float for voltage value
+//
+// Return: SUCCESS or FAIL
 //
 // -------------------------------------------------------------------
 int ain_to_phys(lsampl_t data, comedi_info_t comedi_info, float *volts)
@@ -872,6 +958,8 @@ int ain_to_phys(lsampl_t data, comedi_info_t comedi_info, float *volts)
 
 // ------------------------------------------------------------------
 // Function: sigint_func
+//
+// Purpuse: SIGNIT signal handler. Interrupts realtime task. 
 //
 // ------------------------------------------------------------------
 void sigint_func(int sig) {

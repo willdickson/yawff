@@ -34,13 +34,26 @@ typedef struct {
   int pos;
   int vel;
 } motor_info_t;
- 
+
+// Struture for reporting status information 
+typedef struct {
+  int ind;
+  float t;
+  float pos;
+  float vel;
+  float torq;
+} status_info_t;
+  
 // Function prototypes
 static void *rt_handler(void *args);
 void sigint_func(int sig);
+void update_status_info(int i, float t, state_t *state, torq_info_t torq_info);
 
 // Global variables
 volatile int end = 0;
+volatile int rt_disp = 0;
+volatile int rt_msg = 0;
+volatile status_info_t status_info;
 
 // -------------------------------------------------------------------
 // Function: yawff
@@ -63,6 +76,7 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
   void *sighandler = NULL;
   int rtn_flag = SUCCESS;
   thread_args_t thread_args;
+  struct timespec sleep_ts;
 
   // Startup method 
   printf("\n");
@@ -102,10 +116,26 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
   // Start motor thread
   fflush_printf("starting rt_thread\n");
   rt_thread = rt_thread_create(rt_handler, ((void *)&thread_args), STACK_SIZE);
+
+  // Set reporter sleep timespec
+  sleep_ts.tv_sec = 0;
+  sleep_ts.tv_nsec = 100000000;
+
   
   // Run time display
   do {
-    sleep(4);
+    if (rt_disp == 1) {
+      fflush_printf("                                         ");
+      fflush_printf("\r");
+      fflush_printf("%3.0f\%, t: %3.2f, pos: %3.2f, vel: %3.2f, torq: %3.5f",
+		    100.0*(float)status_info.ind/(float)kine.nrow, 
+		    status_info.t,
+		    status_info.pos,
+		    status_info.vel,
+		    status_info.torq);
+      fflush_printf("\r");
+    }
+    nanosleep(&sleep_ts,NULL);
   } while (!end);
 
   // Clean up
@@ -120,6 +150,14 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
   if (sighandler == SIG_ERR) {
     print_err_msg(__FILE__,__LINE__,__FUNCTION__,"restoring signal handler failed");
     rtn_flag = FAIL;
+  }
+
+  if (rt_msg & RT_SIGINT) {
+    fflush_printf("rt_sigint\n");
+  }
+
+  if (rt_msg & RT_ERROR) {
+    fflush_printf("rt_error\n");
   }
   
   // Temporary
@@ -212,23 +250,31 @@ static void *rt_handler(void *args)
     // Update dynamic state
     if (update_state(state,&torq_info,comedi_info,config) != SUCCESS) {
       print_err_msg(__FILE__,__LINE__,__FUNCTION__,"updating dynamic state failed");
+      rt_msg |= RT_ERROR;
       break;
     }
 
     // Update motor index array
     if (update_ind(motor_ind,kine,i,state,config) != SUCCESS) {
       print_err_msg(__FILE__,__LINE__,__FUNCTION__,"updating motor indices failed");
+      rt_msg |= RT_ERROR;
       break;
     }
     // Update motor positions
     if (update_motor(motor_ind, comedi_info, config) != SUCCESS) {
       print_err_msg(__FILE__,__LINE__,__FUNCTION__,"updating motor positions failed");
+      rt_msg |= RT_ERROR;
       break;
     }
+    
+    // Update status informtation
+    update_status_info(i,t,state,torq_info);
+    if (i==1) rt_disp = 1;
 
     // Update data
     if (update_data(data,i,t,state,torq_info) != SUCCESS) {
       print_err_msg(__FILE__,__LINE__,__FUNCTION__,"updating data arrays failed");
+      rt_msg |= RT_ERROR;
       break;
     }
     
@@ -236,12 +282,15 @@ static void *rt_handler(void *args)
     rt_sleep_until(nano2count(now_ns + (RTIME) CLOCK_HI_NS));
     if (set_clks_lo(comedi_info, config) != SUCCESS) {
       print_err_msg(__FILE__,__LINE__,__FUNCTION__,"setting dio clks failed");
+      rt_msg |= RT_ERROR;
       break;
     }
   
     // Check if end has been set to 1 by SIGINT
     if (end == 1) {
-      fflush_printf("SIGINT - exiting real-time\n");
+      rt_disp = 0;
+      rt_msg |= RT_SIGINT;
+      fflush_printf("\nSIGINT - exiting real-time");
       break;
     }
 
@@ -254,18 +303,48 @@ static void *rt_handler(void *args)
   } // End for i
 
   // Leave realtime
+  rt_disp = 0;
   rt_make_soft_real_time();
   munlockall();
-  fflush_printf("leaving hard real-time\n");
+  fflush_printf("\nleaving hard real-time\n");
+
+/*   fflush_printf("final: t: %3.2f, pos: %3.2f, vel: %3.2f, torq: %3.5f\n", */
+/* 		status_info.t, */
+/* 		status_info.pos, */
+/* 		status_info.vel, */
+/* 		status_info.torq); */
+  
 
   // Clean up
   if (rt_cleanup(RT_CLEANUP_ALL, comedi_info, rt_task)!=SUCCESS) {
     print_err_msg(__FILE__,__LINE__,__FUNCTION__,"rt_cleanup failed");
   }
+
   end = 1;
 
   return 0;
 }
+
+// --------------------------------------------------------------------
+// Function: update_status_info
+//
+// Purpose: updates data in global variable status_info which is used
+// for reporting runtime data to the user via the main thread.
+//
+// ---------------------------------------------------------------------
+void update_status_info(int i, 
+			float t, 
+			state_t *state, 
+			torq_info_t torq_info)
+{
+  status_info.ind = i;
+  status_info.t = t;
+  status_info.pos = state[1].pos;
+  status_info.vel = state[1].vel;
+  status_info.torq = torq_info.last;
+  return;
+}
+
 
 // ---------------------------------------------------------------------
 // Function: update_data
@@ -474,8 +553,6 @@ void init_ind(int motor_ind[][2], config_t config)
   return;
 }
 
-
-
 // ----------------------------------------------------------------------
 // Function: update_state
 //
@@ -506,7 +583,19 @@ int update_state(state_t *state,
 
   // Zero and filter torque
   torq_filt = lowpass_filt1(torq_raw,torq_info->last,config.yaw_filt_cut,dt);
-  torq_info -> last = torq_filt;
+  torq_info->last = torq_filt;
+
+  // DEBUG ///////////////////////////////////////////
+  // // Constant torque for testing 
+  // torq_info->last = 0.1;
+  ////////////////////////////////////////////////////
+
+  ////////////////////////////////////////////////////
+  // DEBUG
+  // 
+  // Add check to see if torque exceeds torque limit
+  //
+  /////////////////////////////////////////////////////
 
   // Set previous state to current state
   state[0] = state[1];

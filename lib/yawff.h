@@ -44,9 +44,12 @@
                            //(use for unit testing)
 
 #define AIN_ZERO_DT 0.01   // Sample time interval for zeroing analog input 
-#define AIN_ZERO_NUM 50    // Number of samples to acquire when zeroing analog input
+#define AIN_ZERO_NUM 100   // Number of samples to acquire when zeroing analog input
 #define AIN_RANGE 0        // Analog input range
 #define AIN_AREF AREF_GROUND // Analog input reference
+
+#define RT_ERROR 2   // Mask used to detect if an error occured in the realtime thread
+#define RT_SIGINT 4  // Mask used to detect if an sigint stopped the realtime thread
 
 
 // Structure for configuration

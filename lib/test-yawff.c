@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <CUnit/Basic.h>
 #include "yawff.h"
+#include "util.h"
+#include "check.h"
 #include "test-util.h"
 
 // Function prototypes -------------------------------------------

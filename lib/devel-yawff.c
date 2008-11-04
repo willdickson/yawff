@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "yawff.h"
+#include "util.h"
 #include "test-util.h"
 
 int main(int argc, char *argv[])

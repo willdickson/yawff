@@ -25,6 +25,7 @@
 //
 // ----------------------------------------------------------------
 #include "yawff.h"
+#include "util.h"
 
 // Function prototypes
 state_t dynamics_func(
@@ -51,7 +52,7 @@ state_t dynamics_func(
 //   dt          = time step
 //   method      = integration method (INTEG_EULER or INTEG_RKUTTA)
 //
-// Return:
+// Return: SUCCESS or FAIL
 // 
 // ----------------------------------------------------------------
 int integrator(

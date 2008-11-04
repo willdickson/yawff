@@ -107,49 +107,77 @@ typedef struct {
 } torq_info_t;
 
 
-// Prototypes for functions in yawff.c
-extern int yawff(array_t kine, config_t config, data_t data, int *end_pos); 
-extern int rt_cleanup(int level, comedi_info_t comedi_info, RT_TASK *rt_task);
-extern int init_comedi(comedi_info_t *comedi_info, config_t config);
-extern int get_ain_zero(comedi_info_t comedi_info,  config_t config, float *ain_zero);
-extern int get_torq_zero(comedi_info_t comedi_info, config_t config, float *torq_zero);
-extern int get_ain(comedi_info_t comedi_info, config_t config, float *ain);
-extern int get_torq(comedi_info_t comedi_info, config_t config, float *torq);
-extern int ain_to_phys(lsampl_t data, comedi_info_t comedi_info, float *volts);
-extern int update_state(state_t *state, torq_info_t *torq_info, comedi_info_t comedi_info, config_t config);
+// Yaw force-feedback function 
+extern int yawff(array_t kine, 
+		 config_t config, 
+		 data_t data, 
+		 int *end_pos); 
+
+// Cleanup fucntion for realtime thread 
+extern int rt_cleanup(int level, 
+		      comedi_info_t comedi_info, 
+		      RT_TASK *rt_task);
+
+// Initialize comedi device based on configuration
+extern int init_comedi(comedi_info_t *comedi_info, 
+		       config_t config);
+
+// Get zero value for yaw torque analog input channel
+extern int get_ain_zero(comedi_info_t comedi_info,  
+			config_t config, 
+			float *ain_zero);
+
+// Get zero value for yaw torque 
+extern int get_torq_zero(comedi_info_t comedi_info, 
+			 config_t config, 
+			 float *torq_zero);
+
+// Read yaw torque sensor analog inout
+extern int get_ain(comedi_info_t comedi_info, 
+		   config_t config, 
+		   float *ain);
+
+// Read torque from yaw torque sensor
+extern int get_torq(comedi_info_t comedi_info, 
+		    config_t config, 
+		    float *torq);
+
+// Convert analog input value to voltage
+extern int ain_to_phys(lsampl_t data, 
+		       comedi_info_t comedi_info, 
+		       float *volts);
+
+// Update yaw dynamics state vector one timestep
+extern int update_state(state_t *state, 
+			torq_info_t *torq_info, 
+			comedi_info_t comedi_info, 
+			config_t config);
+
+// Initialize motor indices to zeros
 extern void init_ind(int motor_ind[][2], config_t config);
-extern int update_ind(int motor_ind[][2], array_t kine, int kine_ind, state_t *state, config_t config);
-extern int update_motor(int motor_ind[][2], comedi_info_t comedi_info, config_t config);
-extern int update_data(data_t data, int ind, float t, state_t *state, torq_info_t torq_info); 
-extern int set_clks_lo(comedi_info_t comedi_info, config_t config);
 
-// Prototypes for functions if util.c
-extern int integrator(state_t state_curr, state_t *state_next, float force, 
-		      float mass, float damping, float dt, int method);
-extern float lowpass_filt1(float x,float y, float f_cut, float dt);
-extern int init_array(array_t *array, int nrow, int ncol, int type);
-extern void free_array(array_t *array);
-extern int get_array_val(array_t array, int row, int col, void *val);
-extern int set_array_val(array_t array, int row, int col, void *val);
-extern void print_config(config_t config);
-extern void print_err_msg(const char *file, int line, const char *func, char *err_msg);
-extern void fflush_printf(const char *format, ...);
-extern int get_max_motor(void);
-extern int get_max_dt(void);
-extern int get_min_dt(void);
-extern int get_clock_hi_ns(void);
+// Update motor indices one timestep
+extern int update_ind(int motor_ind[][2], 
+		      array_t kine, 
+		      int kine_ind, 
+		      state_t *state, 
+		      config_t config);
 
-// Prototype for functions in check.c
-extern int check_yawff_input(array_t kine, config_t config, data_t data);
-extern int check_config(config_t config);
-extern int check_ranges(config_t config);
-extern int check_clkdir(config_t config);
-extern int check_kine_map(config_t config);
-extern int check_kine(array_t kine);
-extern int check_kine_compat(config_t config, array_t kine);
-extern int check_array(array_t array);
-extern int check_data(data_t data);
-extern int check_data_compat(array_t kine, data_t data);
+// Update motor positions - move the motors
+extern int update_motor(int motor_ind[][2], 
+			comedi_info_t comedi_info, 
+			config_t config);
+
+// Update data (t,pos,vel,torq) and index ind 
+extern int update_data(data_t data, 
+		       int ind, 
+		       float t, 
+		       state_t *state, 
+		       torq_info_t torq_info); 
+
+// Set clock dio lines to DIO_LO
+extern int set_clks_lo(comedi_info_t comedi_info, 
+		       config_t config);
 
 #endif // INC_YAWFF_H_
 

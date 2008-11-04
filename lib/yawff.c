@@ -5,9 +5,11 @@
 // 
 // Author: Will Dickson 09/30/2008
 // -------------------------------------------------------------------
-#include "yawff.h"
 #include <unistd.h>
 #include <time.h>
+#include "yawff.h"
+#include "util.h"
+#include "check.h"
 
 // RT-task parameters
 #define PRIORITY 1

@@ -1,8 +1,9 @@
 // -----------------------------------------------------------------
 // File: check.c
 //
-// Purpose: Contains functions used for checking that configurtation
-// and kine types are valid.
+// Purpose: Contains functions used for checking that the system 
+// configurtation structure, the kinemeatic array and structure of
+// output data arrays types are valid and compatible.
 //
 // Functions:
 //
@@ -14,11 +15,14 @@
 //                        is valid/ 
 //   check_kine_map     = checks if the map from kinematics to motors
 //                        is valid
-//   check_kine         =
-//   check_kine_compat  =
-//   check_array        =
-//   check_data         =
-//   check_data_compat  =
+//   check_kine         = checks that kinematics array is valid
+//   check_kine_compat  = checks that kinematics array and 
+//                        configuration structure are compatible
+//   check_array        = check that an array is valid
+//   check_data         = check that structure of data arrays is 
+//                        valid
+//   check_data_compat  = check that structur of data arrays and 
+//                        kinematics array are compatible
 //
 // Author: Will Dickson 
 //
@@ -31,7 +35,14 @@
 // ------------------------------------------------------------------
 // Function: check_yawff_inputs
 //
-// Purpose: check inputs to the yawff function
+// Purpose: Checks the inputs to the yawff function.
+//
+// Arguments:
+//   kine    = array of wing kinematics 
+//   config  = system configuration structure
+//   data    = structure of return data arrays
+//
+// Return: SUCCESS or FAIL
 //
 // ------------------------------------------------------------------
 int check_yawff_input(array_t kine, config_t config, data_t data)
@@ -74,7 +85,12 @@ int check_yawff_input(array_t kine, config_t config, data_t data)
 // ----------------------------------------------------------------
 // Function: check_config
 //
-// Purpose: Checks that configuration is valid
+// Purpose: Checks that system configuration is valid.
+//
+// Argument:
+//   config = system configuration structure.
+//
+// Return: SUCCESS or FAIL
 //
 // ----------------------------------------------------------------
 int check_config(config_t config)
@@ -94,7 +110,13 @@ int check_config(config_t config)
 // ----------------------------------------------------------------
 // Function: check ranges
 //
-// Purpose: checks that configuration values are in range
+// Purpose: Checks that configuration values within acceptable
+// ranges.
+//
+// Arguments:
+//   config = system configuration structure.
+//
+// Return: SUCCESS or FAIL
 // 
 // ----------------------------------------------------------------
 int check_ranges(config_t config)
@@ -166,7 +188,13 @@ int check_ranges(config_t config)
 // ----------------------------------------------------------------
 // Function: check_clkdir
 //
-// Purpose: checks that clk and dir configuration is valid.
+// Purpose: checks that clk and dir configuration in the system 
+// configuration is valid.
+//
+// Arguments:
+//   config = system configuratio structure.
+//
+// Return: SUCCESS or FAIL
 //
 // ----------------------------------------------------------------
 int check_clkdir(config_t config)
@@ -225,7 +253,14 @@ int check_clkdir(config_t config)
 // ----------------------------------------------------------------
 // Function: check_kine_map
 //
-// Purpose: check that kinematics map is valid
+// Purpose: check that kinematics the mapping from the wing 
+// kinematics array (columns) to the DIO given in the system
+// configuration structure is valid.
+//
+// Argument:
+//   config = system configuration structure.
+//
+// Return: SUCCESS or FAIL
 //
 // ----------------------------------------------------------------
 int check_kine_map(config_t config)
@@ -265,7 +300,12 @@ int check_kine_map(config_t config)
 // ----------------------------------------------------------------
 // Function: check_kine
 //
-// Purpose: Check that kinematics are valid
+// Purpose: Check that the kinematics array is valid.
+//
+// Argument:
+//   kine = kinematics array.
+//
+// Return: SUCCESS or FAIL
 //
 // ----------------------------------------------------------------
 int check_kine(array_t kine)
@@ -298,8 +338,14 @@ int check_kine(array_t kine)
 // ---------------------------------------------------------------
 // Function: check_compat
 //
-// Purpose: checks that the kinematic and the configuration are
-// compatible.
+// Purpose: checks that the kinematic array and the system 
+// configuration are compatible.
+//
+// Arguments:
+//   config = system configuration structure
+//   kine   = kinematics array
+//
+// Return: SUCCESS or FAIL
 //
 // ----------------------------------------------------------------
 int check_kine_compat(config_t config, array_t kine)
@@ -316,7 +362,12 @@ int check_kine_compat(config_t config, array_t kine)
 // -----------------------------------------------------------------
 // Function: check_array
 //
-// Purpose: checks that an array is valid
+// Purpose: checks that an array is valid.
+//
+// Arguments:
+//   array =  an array structure.
+//
+// Return: SUCCESS or FAIL
 //
 // -----------------------------------------------------------------
 int check_array(array_t array)
@@ -344,8 +395,14 @@ int check_array(array_t array)
 // -----------------------------------------------------------------
 // Function: check_data
 //
-// Purpose: checks that the data output array is valid
+// Purpose: checks that the structure of output data array's is 
+// valid.
+//
+// Arguments:
+//   data = structure of output arrays
 // 
+// Return: SUCCESS or FAIL
+//
 // -----------------------------------------------------------------
 int check_data(data_t data)
 {
@@ -410,7 +467,14 @@ int check_data(data_t data)
 // -------------------------------------------------------------
 // Functtion: check_data_compat
 //
-// Purpose: check that data and kinematics arrays are compatible
+// Purpose: check that structure of data arrays and kinematics 
+// array are compatible.
+//
+// Arguments:
+//   kine  = kinematics array
+//   data  = structure of data arrays
+//
+// Return: SUCCESS or FAIL
 //
 // -------------------------------------------------------------
 int check_data_compat(array_t kine, data_t data)

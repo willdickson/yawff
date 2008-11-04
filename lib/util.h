@@ -3,6 +3,8 @@
 
 #include "yawff.h"
 
+#define PRINT_ERR_MSG(ERR_MSG) (print_err_msg(__FILE__,__LINE__,__FUNCTION__,ERR_MSG))
+
 // Integrator - integrate yaw dynamic state one time step
 extern int integrator(state_t state_curr, 
 		      state_t *state_next, 

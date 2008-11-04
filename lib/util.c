@@ -102,12 +102,7 @@ int integrator(
     
   default: // Error unkown integration method
     
-    print_err_msg(
-		  __FILE__,
-		  __LINE__,
-		  __FUNCTION__,
-		  "unknown integration method"
-		  );
+    PRINT_ERR_MSG("unknown integration method");
     ret_flag = FAIL;
     break;
 
@@ -174,20 +169,11 @@ int get_array_val(array_t array, int row, int col, void *val)
 
   // Check row and col ranges
   if ((row < 0) || (row >= array.nrow)) {
-    print_err_msg(
-		  __FILE__,
-		  __LINE__,
-		  __FUNCTION__,
-		  "row out of range"
-		  );
+    PRINT_ERR_MSG("row out of range");
     return FAIL;
   }
   if ((col < 0) || (col >= array.ncol)) {
-    print_err_msg(
-		  __FILE__,
-		  __LINE__,
-		  __FUNCTION__,
-		  "col out of range");
+    PRINT_ERR_MSG("col out of range");
     return FAIL;
   }
 
@@ -208,12 +194,7 @@ int get_array_val(array_t array, int row, int col, void *val)
     break;
 
   default:
-    print_err_msg(
-		  __FILE__,
-		  __LINE__,
-		  __FUNCTION__,
-		  "unknown array type"
-		  );
+    PRINT_ERR_MSG("unknown array type");
     rtn_val = FAIL;
     break;
 
@@ -237,21 +218,11 @@ int set_array_val(array_t array, int row, int col, void *val)
 
   // Check row and col ranges
   if ((row < 0) || (row >= array.nrow)) {
-    print_err_msg(
-		  __FILE__,
-		  __LINE__,
-		  __FUNCTION__,
-		  "row out of range"
-		  );
+    PRINT_ERR_MSG("row out of range");
     return FAIL;
   }
   if ((col < 0) || (col >= array.ncol)) {
-    print_err_msg(
-		  __FILE__,
-		  __LINE__,
-		  __FUNCTION__,
-		  "col out of range"
-		  );
+    PRINT_ERR_MSG("col out of range");
     return FAIL;
   }
   
@@ -272,12 +243,7 @@ int set_array_val(array_t array, int row, int col, void *val)
     break;
 
   default:
-    print_err_msg(
-		  __FILE__,
-		  __LINE__,
-		  __FUNCTION__,
-		  "unknown array type"
-		  );
+    PRINT_ERR_MSG("unknown array type");
     rtn_val = FAIL;
     break;
     
@@ -298,21 +264,11 @@ int init_array(array_t *array, int nrow, int ncol, int type)
 
   // Check dimensions
   if (nrow <= 0) {
-    print_err_msg(
-		  __FILE__,
-		  __LINE__,
-		  __FUNCTION__,
-		  "nrow <= 0"
-		  );
+    PRINT_ERR_MSG("nrow <= 0");
     return FAIL;
   }
   if (ncol <= 0) {
-    print_err_msg(
-		  __FILE__,
-		  __LINE__,
-		  __FUNCTION__,
-		  "ncol <= 0"
-		  );
+    PRINT_ERR_MSG("ncol <= 0");
     return FAIL;
   }
   
@@ -328,12 +284,7 @@ int init_array(array_t *array, int nrow, int ncol, int type)
     break;
     
   default:
-    print_err_msg(
-		  __FILE__,
-		  __LINE__,
-		  __FUNCTION__,
-		  "unknown type"
-		  );
+    PRINT_ERR_MSG("unknown type");
     return FAIL;
     break;
   }
@@ -347,12 +298,7 @@ int init_array(array_t *array, int nrow, int ncol, int type)
   array -> type = type;
 
   if (array->data == NULL) {
-    print_err_msg(
-		  __FILE__,
-		  __LINE__,
-		  __FUNCTION__,
-		  "unable to allocate memory"
-		  );
+    PRINT_ERR_MSG("unable to allocate memory");
     return FAIL;
   }
   else {

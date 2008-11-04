@@ -89,8 +89,8 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
   printf("=======================================================\n");
 
   // Check inputs
-  if (check_yawff_input(kine,config,data) != SUCCESS) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"bad input data");
+  if (check_yawff_input(kine,config,data) != FAIL) {
+    PRINT_ERR_MSG("bad input data");
     return FAIL;
   }
   print_config(config);
@@ -98,7 +98,7 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
   // Setup SIGINT handler
   sighandler = signal(SIGINT,sigint_func);
   if (sighandler == SIG_ERR) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__, "assigning SIGINT handler");
+    PRINT_ERR_MSG("assigning SIGINT handler");
     return FAIL;
   }
   
@@ -107,7 +107,7 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
   rt_allow_nonroot_hrt();
   yawff_task = rt_task_init(nam2num("YAWFF"),PRIORITY,STACK_SIZE,MSG_SIZE);
   if (!yawff_task) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"error initializing yawff_task\n");
+    PRINT_ERR_MSG("error initializing yawff_task\n");
     return FAIL;
   }
   rt_set_oneshot_mode();
@@ -153,7 +153,7 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
   // Restore old SIGINT handler
   sighandler = signal(SIGINT,sighandler);
   if (sighandler == SIG_ERR) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"restoring signal handler failed");
+    PRINT_ERR_MSG("restoring signal handler failed");
     rtn_flag = FAIL;
   }
 
@@ -199,7 +199,7 @@ static void *rt_handler(void *args)
 
   // Initialize comedi device
   if (init_comedi(&comedi_info, config) != SUCCESS) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"unable to initialize comedi device");
+    PRINT_ERR_MSG("unable to initialize comedi device");
     end = 1;
     return 0;
   }
@@ -214,10 +214,10 @@ static void *rt_handler(void *args)
   
   // Find yaw torque zero
   if (get_torq_zero(comedi_info, config, &torq_info.zero) != SUCCESS) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"failed to get ain zero");
+    PRINT_ERR_MSG("failed to get ain zero");
     // Error, clean up and exit
     if (rt_cleanup(RT_CLEANUP_LEVEL_1,comedi_info,rt_task) != SUCCESS) {
-      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"rt_cleanup failed");
+      PRINT_ERR_MSG("rt_cleanup failed");
     }
     end = 1;
     return 0;
@@ -227,10 +227,10 @@ static void *rt_handler(void *args)
   fflush_printf("Initializing rt_task \n");
   rt_task = rt_task_init_schmod(nam2num("MOTOR"),0, 0, 0, SCHED_FIFO, 0xF);
   if (!rt_task) {          
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__, "cannot initialize rt task");
+    PRINT_ERR_MSG("cannot initialize rt task");
     // Error, clean up and exit
     if (rt_cleanup(RT_CLEANUP_LEVEL_1,comedi_info,rt_task) != SUCCESS) {
-      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"rt_cleanup failed");
+      PRINT_ERR_MSG("rt_cleanup failed");
     }
     end = 1;
     return 0;
@@ -254,20 +254,20 @@ static void *rt_handler(void *args)
     
     // Update dynamic state
     if (update_state(state,&torq_info,comedi_info,config) != SUCCESS) {
-      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"updating dynamic state failed");
+      PRINT_ERR_MSG("updating dynamic state failed");
       rt_msg |= RT_ERROR;
       break;
     }
 
     // Update motor index array
     if (update_ind(motor_ind,kine,i,state,config) != SUCCESS) {
-      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"updating motor indices failed");
+      PRINT_ERR_MSG("updating motor indices failed");
       rt_msg |= RT_ERROR;
       break;
     }
     // Update motor positions
     if (update_motor(motor_ind, comedi_info, config) != SUCCESS) {
-      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"updating motor positions failed");
+      PRINT_ERR_MSG("updating motor positions failed");
       rt_msg |= RT_ERROR;
       break;
     }
@@ -278,7 +278,7 @@ static void *rt_handler(void *args)
 
     // Update data
     if (update_data(data,i,t,state,torq_info) != SUCCESS) {
-      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"updating data arrays failed");
+      PRINT_ERR_MSG("updating data arrays failed");
       rt_msg |= RT_ERROR;
       break;
     }
@@ -286,7 +286,7 @@ static void *rt_handler(void *args)
     // Sleep for CLOCK_HI_NS and then set clock lines low
     rt_sleep_until(nano2count(now_ns + (RTIME) CLOCK_HI_NS));
     if (set_clks_lo(comedi_info, config) != SUCCESS) {
-      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"setting dio clks failed");
+      PRINT_ERR_MSG("setting dio clks failed");
       rt_msg |= RT_ERROR;
       break;
     }
@@ -313,16 +313,9 @@ static void *rt_handler(void *args)
   munlockall();
   fflush_printf("\nleaving hard real-time\n");
 
-/*   fflush_printf("final: t: %3.2f, pos: %3.2f, vel: %3.2f, torq: %3.5f\n", */
-/* 		status_info.t, */
-/* 		status_info.pos, */
-/* 		status_info.vel, */
-/* 		status_info.torq); */
-  
-
   // Clean up
   if (rt_cleanup(RT_CLEANUP_ALL, comedi_info, rt_task)!=SUCCESS) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"rt_cleanup failed");
+    PRINT_ERR_MSG("rt_cleanup failed");
   }
 
   end = 1;
@@ -374,19 +367,19 @@ int update_data(data_t data,
 		 torq_info_t torq_info)
 {
   if (set_array_val(data.t,ind,0,&t) != SUCCESS) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"setting time array value failed");
+    PRINT_ERR_MSG("setting time array value failed");
     return FAIL;
   }
   if (set_array_val(data.pos,ind,0,&state[1].pos) != SUCCESS) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"setting pos array value failed");
+    PRINT_ERR_MSG("setting pos array value failed");
     return FAIL;
   }
   if (set_array_val(data.vel,ind,0,&state[1].vel) != SUCCESS) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"setting vel array value failed");
+    PRINT_ERR_MSG("setting vel array value failed");
     return FAIL;
   }
   if (set_array_val(data.torq,ind,0,&torq_info.last) != SUCCESS) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"setting torq array value failed");
+    PRINT_ERR_MSG("setting torq array value failed");
     return FAIL;
   }
   return SUCCESS;
@@ -416,7 +409,7 @@ int set_clks_lo(comedi_info_t comedi_info, config_t config)
 			    config.dio_clk[i],
 			    DIO_LO);
     if (rval != 1) {
-      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"comedi_dio_write failed");
+      PRINT_ERR_MSG("comedi_dio_write failed");
       return FAIL;
     }
   }
@@ -461,7 +454,7 @@ int update_motor(int motor_ind[][2],
 			    config.dio_dir[i],
 			    dir_val);
     if (rval!=1) {
-      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"comedi write dio dir failed");
+      PRINT_ERR_MSG("comedi write dio dir failed");
       return FAIL;
     }
 
@@ -473,7 +466,7 @@ int update_motor(int motor_ind[][2],
 			      DIO_HI);
       
       if (rval != 1) {
-	print_err_msg(__FILE__,__LINE__,__FUNCTION__,"conedi write dio clk failed");
+	PRINT_ERR_MSG("conedi write dio clk failed");
 	return FAIL;
 	
       }
@@ -529,7 +522,7 @@ int update_ind(int motor_ind[][2],
     else {
       // This is a wing kinematics motor get index from kine array
       if (get_array_val(kine,kine_ind,kine_num,&ind) != SUCCESS) {
-	print_err_msg(__FILE__,__LINE__,__FUNCTION__,"problem accessing kine array");
+	PRINT_ERR_MSG("problem accessing kine array");
 	return FAIL;
       }
       motor_num = config.kine_map[kine_num];
@@ -581,7 +574,7 @@ int update_state(state_t *state,
   
   // Get data from  torque sensor and zero 
   if (get_torq(comedi_info, config, &torq_raw) != SUCCESS) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__, "error reading torque");
+    PRINT_ERR_MSG("error reading torque");
     return FAIL;
   }
   torq_raw = torq_raw-(torq_info->zero);
@@ -595,12 +588,14 @@ int update_state(state_t *state,
   // torq_info->last = 0.1;
   ////////////////////////////////////////////////////
 
-  ////////////////////////////////////////////////////
-  // DEBUG
-  // 
-  // Add check to see if torque exceeds torque limit
-  //
-  /////////////////////////////////////////////////////
+  // Check if torque is greater than torque limit
+  if (fabsf(torq_filt) > config.yaw_torq_lim) {
+    PRINT_ERR_MSG("torque limit exceeded");
+    //////////////////////////////////////////////////
+    // Disable motor ??
+    //////////////////////////////////////////////////
+    return FAIL;
+  }
 
   // Set previous state to current state
   state[0] = state[1];
@@ -614,7 +609,7 @@ int update_state(state_t *state,
 		    dt,
 		    INTEG_RKUTTA);
   if (rval != SUCCESS ) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"integrator failed");
+    PRINT_ERR_MSG("integrator failed");
     return FAIL;
   }
  
@@ -633,7 +628,7 @@ int get_torq_zero(comedi_info_t comedi_info, config_t config, float *torq_zero)
 
   // Get analog input zero
   if (get_ain_zero(comedi_info, config, &ain_zero) != SUCCESS) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"unable to get ain zero");
+    PRINT_ERR_MSG("unable to get ain zero");
     return FAIL;
   }
 
@@ -672,7 +667,7 @@ int get_ain_zero(comedi_info_t comedi_info, config_t config, float *ain_zero)
 
     if (get_ain(comedi_info, config, &ain) != SUCCESS) {
       snprintf(err_msg, ERR_SZ, "unable to read ain, i = %d", i);
-      print_err_msg(__FILE__,__LINE__,__FUNCTION__,err_msg);
+      PRINT_ERR_MSG(err_msg);
       ret_flag = FAIL;
       break;
     }
@@ -707,13 +702,13 @@ int get_ain(comedi_info_t comedi_info, config_t config, float *ain)
 			  AIN_AREF,
 			  &ain_lsampl);
   if (rval!=1) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"comedi_data_read failed");
+    PRINT_ERR_MSG("comedi_data_read failed");
     return FAIL;
   }
   
   // Convert integer analog input value to volts
   if (ain_to_phys(ain_lsampl, comedi_info, ain) != SUCCESS) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"ain_to_phys failed");
+    PRINT_ERR_MSG("ain_to_phys failed");
     return FAIL;
   }
   return SUCCESS;
@@ -730,7 +725,7 @@ int get_torq(comedi_info_t comedi_info, config_t config, float *torq)
   float ain;
   
   if (get_ain(comedi_info, config, &ain) != SUCCESS) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"unable to read analog input");
+    PRINT_ERR_MSG("unable to read analog input");
     return FAIL;
   }
 
@@ -757,7 +752,7 @@ int init_comedi(comedi_info_t *comedi_info, config_t config)
   fflush_printf("opening comedi device\n");
   comedi_info->device = comedi_open(config.dev_name);
   if (comedi_info->device == NULL) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"unable to open comedi device");
+    PRINT_ERR_MSG("unable to open comedi device");
     return FAIL;
   }
 
@@ -770,7 +765,7 @@ int init_comedi(comedi_info_t *comedi_info, config_t config)
 			     COMEDI_OUTPUT);
     if (rval != 1 ) {
       snprintf(err_msg, ERR_SZ, "unable to configure dio_clk[%d]", i);
-      print_err_msg(__FILE__,__LINE__,__FUNCTION__, err_msg);
+      PRINT_ERR_MSG( err_msg);
       ret_flag = FAIL;
     }
     // Set direction lines to output 
@@ -780,7 +775,7 @@ int init_comedi(comedi_info_t *comedi_info, config_t config)
 			     COMEDI_OUTPUT);
     if (rval != 1) {
       snprintf(err_msg, ERR_SZ, "unable to configure dio_dir[%d]", i);
-      print_err_msg(__FILE__,__LINE__,__FUNCTION__,err_msg);
+      PRINT_ERR_MSG(err_msg);
       ret_flag = FAIL;
     }
   } // End for i
@@ -795,7 +790,7 @@ int init_comedi(comedi_info_t *comedi_info, config_t config)
 			   AIN_RANGE, 
 			   &(comedi_info->krange));
   if (rval < 0) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"unable to get krange");
+    PRINT_ERR_MSG("unable to get krange");
     return FAIL;
   }
   return ret_flag;
@@ -823,7 +818,7 @@ int rt_cleanup(int level, comedi_info_t comedi_info, RT_TASK *rt_task)
   case RT_CLEANUP_LEVEL_2:
     fflush_printf("  %d: deleting rt_task\n", RT_CLEANUP_LEVEL_2);
     if (rt_task_delete(rt_task) != 0) {
-      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"unable to delete rt_task");
+      PRINT_ERR_MSG("unable to delete rt_task");
       ret_flag = FAIL;
     }
     
@@ -831,7 +826,7 @@ int rt_cleanup(int level, comedi_info_t comedi_info, RT_TASK *rt_task)
    
     fflush_printf("  %d: closing comedi device\n", RT_CLEANUP_LEVEL_1);
     if (comedi_close(comedi_info.device)!=0) {
-      print_err_msg(__FILE__,__LINE__,__FUNCTION__,"unable to close comedi device");
+      PRINT_ERR_MSG("unable to close comedi device");
       ret_flag = FAIL;
     }
 
@@ -858,7 +853,7 @@ int ain_to_phys(lsampl_t data, comedi_info_t comedi_info, float *volts)
   
   // Check if maxdata is zero
   if (comedi_info.maxdata==0) {
-    print_err_msg(__FILE__,__LINE__,__FUNCTION__,"maxdata == 0"); 
+    PRINT_ERR_MSG("maxdata == 0"); 
     return FAIL;
   }
 

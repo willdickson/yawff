@@ -67,12 +67,7 @@ int init_test_kine(array_t *kine, config_t config)
     for (j=0; j<kine->ncol; j++) {
       pos = i + j;
       if(set_array_val(*kine,i,j,&pos)==FAIL) { 
-	print_err_msg(
-		      __FILE__,
-		      __LINE__,
-		      __FUNCTION__,
-		      "error writing kinematic position"
-		      );
+	PRINT_ERR_MSG("error writing kinematic position");
 	flag = FAIL;
       }
     }

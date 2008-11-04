@@ -56,11 +56,19 @@
 #define VEL_INIT 50.0
 #define INTEG_TOL 1.0e-6
 
-// Function prototypes
+// Initialize system configuration for testing
 extern void init_test_config(config_t *config);
+
+// Initialize kinematics array for testing
 extern int init_test_kine(array_t *kine, config_t config);
+
+// Free kine array memory 
 extern void free_test_kine(array_t *kine);
+
+// Initialixe data array structure for testing 
 extern int init_test_data(data_t *data, int N);
+
+// Free data array structure memory memory 
 extern void free_test_data(data_t *data);
 
 #endif // INC_TEST_H_ 

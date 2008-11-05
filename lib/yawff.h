@@ -23,7 +23,7 @@
 #define DIO_HI 1
 #define DIO_LO 0
 #define MAX_MOTOR 10
-#define MAX_DIO 24
+#define MAX_DIO 23
 #define MAX_AIN 15
 #define ERR_SZ 200
 #define MAX_DT_NS 10000000 // 100 Hz 
@@ -51,7 +51,6 @@
 #define RT_ERROR 2   // Mask used to detect if an error occured in the realtime thread
 #define RT_SIGINT 4  // Mask used to detect if an sigint stopped the realtime thread
 
-
 // Structure for configuration
 typedef struct {
   char *dev_name;          // Comedi device name  
@@ -62,6 +61,7 @@ typedef struct {
   int dio_clk[MAX_MOTOR];  // DIO clock pins
   int dio_dir[MAX_MOTOR];  // DIO direction pins
   int kine_map[MAX_MOTOR]; // Map from kinematics to motors
+  int dio_disable;         // Yaw motor disable pin 
   unsigned int yaw_ain;    // Analog input channel for yaw torque
   float yaw_volt2torq;     // Voltage to torque conversion
   float yaw_inertia;       // Moment of inertia about yaw axis

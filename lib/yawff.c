@@ -626,12 +626,16 @@ int update_state(state_t *state,
   // torq_info->last = 0.1;
   ////////////////////////////////////////////////////
 
-  // Check if torque is greater than torque limit
+  // Check if torque is greater than torque limit and if so disable motor
   if (fabsf(torq_filt) > config.yaw_torq_lim) {
-    PRINT_ERR_MSG("torque limit exceeded");
-    //////////////////////////////////////////////////
-    // Disable motor ??
-    //////////////////////////////////////////////////
+    rval = comedi_dio_config(comedi_info.device, 
+			     config.dio_subdev, 
+			     config.dio_disable,
+			     COMEDI_OUTPUT);
+    if (rval != 1) {
+      PRINT_ERR_MSG("unable to disable yaw motor");
+    }
+    PRINT_ERR_MSG("yaw torque limit exceeded");
     return FAIL;
   }
 
@@ -801,8 +805,8 @@ int get_torq(comedi_info_t comedi_info, config_t config, float *torq)
 // ------------------------------------------------------------------
 // Function: init_comedi
 //
-// Purpose: Opens comedi device and sets clock and direction dio 
-// lines to output.
+// Purpose: Opens comedi device and sets clock, direction and disbale 
+// dio lines to output. All lines are initially set to DIO_LO.
 //
 // Arguments:
 //   comedi_info  = daq/dio device informtation structure
@@ -826,7 +830,8 @@ int init_comedi(comedi_info_t *comedi_info, config_t config)
     return FAIL;
   }
 
-  // Configure comedi dio 
+  // Configure by setting them to outputs
+  fflush_printf("configuring dio lines\n");
   for (i=0; i<config.num_motor; i++) {    
     // Set clock lines to output
     rval = comedi_dio_config(comedi_info->device, 
@@ -849,7 +854,50 @@ int init_comedi(comedi_info_t *comedi_info, config_t config)
       ret_flag = FAIL;
     }
   } // End for i
- 
+  // Set dio disable line to output
+  rval = comedi_dio_config(comedi_info->device, 
+			   config.dio_subdev, 
+			   config.dio_disable,
+			   COMEDI_OUTPUT);
+  if (rval != 1) {
+    PRINT_ERR_MSG("unable to configure dio_disable");
+    ret_flag = FAIL;
+  }
+
+  // Set all configured dio lines to DIO_LO
+  fflush_printf("setting dio lines to DIO_LO\n");
+  for (i=0; i<config.num_motor; i++) {
+    // Set clk dio line to zero
+    rval = comedi_dio_write(comedi_info->device,
+			    config.dio_subdev,
+			    config.dio_clk[i],
+			    DIO_LO);
+    if (rval != 1) {
+      snprintf(err_msg, ERR_SZ, "unable to set dio_clk[%d] to zero", i);
+      PRINT_ERR_MSG(err_msg);
+      ret_flag = FAIL;
+    }
+    // Set dir dio line to zero
+    rval = comedi_dio_write(comedi_info->device,
+			    config.dio_subdev,
+			    config.dio_dir[i],
+			    DIO_LO);
+    if (rval != 1) {
+      snprintf(err_msg, ERR_SZ, "unable to set dio_dir[%d] to zero", i);
+      PRINT_ERR_MSG(err_msg);
+      ret_flag = FAIL;
+    } 
+  } // End for i
+  // Set dio_disable line to zero
+  rval = comedi_dio_write(comedi_info->device,
+			  config.dio_subdev,
+			  config.dio_disable,
+			  DIO_LO);
+  if (rval != 1) {
+    PRINT_ERR_MSG("unable to set dio_disable to zero");
+    ret_flag = FAIL;
+  }
+
   // Get max data and krange for conversion to physical units
   comedi_info->maxdata = comedi_get_maxdata(comedi_info -> device, 
 					    config.ain_subdev, 

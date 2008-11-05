@@ -134,6 +134,13 @@ int check_ranges(config_t config)
     PRINT_ERR_MSG("yaw motor out of range");
     flag = FAIL;
   }
+
+  // Check dio_disbale range
+  if ((config.dio_disable < 0) || (config.dio_disable > MAX_DIO)) {
+    PRINT_ERR_MSG("dio_disable out of range");
+    flag = FAIL;
+  } 
+  
   // Check analog input range
   if (config.yaw_ain > MAX_AIN) {
     PRINT_ERR_MSG("yaw_ain out of range");
@@ -216,6 +223,18 @@ int check_clkdir(config_t config)
       PRINT_ERR_MSG(err_msg);
       flag = FAIL;
     }
+    // Check collision with dio_disable
+    if (config.dio_dir[i] == config.dio_disable) {
+      snprintf(err_msg, ERR_SZ, "dir[%d] equal dio_disable", i);
+      PRINT_ERR_MSG(err_msg);
+      flag = FAIL;
+    }
+    if (config.dio_clk[i] == config.dio_disable) {
+      snprintf(err_msg, ERR_SZ, "dir[%d] equal dio disable", i);
+      PRINT_ERR_MSG(err_msg);
+      flag = FAIL;
+    }
+
     // Check uniqness
     if (config.dio_clk[i] == config.dio_dir[i]) {
       snprintf(err_msg, ERR_SZ, "clk/dir dio, clk[%d] = dir[%d]", i,i);

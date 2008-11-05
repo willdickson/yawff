@@ -296,6 +296,19 @@ void test_check_config(void)
   config_test.kine_map[0] = config_test.kine_map[2];
   CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
 
+  // DIO disable range test
+  config_test = config;
+  config_test.dio_disable = 25;
+  CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
+
+  // DIO disable clk/dir collision test
+  config_test = config;
+  config_test.dio_disable = config_test.dio_clk[1];
+  CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
+  config_test = config;
+  config_test.dio_disable = config_test.dio_dir[0];
+  CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
+
   // Analog input range test
   config_test = config;
   config_test.yaw_ain = MAX_AIN+1;

@@ -15,6 +15,7 @@
 #define YAW_MOTOR 6
 #define DIO_CLK {0,2,4,6,8,10,12}
 #define DIO_DIR {1,3,5,7,9,11,13}
+#define DIO_DISABLE 23
 #define KINE_MAP {0,1,2,3,4,5}
 #define YAW_AIN 0
 #define YAW_VOLT2TORQ 1.0

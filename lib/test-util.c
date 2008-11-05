@@ -34,6 +34,7 @@ void init_test_config(config_t *config)
       (config->kine_map)[i] = kine_map[i]; 
     }
   }
+  config -> dio_disable = DIO_DISABLE;
   config -> yaw_ain = YAW_AIN;
   config -> yaw_volt2torq = YAW_VOLT2TORQ;
   config -> yaw_inertia = YAW_INERTIA;

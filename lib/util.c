@@ -364,6 +364,7 @@ void print_config(config_t config)
     if (i < config.num_motor-2) printf(", ");
   }
   printf("}\n");
+  printf("  dio_disable:    %d\n", config.dio_disable);
   printf("  yaw_ain:        %d\n", config.yaw_ain);
   printf("  yaw_volt2torq:  %f\n", config.yaw_volt2torq);
   printf("  yaw_inertia:    %f\n", config.yaw_inertia);

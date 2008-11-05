@@ -49,6 +49,7 @@ void sigint_func(int sig);
 void update_status_info(int i, float t, state_t *state, torq_info_t torq_info);
 
 // Global variables
+static SEM *status_sem;
 volatile int end = 0;
 volatile int rt_disp = 0;
 volatile int rt_msg = 0;
@@ -93,6 +94,7 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
   printf("=======================================================\n");
 
   // Check inputs
+  fflush_printf("checking input args\n");
   if (check_yawff_input(kine,config,data) != SUCCESS) {
     PRINT_ERR_MSG("bad input data");
     return FAIL;
@@ -100,9 +102,18 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
   print_config(config);
 
   // Setup SIGINT handler
+  fflush_printf("reassigning SIGINT handler\n");
   sighandler = signal(SIGINT,sigint_func);
   if (sighandler == SIG_ERR) {
     PRINT_ERR_MSG("assigning SIGINT handler");
+    return FAIL;
+  }
+
+  // Intialize status semephore
+  fflush_printf("initializing status semaphore\n");
+  status_sem = rt_sem_init(nam2num("STATUS"),0);
+  if (status_sem == NULL) {
+    PRINT_ERR_MSG("unable to initialize status semaphore");
     return FAIL;
   }
   
@@ -111,7 +122,7 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
   rt_allow_nonroot_hrt();
   yawff_task = rt_task_init(nam2num("YAWFF"),PRIORITY,STACK_SIZE,MSG_SIZE);
   if (!yawff_task) {
-    PRINT_ERR_MSG("error initializing yawff_task\n");
+    PRINT_ERR_MSG("error initializing yawff_task");
     return FAIL;
   }
   rt_set_oneshot_mode();
@@ -153,8 +164,10 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
   stop_rt_timer();
   rt_task_delete(yawff_task);
   fflush_printf("yawff_task deleted\n");
+  rt_sem_delete(status_sem);
 
   // Restore old SIGINT handler
+  fflush_printf("restoring SIGINT handler\n");
   sighandler = signal(SIGINT,sighandler);
   if (sighandler == SIG_ERR) {
     PRINT_ERR_MSG("restoring signal handler failed");
@@ -304,7 +317,7 @@ static void *rt_handler(void *args)
       break;
     }
   
-    // Check if end has been set to 1 by SIGINT
+    // Check if end has been set to 1 by SIGINT handler
     if (end == 1) {
       rt_disp = 0;
       rt_msg |= RT_SIGINT;
@@ -776,6 +789,7 @@ int get_ain(comedi_info_t comedi_info, config_t config, float *ain)
   }
   return SUCCESS;
 }
+
 // ------------------------------------------------------------------
 // Function: get_torq
 //
@@ -963,7 +977,6 @@ int rt_cleanup(int level, comedi_info_t comedi_info, RT_TASK *rt_task)
 
   return ret_flag;
 }
-
 
 // -------------------------------------------------------------------
 // Function: ain_to_phys

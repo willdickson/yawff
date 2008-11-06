@@ -21,6 +21,14 @@
 #define RT_CLEANUP_LEVEL_2 2
 #define RT_CLEANUP_ALL 2
 
+// Values specifying whether or not to wait on a lock 
+#define RT_LOCK_WAIT 0
+#define RT_LOCK_NOWAIT 1
+
+// Values specifying whether RT task is running
+#define RT_STOPPED 0
+#define RT_RUNNING 1
+
 // Structure for arguments pass to real time thread
 typedef struct {
   array_t *kine;
@@ -41,19 +49,29 @@ typedef struct {
   float pos;
   float vel;
   float torq;
-} status_info_t;
+  int motor_ind[MAX_MOTOR];
+  int running;
+  int err_flag;
+  SEM* lock;
+} status_t;
   
 // Function prototypes
 static void *rt_handler(void *args);
 void sigint_func(int sig);
-void update_status_info(int i, float t, state_t *state, torq_info_t torq_info);
+void init_status_vals(status_t *status);
+void read_status(status_t *status_copy);
+void update_status(int i, 
+		   float t, 
+		   state_t *state, 
+		   torq_info_t torq_info,
+		   int motor_ind[MAX_MOTOR][2],
+		   int running,
+		   int err_msg,
+		   int wait_flag);
 
 // Global variables
-static SEM *status_sem;
-volatile int end = 0;
-volatile int rt_disp = 0;
-volatile int rt_msg = 0;
-volatile status_info_t status_info;
+volatile static int end = 0;
+static status_t status;
 
 // -------------------------------------------------------------------
 // Function: yawff
@@ -75,19 +93,19 @@ volatile status_info_t status_info;
 // -------------------------------------------------------------------
 int yawff(array_t kine, config_t config, data_t data, int *end_pos)
 {
-
   RT_TASK *yawff_task;
   int rt_thread;
   void *sighandler = NULL;
   int rtn_flag = SUCCESS;
   thread_args_t thread_args;
+  status_t status_copy;
   struct timespec sleep_ts;
+  int i;
 
   // Initialize globals
   end = 0;
-  rt_msg = 0;
-  rt_disp = 0;
-
+  init_status_vals(&status); // Values only - doesn't initialize lock
+ 
   // Startup method 
   printf("\n");
   printf("                  Starting yawff \n");
@@ -108,11 +126,15 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
     PRINT_ERR_MSG("assigning SIGINT handler");
     return FAIL;
   }
+  /////////////////////////////////////////////
+  // DEBUG - need to reassign signal handler
+  // if a failure occurs.
+  /////////////////////////////////////////////
 
   // Intialize status semephore
   fflush_printf("initializing status semaphore\n");
-  status_sem = rt_sem_init(nam2num("STATUS"),0);
-  if (status_sem == NULL) {
+  status.lock = rt_typed_sem_init(nam2num("STATUS"),1,BIN_SEM | FIFO_Q);
+  if (status.lock == NULL) {
     PRINT_ERR_MSG("unable to initialize status semaphore");
     return FAIL;
   }
@@ -140,31 +162,39 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
   // Set reporter sleep timespec
   sleep_ts.tv_sec = 0;
   sleep_ts.tv_nsec = 100000000;
-
   
   // Run time display
   do {
-    if (rt_disp == 1) {
-      fflush_printf("                                         ");
+    // copy of status information structure - use locks
+    read_status(&status_copy);
+
+    // Once realtime task is running display data
+    if (status_copy.running) {
+      fflush_printf("                                                      ");
       fflush_printf("\r");
       fflush_printf("%3.0f\%, t: %3.2f, pos: %3.2f, vel: %3.2f, torq: %3.5f",
-		    100.0*(float)status_info.ind/(float)kine.nrow, 
-		    status_info.t,
-		    status_info.pos,
-		    status_info.vel,
-		    status_info.torq);
+		    100.0*(float)status.ind/(float)kine.nrow, 
+		    status_copy.t,
+		    status_copy.pos,
+		    status_copy.vel,
+		    status_copy.torq);
       fflush_printf("\r");
     }
     nanosleep(&sleep_ts,NULL);
   } while (!end);
 
-  // Clean up
+  // Wait to join
   rt_thread_join(rt_thread);
   fflush_printf("rt_thread joined\n");
+
+  // One last read of status to get errors and final position
+  read_status(&status_copy); 
+
+  // Clean uop
   stop_rt_timer();
   rt_task_delete(yawff_task);
   fflush_printf("yawff_task deleted\n");
-  rt_sem_delete(status_sem);
+  rt_sem_delete(status.lock);
 
   // Restore old SIGINT handler
   fflush_printf("restoring SIGINT handler\n");
@@ -174,13 +204,23 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
     rtn_flag = FAIL;
   }
 
-  if (rt_msg & RT_SIGINT) {
-    fflush_printf("rt_sigint\n");
+  // Print any error messages
+  if (status_copy.err_flag & RT_TASK_SIGINT) {
+    fflush_printf("real-time task stopped with: RT_SIGINT\n");
   }
 
-  if (rt_msg & RT_ERROR) {
-    fflush_printf("rt_error\n");
+  if (status_copy.err_flag & RT_TASK_ERROR) {
+    fflush_printf("real-time task stopped with: RT_ERROR \n");
   }
+
+  // Copy motor indices into end_pos
+  fflush_printf("end_pos: ");
+  for (i=0; i<config.num_motor; i++) {
+    end_pos[i] = status_copy.motor_ind[i];
+    fflush_printf("%d", end_pos[i]);
+    if (i!=config.num_motor-1) fflush_printf(", ");
+  }
+  fflush_printf("\n");
   
   // Temporary
   return rtn_flag;
@@ -215,6 +255,7 @@ static void *rt_handler(void *args)
   int motor_ind[MAX_MOTOR][2]; // Motor index position [i][0] previous, [i][1] current
   float runtime;
   float t;
+  int err_flag = 0;
   int i;
 
   // Unpack arguments passed to thread
@@ -263,10 +304,6 @@ static void *rt_handler(void *args)
   }
   rt_task_use_fpu(rt_task,1); // Enable use of floating point math
   
-  // Setup periodic timer
-  fflush_printf("setting up periodic timer\n");
-
-
   // Go to hard real-time
   runtime = ((float) config.dt)*((float) kine.nrow)*NS2S;
   fflush_printf("starting hard real-time, T = %1.3f(s)\n", runtime);
@@ -281,31 +318,27 @@ static void *rt_handler(void *args)
     // Update dynamic state
     if (update_state(state,&torq_info,comedi_info,config) != SUCCESS) {
       PRINT_ERR_MSG("updating dynamic state failed");
-      rt_msg |= RT_ERROR;
+      err_flag |= RT_TASK_ERROR;
       break;
     }
 
     // Update motor index array
     if (update_ind(motor_ind,kine,i,state,config) != SUCCESS) {
       PRINT_ERR_MSG("updating motor indices failed");
-      rt_msg |= RT_ERROR;
+      err_flag |= RT_TASK_ERROR;
       break;
     }
     // Update motor positions
     if (update_motor(motor_ind, comedi_info, config) != SUCCESS) {
       PRINT_ERR_MSG("updating motor positions failed");
-      rt_msg |= RT_ERROR;
+      err_flag |= RT_TASK_ERROR;
       break;
     }
     
-    // Update status informtation
-    update_status_info(i,t,state,torq_info);
-    if (i==1) rt_disp = 1;
-
     // Update data
     if (update_data(data,i,t,state,torq_info) != SUCCESS) {
       PRINT_ERR_MSG("updating data arrays failed");
-      rt_msg |= RT_ERROR;
+      err_flag |= RT_TASK_ERROR;
       break;
     }
     
@@ -313,28 +346,38 @@ static void *rt_handler(void *args)
     rt_sleep_until(nano2count(now_ns + (RTIME) CLOCK_HI_NS));
     if (set_clks_lo(comedi_info, config) != SUCCESS) {
       PRINT_ERR_MSG("setting dio clks failed");
-      rt_msg |= RT_ERROR;
+      err_flag |= RT_TASK_ERROR;
       break;
     }
   
     // Check if end has been set to 1 by SIGINT handler
     if (end == 1) {
-      rt_disp = 0;
-      rt_msg |= RT_SIGINT;
       fflush_printf("\nSIGINT - exiting real-time");
+      err_flag |= RT_TASK_SIGINT;
       break;
     }
+    
+    // Update information if global variable status 
+    update_status(i,t,state,torq_info,motor_ind,RT_RUNNING,0,RT_LOCK_NOWAIT);
 
     // Sleep until next period
     rt_sleep_until(nano2count(now_ns + config.dt));
 
     // Update time
     t += NS2S*config.dt;
-
   } // End for i
 
+  // Set status information to final values before exiting
+  update_status(kine.nrow-1,
+		t,
+		state,
+		torq_info,
+		motor_ind,
+		RT_STOPPED,
+		err_flag,
+		RT_LOCK_WAIT);
+
   // Leave realtime
-  rt_disp = 0;
   rt_make_soft_real_time();
   munlockall();
   fflush_printf("\nleaving hard real-time\n");
@@ -343,16 +386,62 @@ static void *rt_handler(void *args)
   if (rt_cleanup(RT_CLEANUP_ALL, comedi_info, rt_task)!=SUCCESS) {
     PRINT_ERR_MSG("rt_cleanup failed");
   }
-
+  
   end = 1;
 
   return 0;
 }
 
-// --------------------------------------------------------------------
-// Function: update_status_info
+// -------------------------------------------------------------------
+// Function: init_status_vals
 //
-// Purpose: updates data in global variable status_info which is used
+// Purpose: initializes variable of type status_t. No locks are used
+// during initialization to access the structure. 
+//
+// NOTE: this does not initialize the semaphore lock. This must be
+// done separately.
+//
+// Arguments:
+//   status = pointer to status_t structure
+//
+// -------------------------------------------------------------------
+void init_status_vals(status_t *status)
+{
+  int i;
+  status -> ind = 0;
+  status -> t = 0.0;
+  status -> pos = 0.0;
+  status -> vel = 0.0;
+  status -> torq = 0.0;
+  status -> running = RT_STOPPED;
+  status -> err_flag = 0;
+  for (i=0; i<MAX_MOTOR; i++) {
+    (status -> motor_ind)[i] = 0;
+  }
+  return;
+}
+
+// --------------------------------------------------------------------
+// Function: read_status
+//
+// Purpose: Reads data in global variable status.
+//
+// Arguments:
+//   status_copy = pointer to local copy of status structure.
+//
+// --------------------------------------------------------------------
+void read_status(status_t *status_copy)
+{
+  rt_sem_wait(status.lock);
+  *status_copy = status;  
+  rt_sem_signal(status.lock);
+  return;
+}
+
+// --------------------------------------------------------------------
+// Function: update_status
+//
+// Purpose: updates data in global variable status which is used
 // for reporting runtime data to the user via the main thread.
 //
 // Arguments:
@@ -361,20 +450,59 @@ static void *rt_handler(void *args)
 //   t          = current time in seconds
 //   state      = current state vector array
 //   torq_info  = current torq infor structure
+//   running    = flag which indicates real-time loop is running
+//   err_msg    = error indocator
+//   wait_flag  = RT_LOCK_WAIT or RT_LOCK_NOWAIT
 //
 // Return: void
 //
 // ---------------------------------------------------------------------
-void update_status_info(int i, 
-			float t, 
-			state_t *state, 
-			torq_info_t torq_info)
+void update_status(int i, 
+		   float t, 
+		   state_t *state, 
+		   torq_info_t torq_info,
+		   int motor_ind[MAX_MOTOR][2],
+		   int running,
+		   int err_flag,
+		   int wait_flag)
 {
-  status_info.ind = i;
-  status_info.t = t;
-  status_info.pos = state[1].pos;
-  status_info.vel = state[1].vel;
-  status_info.torq = torq_info.last;
+  int j;
+  int have_lock;
+  
+  switch (wait_flag) {
+    
+  case RT_LOCK_NOWAIT:
+    // Try and acquire lock - but don't wait if you can't get it
+    have_lock = rt_sem_wait_if(status.lock);
+    break;
+    
+  case RT_LOCK_WAIT:
+    // Acquire lock - wait if you can't get it. 
+    rt_sem_wait(status.lock);
+    have_lock = 1;
+    break;
+    
+  default:
+    // Unknown flag
+    PRINT_ERR_MSG("unkown wait_flag");
+    return;
+    break;
+  }
+
+  // Update data in status structure if lock was aqcuired 
+  if (have_lock) {
+  status.ind = i;
+  status.t = t;
+  status.pos = state[1].pos;
+  status.vel = state[1].vel;
+  status.torq = torq_info.last; 
+  status.running = running;
+  status.err_flag |= err_flag;
+  for (j=0;j<MAX_MOTOR;j++) {
+    status.motor_ind[j] = motor_ind[j][1];
+  }
+  rt_sem_signal(status.lock);
+  }
   return;
 }
 

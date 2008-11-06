@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
   array_t kine;
   config_t config;
   data_t data;
-  int end_pos;
+  int end_pos[MAX_MOTOR];
   int ret_val;
 
   // Initialize 
@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
   }
 
   // Run yawff
-  ret_val = yawff(kine,config,data,&end_pos);
+  ret_val = yawff(kine,config,data,end_pos);
   
   // Clean up
   free_test_kine(&kine);

@@ -66,7 +66,7 @@ int init_test_kine(array_t *kine, config_t config)
   // Create kinematics
   for (i=0; i<kine->nrow; i++) {
     for (j=0; j<kine->ncol; j++) {
-      pos = i + j;
+      pos = i;
       if(set_array_val(*kine,i,j,&pos)==FAIL) { 
 	PRINT_ERR_MSG("error writing kinematic position");
 	flag = FAIL;

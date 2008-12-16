@@ -1,29 +1,53 @@
-// ----------------------------------------------------------------
-// File: util.h
-//
-// Puropse: contains vairous utility functions used by the yawff
-// library.
-//
-// Functions:
-// 
-//   integrator         = 2nd order integrator
-//   dynamics_func      = function for yaw dynamics
-//   init_array         = initializes array object
-//   free_array         = frees array object
-//   set_array_val      = sets array element value
-//   get_array_val      = gets array  element value
-//   lowpass_filt1      = firat order lowpass filter
-//   print_config       = prints configuration structure
-//   print_err_msg      = prints error messages
-//   fflush_printf      = printf followed by fflush(stdout)
-//   get_max_motor      = returns maximum allowed number of motors
-//   get_max_dt         = returns maximum allowed real-time period
-//   get_min_dt         = returns minimum allowed real-time period
-//   get_clock_hi_ns    = returns the clock high time in ns
-//
-// Author: Will Dickson
-//
-// ----------------------------------------------------------------
+/*---------------------------------------------------------------------
+  yawff
+  Copyright (C) William Dickson, 2008.
+  
+  wbd@caltech.edu
+  www.willdickson.com
+
+  Released under the LGPL Licence, Version 3
+  
+  This file is part of yawff.
+
+  yawff is free software: you can redistribute it and/or modify it
+  under the terms of the GNU Lesser General Public License as
+  published by the Free Software Foundation, either version 3 of the
+  License, or (at your option) any later version.
+    
+  yawff is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General
+  Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public
+  License along with yawff.  If not, see
+  <http://www.gnu.org/licenses/>.
+
+----------------------------------------------------------------------
+  util.c
+
+  Puropse: contains vairous utility functions used by the yawff
+  library.
+
+  Functions:
+ 
+   integrator         = 2nd order integrator
+   dynamics_func      = function for yaw dynamics
+   init_array         = initializes array object
+   free_array         = frees array object
+   set_array_val      = sets array element value
+   get_array_val      = gets array  element value
+   lowpass_filt1      = firat order lowpass filter
+   print_config       = prints configuration structure
+   print_err_msg      = prints error messages
+   fflush_printf      = printf followed by fflush(stdout)
+   get_max_motor      = returns maximum allowed number of motors
+   get_max_dt         = returns maximum allowed real-time period
+   get_min_dt         = returns minimum allowed real-time period
+   get_clock_hi_ns    = returns the clock high time in ns
+
+  Author: Will Dickson
+----------------------------------------------------------------------- */
 #include "yawff.h"
 #include "util.h"
 

@@ -1,32 +1,56 @@
-// -----------------------------------------------------------------
-// File: check.c
-//
-// Purpose: Contains functions used for checking that the system 
-// configurtation structure, the kinemeatic array and structure of
-// output data arrays types are valid and compatible.
-//
-// Functions:
-//
-//   check_yawff_inputs = check inputs to yawff function
-//   check_config       = checks if configuration structure is valid
-//   check_ranges       = checks if ranges in configuration structure
-//                        are valid
-//   check_clkdir       = checks if the  clk/dir to dio pin assignment
-//                        is valid/ 
-//   check_kine_map     = checks if the map from kinematics to motors
-//                        is valid
-//   check_kine         = checks that kinematics array is valid
-//   check_kine_compat  = checks that kinematics array and 
-//                        configuration structure are compatible
-//   check_array        = check that an array is valid
-//   check_data         = check that structure of data arrays is 
-//                        valid
-//   check_data_compat  = check that structur of data arrays and 
-//                        kinematics array are compatible
-//
-// Author: Will Dickson 
-//
-// -----------------------------------------------------------------
+/*---------------------------------------------------------------------
+  yawff
+  Copyright (C) William Dickson, 2008.
+  
+  wbd@caltech.edu
+  www.willdickson.com
+
+  Released under the LGPL Licence, Version 3
+  
+  This file is part of yawff.
+
+  yawff is free software: you can redistribute it and/or modify it
+  under the terms of the GNU Lesser General Public License as
+  published by the Free Software Foundation, either version 3 of the
+  License, or (at your option) any later version.
+    
+  yawff is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General
+  Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public
+  License along with yawff.  If not, see
+  <http://www.gnu.org/licenses/>.
+
+----------------------------------------------------------------------
+  check.c
+
+  Purpose: Contains functions used for checking that the system 
+  configurtation structure, the kinemeatic array and structure of
+  output data arrays types are valid and compatible.
+
+  Functions:
+
+   check_yawff_inputs = check inputs to yawff function
+   check_config       = checks if configuration structure is valid
+   check_ranges       = checks if ranges in configuration structure
+                        are valid
+   check_clkdir       = checks if the  clk/dir to dio pin assignment
+                        is valid/ 
+   check_kine_map     = checks if the map from kinematics to motors
+                        is valid
+   check_kine         = checks that kinematics array is valid
+   check_kine_compat  = checks that kinematics array and 
+                        configuration structure are compatible
+   check_array        = check that an array is valid
+   check_data         = check that structure of data arrays is 
+                        valid
+   check_data_compat  = check that structur of data arrays and 
+                        kinematics array are compatible
+ 
+  Author: Will Dickson
+---------------------------------------------------------------------- */
 #include "yawff.h"
 #include "check.h"
 #include "util.h"

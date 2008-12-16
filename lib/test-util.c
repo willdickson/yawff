@@ -1,20 +1,45 @@
-// -------------------------------------------------------
-// test-util.c
-//
-// Purpose: Contains functions for setting up unit tests
-// for yawff.h
-//
-// -------------------------------------------------------
+/*---------------------------------------------------------------------
+  yawff
+  Copyright (C) William Dickson, 2008.
+  
+  wbd@caltech.edu
+  www.willdickson.com
+
+  Released under the LGPL Licence, Version 3
+  
+  This file is part of yawff.
+
+  yawff is free software: you can redistribute it and/or modify it
+  under the terms of the GNU Lesser General Public License as
+  published by the Free Software Foundation, either version 3 of the
+  License, or (at your option) any later version.
+    
+  yawff is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General
+  Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public
+  License along with yawff.  If not, see
+  <http://www.gnu.org/licenses/>.
+
+----------------------------------------------------------------------
+  test-util.c
+
+  Purpose: Contains functions for setting up unit tests for yawff.h
+ 
+  Author: Will Dickson
+---------------------------------------------------------------------- */
 #include "yawff.h"
 #include "util.h"
 #include "test-util.h"
 
-// -------------------------------------------------------
+// -----------------------------------------------------------------
 // Function: init_config
 //
 // Purpose: Initialize system configuration
 //
-// -------------------------------------------------------
+// -----------------------------------------------------------------
 void init_test_config(config_t *config)
 {
   int i;
@@ -46,12 +71,12 @@ void init_test_config(config_t *config)
   return;
 }
 
-// -----------------------------------------------------
+// ---------------------------------------------------------------
 // Function: init_kine
 //
 // Purpose: Initialize kinematics
 //
-// -----------------------------------------------------
+// ---------------------------------------------------------------
 int init_test_kine(array_t *kine, config_t config)
 {
   int i;
@@ -76,24 +101,24 @@ int init_test_kine(array_t *kine, config_t config)
   return flag;
 }
 
-// -----------------------------------------------------
+// --------------------------------------------------------------
 // Function: free_kine
 //
 // Purpose: frees memory allocated for kinematics
 //
-// -----------------------------------------------------
+// ---------------------------------------------------------------
 void free_test_kine(array_t *kine)
 {
   free_array(kine);
 }
 
 
-// -----------------------------------------------------
+// ---------------------------------------------------------------
 // Function: init_data
 //
 // Purpose: initize return data structure
 //
-// -----------------------------------------------------
+// ---------------------------------------------------------------
 int init_test_data(data_t *data, int N)
 {
   int flag = SUCCESS;
@@ -113,12 +138,12 @@ int init_test_data(data_t *data, int N)
   return flag;
 }
 
-// -----------------------------------------------------
+// ---------------------------------------------------------------
 // Function: free_data
 //
 // Prupose: fress memory allocated for return data
 //
-// -----------------------------------------------------
+// ---------------------------------------------------------------
 void free_test_data(data_t *data)
 {
   free_array(&(data -> t));

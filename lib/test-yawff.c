@@ -1,11 +1,35 @@
-// ------------------------------------------------------------
-// File: test-yawff.c
-//
-// Purpose: Set of unit tests for the yawff library
-//
-// Author: Will Dickson
-//
-// -------------------------------------------------------------
+/*---------------------------------------------------------------------
+  yawff
+  Copyright (C) William Dickson, 2008.
+  
+  wbd@caltech.edu
+  www.willdickson.com
+
+  Released under the LGPL Licence, Version 3
+  
+  This file is part of yawff.
+
+  yawff is free software: you can redistribute it and/or modify it
+  under the terms of the GNU Lesser General Public License as
+  published by the Free Software Foundation, either version 3 of the
+  License, or (at your option) any later version.
+    
+  yawff is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General
+  Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public
+  License along with yawff.  If not, see
+  <http://www.gnu.org/licenses/>.
+
+----------------------------------------------------------------------
+  test-yawff.c
+
+  Purpose: Set of unit tests for the yawff library
+
+  Author: Will Dickson 
+---------------------------------------------------------------------- */
 #include <stdio.h>
 #include <stdlib.h>
 #include <CUnit/Basic.h>
@@ -14,7 +38,7 @@
 #include "check.h"
 #include "test-util.h"
 
-// Function prototypes -------------------------------------------
+// Function prototypes ------------------------------------------------
 int testsuite_setup(void);
 int testsuite_teardown(void);
 
@@ -32,12 +56,12 @@ void test_check_yawff_input(void);
 void test_lowpass_filt1(void);
 void test_integrator(void);
 
-// --------------------------------------------------------------
+//----- --------------------------------------------------------------
 // Function: main
 //
 // Purpose: sets up unit testing framework and runs the tests.
 //
-// --------------------------------------------------------------
+// -------------------------------------------------------------------
 int main(int argc, char *argv[]) 
 {
   CU_TestInfo array_test_array[] = {
@@ -89,33 +113,33 @@ int main(int argc, char *argv[])
 
 }
 
-// -------------------------------------------------------------
+// ------------------------------------------------------------------
 // Function: testsuit_setup
 //
 // Puropse: dummy testsuite setup function
 //
-// -------------------------------------------------------------
+// ------------------------------------------------------------------
 int testsuite_setup(void) {
   return 0;
 }
 
-// -------------------------------------------------------------
+// ------------------------------------------------------------------
 // Function: testsuite_teardown
 // 
 // Purpose: dummy testsuite teardown function
 //
-// -------------------------------------------------------------
+// ------------------------------------------------------------------
 int testsuite_teardown(void) {
   return 0;
 }
 
 
-// -------------------------------------------------------------
+// ------------------------------------------------------------------
 // Function: test_init_array
 //
 // Purpose: Unit test for init_array function
 //
-// -------------------------------------------------------------
+// ------------------------------------------------------------------
 void test_init_array(void)
 {
   int nrow = 20;
@@ -142,12 +166,12 @@ void test_init_array(void)
   return;
 }
 
-// -------------------------------------------------------------
+// ------------------------------------------------------------------
 // Function: test_set_array_val
 //
 // Purpose: Unit test for set_array_val function
 //
-// -------------------------------------------------------------
+// ------------------------------------------------------------------
 void test_set_array_val(void)
 {
   int i,j;
@@ -207,12 +231,12 @@ void test_set_array_val(void)
 }
 
 
-// -------------------------------------------------------------
+// ------------------------------------------------------------------
 // Function: test_get_array_val
 //
 // Purpose: Unit test for get_array_val function
 //
-// -------------------------------------------------------------
+// ------------------------------------------------------------------
 void test_get_array_val(void)
 {
   int i,j;
@@ -270,12 +294,12 @@ void test_get_array_val(void)
 }
 
 
-// -------------------------------------------------------------
+// ------------------------------------------------------------------
 // Function: test_check_config 
 //
 // Purpose: Unit test for the check_config function.
 //
-// -------------------------------------------------------------
+// ------------------------------------------------------------------
 void test_check_config(void)
 {
   config_t config;
@@ -347,12 +371,12 @@ void test_check_config(void)
   CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);  
 }
 
-// --------------------------------------------------------
+// -------------------------------------------------------------
 // Function: test_check_kine
 //
 // Purpose: unit test for check_kine function
 //
-// --------------------------------------------------------
+// -------------------------------------------------------------
 void test_check_kine(void)
 {
   int i,j;
@@ -414,12 +438,12 @@ void test_check_kine(void)
 }
 
 
-// -----------------------------------------------------------
+// ----------------------------------------------------------------
 // Function: test_check_kine_compat
 //
 // Purpose: unit test for check_compat function
 //
-// ------------------------------------------------------------
+// -----------------------------------------------------------------
 void test_check_kine_compat(void)
 {
   array_t kine;
@@ -443,11 +467,11 @@ void test_check_kine_compat(void)
   return;
 }
 
-// -------------------------------------------------------------
+// ------------------------------------------------------------------
 // Function: test_check_data
 //
 // Purpose: unit test of check_data function
-// -------------------------------------------------------------
+// ------------------------------------------------------------------
 void test_check_data(void)
 {
   int N = 100;
@@ -492,12 +516,12 @@ void test_check_data(void)
   return;
 }
 
-// -------------------------------------------------------------
+// ------------------------------------------------------------------
 // Function: test_check_data_compat
 //
 // Purpose: Unit test for check_data_compat function
 //
-// -------------------------------------------------------------
+// ------------------------------------------------------------------
 void test_check_data_compat(void)
 {
   config_t config;
@@ -534,12 +558,12 @@ void test_check_data_compat(void)
   return;
 }
 
-// -------------------------------------------------------------
+// ------------------------------------------------------------------
 // Fucntion: test_check_yawff_input
 //
 // Purpose: Unit test of check_yawff_input function
 //
-// -------------------------------------------------------------
+// ------------------------------------------------------------------
 void test_check_yawff_input(void)
 {
   config_t config, test_config;
@@ -588,13 +612,13 @@ void test_check_yawff_input(void)
   return;
 }
 
-// -------------------------------------------------------------
+// ------------------------------------------------------------------
 // Function: test_lowpass_filt1
 //
 // Purpose: Unit test for lowpass_filt1 function. Currently only 
 // tests the gain of the filter against the theoretical value. 
 //
-// --------------------------------------------------------------
+// -------------------------------------------------------------------
 void test_lowpass_filt1(void)
 {
   float f_cut;
@@ -644,14 +668,14 @@ void test_lowpass_filt1(void)
   return;
 }
 
-// ------------------------------------------------------------
+// -----------------------------------------------------------------
 // Function: test_integrator
 //
 // Purpose: Unit test for integrator function. Note, this is
 // test is kind of cheesey as it simple integrates a simple
 // ballistic trajectory and 
 //
-// ------------------------------------------------------------
+// -----------------------------------------------------------------
 void test_integrator(void)
 {
   int N = (int)(INTEG_T/INTEG_DT);

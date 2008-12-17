@@ -45,7 +45,7 @@ LXRT_LDFLAGS= $(shell rtai-config --lxrt-ldflags)
 TEST_LDFLAGS= -lcunit
 INCLUDES= -I 
 CFLAGS= -fPIC -c
-CSTANDARD= -std=gnu99
+CSTANDARD= -std=gnu89
 
 all: $(TARGET) test devel
 
@@ -53,13 +53,13 @@ $(TARGET): $(OBJ)
 	${CC} -shared -W1,-soname,$@ -o $@.$(RELEASE_NUM) $? -lm $(LXRT_LDFLAGS)
 
 $(OBJ): $(SRC)	
-	$(CC) $(CFLAGS) $(LXRT_CFLAGS) $?  
+	$(CC) $(CSTANDARD) $(CFLAGS) $(LXRT_CFLAGS) $?  
 
 test: $(SRC) test-$(LIBRARY_NAME).c
-	$(CC) $(LXRT_CFLAGS) $? -o test-$(LIBRARY_NAME) $(TEST_LDFLAGS) -lm $(LXRT_LDFLAGS)
+	$(CC) $(CSTANDARD) $(LXRT_CFLAGS) $? -o test-$(LIBRARY_NAME) $(TEST_LDFLAGS) -lm $(LXRT_LDFLAGS)
 
 devel: $(SRC) devel-$(LIBRARY_NAME).c
-	$(CC) $(LXRT_CFLAGS) $? -o devel-$(LIBRARY_NAME) $(TEST_LDFLAGS) -lm $(LXRT_LDFLAGS)
+	$(CC) $(CSTANDARD) $(LXRT_CFLAGS) $? -o devel-$(LIBRARY_NAME) $(TEST_LDFLAGS) -lm $(LXRT_LDFLAGS)
 
 .PHONY: clean install uninstall
 

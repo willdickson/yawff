@@ -120,7 +120,7 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
 {
   RT_TASK *yawff_task;
   int rt_thread;
-  void *sighandler = NULL;
+  sighandler_t sighandler = NULL;
   int rtn_flag = SUCCESS;
   thread_args_t thread_args;
   status_t status_copy;
@@ -146,21 +146,18 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
 
   // Setup SIGINT handler
   fflush_printf("reassigning SIGINT handler\n");
-  sighandler = signal(SIGINT,sigint_func);
+  sighandler = reassign_sigint(sigint_func);
   if (sighandler == SIG_ERR) {
-    PRINT_ERR_MSG("assigning SIGINT handler");
     return FAIL;
   }
-  /////////////////////////////////////////////
-  // DEBUG - need to reassign signal handler
-  // if a failure occurs.
-  /////////////////////////////////////////////
 
   // Intialize status semephore
   fflush_printf("initializing status semaphore\n");
   status.lock = rt_typed_sem_init(nam2num("STATUS"),1,BIN_SEM | FIFO_Q);
   if (status.lock == NULL) {
     PRINT_ERR_MSG("unable to initialize status semaphore");
+    fflush_printf("restoring SIGINT handler\n");
+    sighandler = reassign_sigint(sighandler);
     return FAIL;
   }
   
@@ -170,6 +167,8 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
   yawff_task = rt_task_init(nam2num("YAWFF"),PRIORITY,STACK_SIZE,MSG_SIZE);
   if (!yawff_task) {
     PRINT_ERR_MSG("error initializing yawff_task");
+    fflush_printf("restoring SIGINT handler\n");
+    sighandler = reassign_sigint(sighandler);
     return FAIL;
   }
   rt_set_oneshot_mode();
@@ -223,7 +222,7 @@ int yawff(array_t kine, config_t config, data_t data, int *end_pos)
 
   // Restore old SIGINT handler
   fflush_printf("restoring SIGINT handler\n");
-  sighandler = signal(SIGINT,sighandler);
+  sighandler = reassign_sigint(sighandler);
   if (sighandler == SIG_ERR) {
     PRINT_ERR_MSG("restoring signal handler failed");
     rtn_flag = FAIL;
@@ -1168,6 +1167,24 @@ int ain_to_phys(lsampl_t data, comedi_info_t comedi_info, float *volts)
   *volts += min_rng;
 
   return SUCCESS;
+}
+
+
+// -----------------------------------------------------------------
+// Function: reassign_sigint 
+//
+// Purpose: Reassigns sigint signal handler and prints an error 
+// message on failure. Returns either old signal handler or SIG_ERR.
+//
+// ------------------------------------------------------------------
+sighandler_t reassign_sigint(sighandler_t sigint_func)
+{
+  sighandler_t sigint_func_old;
+  sigint_func_old = signal(SIGINT,sigint_func);
+  if (sigint_func_old == SIG_ERR) {
+    PRINT_ERR_MSG("assigning SIGINT handler");
+  }
+  return sigint_func_old;
 }
 
 // ------------------------------------------------------------------

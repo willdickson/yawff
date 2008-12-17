@@ -45,6 +45,7 @@ LXRT_LDFLAGS= $(shell rtai-config --lxrt-ldflags)
 TEST_LDFLAGS= -lcunit
 INCLUDES= -I 
 CFLAGS= -fPIC -c
+CSTANDARD= -std=gnu99
 
 all: $(TARGET) test devel
 

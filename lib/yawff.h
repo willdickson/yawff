@@ -76,6 +76,8 @@
 #define RT_TASK_ERROR 2   // Mask used to detect if an error occured in the realtime thread
 #define RT_TASK_SIGINT 4  // Mask used to detect if an sigint stopped the realtime thread
 
+typedef void (*sighandler_t)(int);
+
 // Structure for configuration
 typedef struct {
   char *dev_name;          // Comedi device name  
@@ -206,6 +208,9 @@ extern int update_data(data_t data,
 // Set clock dio lines to DIO_LO
 extern int set_clks_lo(comedi_info_t comedi_info, 
 		       config_t config);
+
+// Reassign sigint signal handler
+extern sighandler_t reassign_sigint(sighandler_t sigint_func);
 
 #endif // INC_YAWFF_H_
 

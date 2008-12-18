@@ -57,6 +57,7 @@
 #define MIN_TORQ_LIM 0.0   // Nm
 #define MAX_TORQ_LIM 0.5   // Nm
 #define NS2S 1.0e-9        // Convert nanoseconds to seconds 
+
 #define INTEG_EULER 0      // Const for integration by Euler method 
 #define INTEG_RKUTTA 1     // Const for integration by Runge-Kutta
 #define INTEG_UNKNOWN 2    // Const for unknown integration method 
@@ -141,7 +142,7 @@ typedef struct {
 extern int yawff(array_t kine, 
 		 config_t config, 
 		 data_t data, 
-		 int *end_pos); 
+		 int end_pos[]); 
 
 // Cleanup fucntion for realtime thread 
 extern int rt_cleanup(int level, 

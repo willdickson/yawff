@@ -429,7 +429,16 @@ void fflush_printf(const char *format, ...)
 }
 
 // Simple functions for getting constants to python ctypes interface
-int get_max_motor(void) {return MAX_MOTOR;};
-int get_max_dt(void) {return MAX_DT_NS;};
-int get_min_dt(void) {return MIN_DT_NS;};
-int get_clock_hi_ns(void) {return CLOCK_HI_NS;};
+int define_max_motor(void) {return MAX_MOTOR;};
+int define_max_dt(void) {return MAX_DT_NS;};
+int define_min_dt(void) {return MIN_DT_NS;};
+int define_clock_hi_ns(void) {return CLOCK_HI_NS;};
+int define_integ_euler(void) {return INTEG_EULER;};
+int define_integ_rkutta(void) {return INTEG_RKUTTA;};
+int define_integ_unknown(void) {return INTEG_UNKNOWN;};
+int define_empty_array(void) {return EMPTY_ARRAY;};
+int define_int_array(void) {return INT_ARRAY;};
+int define_flt_array(void) {return FLT_ARRAY;};
+int define_unknown_array(void) {return UNKNOWN_ARRAY;};
+int define_success(void) {return SUCCESS;};
+int define_fail(void) {return FAIL;};

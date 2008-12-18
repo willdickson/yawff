@@ -48,8 +48,8 @@ clean:
 
 install:
 	$(MAKE) install -C $(LIB_DIR)
-	#cd $(PYLIB_DIR); python $(PYLIB_DIR)/setup.py develop; cd $(PWD)
+	cd $(PYLIB_DIR); python $(PYLIB_DIR)/setup.py develop; cd $(PWD)
 
 uninstall:
 	$(MAKE) uninstall -C $(LIB_DIR)
-	#cd $(PYLIB_DIR); python $(PYLIB_DIR)/setup.py develop --uninstall; cd $(PWD)
+	cd $(PYLIB_DIR); python $(PYLIB_DIR)/setup.py develop --uninstall; cd $(PWD)

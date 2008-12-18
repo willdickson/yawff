@@ -86,9 +86,19 @@ extern void print_err_msg(const char *file,
 extern void fflush_printf(const char *format, ...);
 
 // Function wich return constants for Python ctypes wrapper
-extern int get_max_motor(void);
-extern int get_max_dt(void);
-extern int get_min_dt(void);
-extern int get_clock_hi_ns(void);
-
+extern int define_max_motor(void);
+extern int define_max_dt(void);
+extern int define_min_dt(void);
+extern int define_clock_hi_ns(void);
+extern int define_integ_euler(void);
+extern int define_integ_rkutta(void);
+extern int define_integ_unknown(void);
+extern int define_empty_array(void);
+extern int define_int_array(void);
+extern int define_flt_array(void);
+extern int define_unknown_array(void);
+extern int define_success(void);
+extern int define_fail(void);
 #endif // INC_UTIL_H_
+
+

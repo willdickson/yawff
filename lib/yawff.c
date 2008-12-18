@@ -116,7 +116,7 @@ static status_t status;
 // Return: SUCCESS or FAIL
 //
 // -------------------------------------------------------------------
-int yawff(array_t kine, config_t config, data_t data, int *end_pos)
+int yawff(array_t kine, config_t config, data_t data, int end_pos[])
 {
   RT_TASK *yawff_task;
   int rt_thread;

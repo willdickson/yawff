@@ -171,12 +171,12 @@ int check_ranges(config_t config)
     flag = FAIL;
   }
 
-  // Check voltage to torque calibration
-  if (config.yaw_volt2torq <=0) {
-    PRINT_ERR_MSG("yaw_volt2torq <= 0");
-    flag = FAIL;
-  }
-
+//  // Check voltage to torque calibration
+//  if (config.yaw_volt2torq <=0) {
+//    PRINT_ERR_MSG("yaw_volt2torq <= 0");
+//    flag = FAIL;
+//  }
+//  
   // Check yaw inertia range
   if (config.yaw_inertia <= 0 ) {
     PRINT_ERR_MSG("yaw_inertia <= 0");

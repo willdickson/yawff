@@ -395,6 +395,7 @@ void print_config(config_t config)
   printf("  yaw_ind2deg:    %f\n", config.yaw_ind2deg);
   printf("  yaw_torq_lim:   %f\n", config.yaw_torq_lim);
   printf("  yaw_filt_cut:   %f\n", config.yaw_filt_cut);
+  printf("  yaw_damping:    %f\n", config.yaw_damping);
   printf("  dt:             %d\n", config.dt);
   printf(" ------------------------------------------\n");
   printf("\n");

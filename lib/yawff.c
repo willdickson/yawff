@@ -94,9 +94,23 @@ void update_status(int i,
 		   int err_msg,
 		   int wait_flag);
 
-// Global variables
+// Global variables and constants
 volatile static int end = 0;
 static status_t status;
+
+// Motor half steps 
+#ifdef ARRICK
+const char step_pattern[NUM_HALF_STEPS ][NUM_STEPPER] = {
+    {0x0e,0xe0},
+    {0x0c,0xc0},
+    {0x0d,0xd0},
+    {0x09,0x90}, 
+    {0x0b,0xb0},
+    {0x03,0x30},
+    {0x07,0x70},
+    {0x06,0x60}
+};
+#endif
 
 // -------------------------------------------------------------------
 // Function: yawff
@@ -214,7 +228,7 @@ int yawff(array_t kine, config_t config, data_t data, int end_pos[])
   // One last read of status to get errors and final position
   read_status(&status_copy); 
 
-  // Clean uop
+  // Clean up
   stop_rt_timer();
   rt_task_delete(yawff_task);
   fflush_printf("yawff_task deleted\n");
@@ -295,6 +309,12 @@ static void *rt_handler(void *args)
     return 0;
   }
 
+#ifdef ARRICK   
+  // Initialize parallel port, enable stepper motors
+  //outb(0x000,CTRLPORT);
+  //outb(0x000,DATAPORT);
+#endif
+
   // Initialize, time, dynamic state, and motor indices
   for (i=0; i<2; i++) {
     state[i].pos = 0.0;
@@ -304,7 +324,7 @@ static void *rt_handler(void *args)
   t = 0;
   
   // Find yaw torque zero
-  if (get_torq_zero(comedi_info, config, &torq_info.zero) != SUCCESS) {
+  if (get_torq_zero(comedi_info, config, &torq_info.zero, &torq_info.std) != SUCCESS) {
     PRINT_ERR_MSG("failed to get ain zero");
     // Error, clean up and exit
     if (rt_cleanup(RT_CLEANUP_LEVEL_1,comedi_info,rt_task) != SUCCESS) {
@@ -718,7 +738,7 @@ int update_ind(int motor_ind[][2],
 }
 
 // ---------------------------------------------------------------------
-// Function: init_indices
+// Function: init_ind
 //
 // Purpose: Initialize motor indices (previous and current)  to zero.
 //
@@ -782,6 +802,11 @@ int update_state(state_t *state,
   }
   torq_raw = torq_raw-(torq_info->zero);
 
+  // Apply deadband about zero to limit drift
+  if (fabsf(torq_raw) <= (float)AIN_DEADBAND*(torq_info->std)) {
+      torq_raw = 0.0;
+  }
+
   // Lowpass filter torque
   torq_filt = lowpass_filt1(torq_raw,torq_info->last,config.yaw_filt_cut,dt);
   torq_info->last = torq_filt;
@@ -826,30 +851,35 @@ int update_state(state_t *state,
 // ----------------------------------------------------------------------
 // Function: get_torq_zero
 //
-// Purpose: Determines the zero bais value in (Nm) for yaw torque sensor. 
+// Purpose: Determines the zero bais value and standard deviation in (Nm) 
+// for yaw torque sensor. 
 //
 // Arguments:
 //   comedi_info  = daq/dio device information structure
 //   config       = system configuration structure
 //   torq_zero    = pointer to float for torque zero bias 
+//   torq_std     = pointer to float for torque standard deviation
 //
 // Return: SUCCESS or FAIL
 //
 // ----------------------------------------------------------------------
-int get_torq_zero(comedi_info_t comedi_info, config_t config, float *torq_zero)
+int get_torq_zero(comedi_info_t comedi_info, config_t config, float *torq_zero, float *torq_std)
 {
   float ain_zero;
+  float ain_std;
 
   // Get analog input zero
-  if (get_ain_zero(comedi_info, config, &ain_zero) != SUCCESS) {
+  if (get_ain_zero(comedi_info, config, &ain_zero, &ain_std) != SUCCESS) {
     PRINT_ERR_MSG("unable to get ain zero");
     return FAIL;
   }
 
   // Convert to torque
   *torq_zero = ain_zero*config.yaw_volt2torq;
+  *torq_std = ain_std*config.yaw_volt2torq;
   
   fflush_printf("torque zero: %f(Nm)\n", *torq_zero);
+  fflush_printf("torque std:  %f(Nm)\n", *torq_std);
 
   return SUCCESS;
 }
@@ -864,43 +894,55 @@ int get_torq_zero(comedi_info_t comedi_info, config_t config, float *torq_zero)
 //   comedi_info  = daq/dio device information structure
 //   config       = system configuration structure
 //   ain_zero     = pointer to float for analog input zero bias
+//   ain_std      = pointer to float for analog input standard deviation
 //
 // Return: SUCCESS or FAIL
 //
 // -----------------------------------------------------------------------
-int get_ain_zero(comedi_info_t comedi_info, config_t config, float *ain_zero)
+int get_ain_zero(comedi_info_t comedi_info, config_t config, float *ain_zero, float *ain_std)
 {
   int i;
-  float ain;
+  float ain[AIN_ZERO_NUM];
   int ret_flag = SUCCESS;
   char err_msg[ERR_SZ];
   struct timespec sleep_req;
 
-  fflush_printf("finding ain zero, T = %1.3f(s) \n", AIN_ZERO_DT*AIN_ZERO_NUM);
+  fflush_printf("finding ain zero and std, T = %1.3f(s) \n", AIN_ZERO_DT*AIN_ZERO_NUM);
 
   // Set sleep timespec
   sleep_req.tv_sec = (time_t) AIN_ZERO_DT;
   sleep_req.tv_nsec = 1.0e9*(AIN_ZERO_DT - (time_t) AIN_ZERO_DT);
 
-  // Get samples and find mean
-  *ain_zero = 0;
+  // Get samples for ain mean  
   for (i=0; i<AIN_ZERO_NUM; i++) {
 
-    if (get_ain(comedi_info, config, &ain) != SUCCESS) {
+    if (get_ain(comedi_info, config, &ain[i]) != SUCCESS) {
       snprintf(err_msg, ERR_SZ, "unable to read ain, i = %d", i);
       PRINT_ERR_MSG(err_msg);
       ret_flag = FAIL;
       break;
     }
-
-    // Compute running mean
-    *ain_zero = (((float) i)/((float) i+1))*(*ain_zero)+(1.0/((float) i+1))*ain;
-    
     // Sleep for AIN_SLEEP_DT seconds
     nanosleep(&sleep_req, NULL);
   }
+
+  // Compute ain mean - this is our zero
+  *ain_zero = 0.0;
+  for (i=0; i<AIN_ZERO_NUM;i++) {
+      *ain_zero += ain[i];
+  }
+  *ain_zero /= (float)AIN_ZERO_NUM;
   fflush_printf("ain_zero: %f(V)\n", *ain_zero);
 
+  // Compute ain standard deviation
+  *ain_std = 0.0;
+  for (i=0; i<AIN_ZERO_NUM; i++) {
+      *ain_std += powf(ain[i] - *ain_zero,2.0);
+  }
+  *ain_std /= (float) AIN_ZERO_NUM;
+  *ain_std = sqrtf(*ain_std);
+  fflush_printf("ain_std: %f(V)\n", *ain_std);
+  
   return ret_flag;
 }
 

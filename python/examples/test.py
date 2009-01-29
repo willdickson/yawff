@@ -15,12 +15,12 @@ config = {
     'kine_map'       : (0,1,2,3,4,5),
     'dio_disable'    : 23,
     'yaw_ain'        : 0,
-    'yaw_volt2torq'  : -2.5,
-    'yaw_inertia'    : 0.0002,
-    'yaw_ind2deg'    : 360.0/4000.0,
+    'yaw_volt2torq'  : 5.0,
+    'yaw_inertia'    : 0.00005,
+    'yaw_ind2deg'    : 360.0/2000.0,
     'yaw_torq_lim'   : 0.5,
     'yaw_filt_cut'   : 1.0,
-    'yaw_damping'    : 0.001,
+    'yaw_damping'    : 0.00001,
     'dt'             : 1.0/3000.0,
 }
 

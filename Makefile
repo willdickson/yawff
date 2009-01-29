@@ -38,7 +38,7 @@ default: libyawff
 
 libyawff:
 	echo $(LIB_DIR)
-	$(MAKE) -C $(LIB_DIR)
+	$(MAKE) -C  $(LIB_DIR) "DARRICK=-D ARRICK"
 
 .PHONY: clean install uninstall
 

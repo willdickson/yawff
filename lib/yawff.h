@@ -70,12 +70,22 @@
                            //(use for unit testing)
 
 #define AIN_ZERO_DT 0.01   // Sample time interval for zeroing analog input 
-#define AIN_ZERO_NUM 500   // Number of samples to acquire when zeroing analog input
+#define AIN_ZERO_NUM 1000  // Number of samples to acquire when zeroing analog input
+#define AIN_DEADBAND 5.0   // Analog input deadband (about zero) in std
 #define AIN_RANGE 0        // Analog input range
 #define AIN_AREF AREF_GROUND // Analog input reference
 
 #define RT_TASK_ERROR 2   // Mask used to detect if an error occured in the realtime thread
 #define RT_TASK_SIGINT 4  // Mask used to detect if an sigint stopped the realtime thread
+
+#ifdef ARRICK               // If Arrick stepper motors are used
+#define DATAPORT 0x378      // Parallel port data register
+#define STATPORT 0x379      // Paeallel port status register
+#define CTRLPORT 0x37A      // Parallel port control register
+#define MASK_ENABLE  0x001  // Mask for enabling stepper motors
+#define NUM_HALF_STEPS 8    // Number of half step patterns
+#define NUM_STEPPER 2       // Number of stepper motors
+#endif
 
 typedef void (*sighandler_t)(int);
 
@@ -135,6 +145,7 @@ typedef struct {
 typedef struct {
   float zero;
   float last;
+  float std;
 } torq_info_t;
 
 
@@ -155,13 +166,15 @@ extern int init_comedi(comedi_info_t *comedi_info,
 
 // Get zero value for yaw torque analog input channel
 extern int get_ain_zero(comedi_info_t comedi_info,  
-			config_t config, 
-			float *ain_zero);
+            config_t config, 
+			float *ain_zero,
+            float *ain_std);
 
 // Get zero value for yaw torque 
 extern int get_torq_zero(comedi_info_t comedi_info, 
 			 config_t config, 
-			 float *torq_zero);
+			 float *torq_zero,
+             float *torq_std);
 
 // Read yaw torque sensor analog inout
 extern int get_ain(comedi_info_t comedi_info, 

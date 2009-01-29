@@ -46,6 +46,7 @@ TEST_LDFLAGS= -lcunit
 INCLUDES= -I 
 CFLAGS= -fPIC -c
 CSTANDARD= -std=gnu89
+DARRICK=-D ARRICK
 
 all: $(TARGET) test devel
 
@@ -53,13 +54,13 @@ $(TARGET): $(OBJ)
 	${CC} -shared -W1,-soname,$@ -o $@.$(RELEASE_NUM) $? -lm $(LXRT_LDFLAGS)
 
 $(OBJ): $(SRC)	
-	$(CC) $(CSTANDARD) $(CFLAGS) $(LXRT_CFLAGS) $?  
+	$(CC) $(CSTANDARD) $(CFLAGS) $(LXRT_CFLAGS) $(DARRICK) $?  
 
 test: $(SRC) test-$(LIBRARY_NAME).c
-	$(CC) $(CSTANDARD) $(LXRT_CFLAGS) $? -o test-$(LIBRARY_NAME) $(TEST_LDFLAGS) -lm $(LXRT_LDFLAGS)
+	$(CC) $(CSTANDARD) $(LXRT_CFLAGS) $(DARRICK) $? -o test-$(LIBRARY_NAME) $(TEST_LDFLAGS) -lm $(LXRT_LDFLAGS)
 
 devel: $(SRC) devel-$(LIBRARY_NAME).c
-	$(CC) $(CSTANDARD) $(LXRT_CFLAGS) $? -o devel-$(LIBRARY_NAME) $(TEST_LDFLAGS) -lm $(LXRT_LDFLAGS)
+	$(CC) $(CSTANDARD) $(LXRT_CFLAGS) $(DARRICK) $? -o devel-$(LIBRARY_NAME) $(TEST_LDFLAGS) -lm $(LXRT_LDFLAGS)
 
 .PHONY: clean install uninstall
 

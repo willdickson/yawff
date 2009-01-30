@@ -61,10 +61,13 @@ void init_test_config(config_t *config)
   }
   config -> dio_disable = DIO_DISABLE;
   config -> yaw_ain = YAW_AIN;
+  config -> yaw_ain_zero_dt = YAW_AIN_ZERO_DT;
+  config -> yaw_ain_zero_num = YAW_AIN_ZERO_NUM;
   config -> yaw_volt2torq = YAW_VOLT2TORQ;
   config -> yaw_inertia = YAW_INERTIA;
   config -> yaw_ind2deg = YAW_IND2DEG;
   config -> yaw_torq_lim = YAW_TORQ_LIM;
+  config -> yaw_torq_deadband = YAW_TORQ_DEADBAND;
   config -> yaw_filt_cut = YAW_FILT_CUT;
   config -> yaw_damping = YAW_DAMPING;
   config -> dt = DT_NS;

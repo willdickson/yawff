@@ -361,43 +361,46 @@ void print_config(config_t config)
   int i;
   
   printf("\n              configuration\n");
-  printf(" ------------------------------------------\n");
-  printf("  dev_name:       %s\n", config.dev_name);
-  printf("  ain_subdev:     %d\n", config.ain_subdev);
-  printf("  dio_subdev:     %d\n", config.dio_subdev);
-  printf("  num_motor:      %d\n", config.num_motor);
-  printf("  yaw_motor:      %d\n", config.yaw_motor);
+  printf(" ------------------------------------------------\n");
+  printf("  dev_name:            %s\n", config.dev_name);
+  printf("  ain_subdev:          %d\n", config.ain_subdev);
+  printf("  dio_subdev:          %d\n", config.dio_subdev);
+  printf("  num_motor:           %d\n", config.num_motor);
+  printf("  yaw_motor:           %d\n", config.yaw_motor);
   // Print dio clock
-  printf("  dio_ckl:        {");
+  printf("  dio_ckl:             {");
   for (i=0;i<config.num_motor;i++) {
     printf("%d", config.dio_clk[i]);
     if (i < config.num_motor-1) printf(", ");
   }
   printf("}\n");
   // Print dio direction
-  printf("  dio_dir:        {");
+  printf("  dio_dir:             {");
   for (i=0;i<config.num_motor;i++) {
     printf("%d", config.dio_dir[i]);
     if (i < config.num_motor-1) printf(", ");
   }
   printf("}\n");
   // Print kine_map
-  printf("  kine_map:       {");
+  printf("  kine_map:            {");
   for (i=0;i<(config.num_motor-1);i++) {
     printf("%d", config.kine_map[i]);
     if (i < config.num_motor-2) printf(", ");
   }
   printf("}\n");
-  printf("  dio_disable:    %d\n", config.dio_disable);
-  printf("  yaw_ain:        %d\n", config.yaw_ain);
-  printf("  yaw_volt2torq:  %f\n", config.yaw_volt2torq);
-  printf("  yaw_inertia:    %f\n", config.yaw_inertia);
-  printf("  yaw_ind2deg:    %f\n", config.yaw_ind2deg);
-  printf("  yaw_torq_lim:   %f\n", config.yaw_torq_lim);
-  printf("  yaw_filt_cut:   %f\n", config.yaw_filt_cut);
-  printf("  yaw_damping:    %f\n", config.yaw_damping);
-  printf("  dt:             %d\n", config.dt);
-  printf(" ------------------------------------------\n");
+  printf("  dio_disable:         %d\n", config.dio_disable);
+  printf("  yaw_ain:             %d\n", config.yaw_ain);
+  printf("  yaw_ain_zero_dt:     %f\n", config.yaw_ain_zero_dt);
+  printf("  yaw_ain_zero_num:    %d\n", config.yaw_ain_zero_num);
+  printf("  yaw_volt2torq:       %f\n", config.yaw_volt2torq);
+  printf("  yaw_inertia:         %f\n", config.yaw_inertia);
+  printf("  yaw_ind2deg:         %f\n", config.yaw_ind2deg);
+  printf("  yaw_torq_lim:        %f\n", config.yaw_torq_lim);
+  printf("  yaw_torq_deadband:   %f\n", config.yaw_torq_deadband);
+  printf("  yaw_filt_cut:        %f\n", config.yaw_filt_cut);
+  printf("  yaw_damping:         %f\n", config.yaw_damping);
+  printf("  dt:                  %f\n", NS2S*config.dt);
+  printf(" ------------------------------------------------\n");
   printf("\n");
   
   return;

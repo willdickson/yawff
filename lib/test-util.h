@@ -44,10 +44,13 @@
 #define DIO_DISABLE 23
 #define KINE_MAP {0,1,2,3,4,5}
 #define YAW_AIN 0
+#define YAW_AIN_ZERO_DT 0.01
+#define YAW_AIN_ZERO_NUM 500
 #define YAW_VOLT2TORQ 1.0
 #define YAW_INERTIA 1.0
 #define YAW_IND2DEG 1.5
 #define YAW_TORQ_LIM 0.5
+#define YAW_TORQ_DEADBAND 5.0
 #define YAW_FILT_CUT 2.0
 #define YAW_DAMPING 0.0
 #define DT_NS 300000

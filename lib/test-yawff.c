@@ -338,6 +338,16 @@ void test_check_config(void)
   config_test.yaw_ain = MAX_AIN+1;
   CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
   
+  // Analog input zeroing sample interval test
+  config_test = config;
+  config_test.yaw_ain_zero_dt = 0.5*AIN_ZERO_DT_MIN;
+  CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
+
+  // Analog input zeroing number of samples test
+  config_test = config;
+  config_test.yaw_ain_zero_num = 0;
+  CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
+  
   // Inertia range test
   config_test = config;
   config_test.yaw_inertia = 0;
@@ -350,7 +360,12 @@ void test_check_config(void)
 
   // Torque limit range test
   config_test = config;
-  config_test.yaw_torq_lim = 1.0;
+  config_test.yaw_torq_lim = MIN_TORQ_LIM - 0.1;
+  CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
+
+  // Torque deadband range test
+  config_test = config;
+  config_test.yaw_torq_deadband = -1.0;
   CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
 
   // Yaw filter cutoff test

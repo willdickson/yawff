@@ -171,12 +171,18 @@ int check_ranges(config_t config)
     flag = FAIL;
   }
 
-//  // Check voltage to torque calibration
-//  if (config.yaw_volt2torq <=0) {
-//    PRINT_ERR_MSG("yaw_volt2torq <= 0");
-//    flag = FAIL;
-//  }
-//  
+  // Check zeroing sample interval
+  if (config.yaw_ain_zero_dt < AIN_ZERO_DT_MIN) {
+      PRINT_ERR_MSG("yaw_ain_zero_dt < AIN_ZERO_DT_MIN");
+      flag = FAIL;
+  }
+
+  // Check that number of zeroing samples 
+  if (config.yaw_ain_zero_num == 0) {
+      PRINT_ERR_MSG("yaw_ain_zero_dt == 0");
+      flag = FAIL;
+  }
+
   // Check yaw inertia range
   if (config.yaw_inertia <= 0 ) {
     PRINT_ERR_MSG("yaw_inertia <= 0");
@@ -193,6 +199,12 @@ int check_ranges(config_t config)
   if ((config.yaw_torq_lim < MIN_TORQ_LIM) || (config.yaw_torq_lim > MAX_TORQ_LIM)) {
     PRINT_ERR_MSG("yaw_torq_lim out of range");
     flag = FAIL;
+  }
+
+  // Check yaw torque deadband
+  if ((config.yaw_torq_deadband < 0)) {
+      PRINT_ERR_MSG("yaw_torq_deadband must be >= 0");
+      flag = FAIL;
   }
 
   // Check yaw filter cutoff frequency

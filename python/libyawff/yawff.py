@@ -41,7 +41,7 @@ def get_c_array_struct(x):
     x_struct.s1 = x.ctypes.strides[1]
     if x.dtype == scipy.dtype('int'):
         x_struct.type = INT_ARRAY
-    elif x.dtype == scipy.dtype('float'):
+    elif x.dtype == scipy.dtype('float32'):
         x_struct.type = FLT_ARRAY
     else:
         raise ValueError, "array must be of type INT_ARRAY or FLT_ARRAY" 
@@ -89,10 +89,13 @@ class config_t(ctypes.Structure):
         ('kine_map', MAX_MOTOR*ctypes.c_int),
         ('dio_disable', ctypes.c_int),
         ('yaw_ain', ctypes.c_uint),
+        ('yaw_ain_zero_dt', ctypes.c_float),
+        ('yaw_ain_zero_num', ctypes.c_uint),
         ('yaw_volt2torq',ctypes.c_float),
         ('yaw_inertia', ctypes.c_float),
         ('yaw_ind2deg', ctypes.c_float),
         ('yaw_torq_lim', ctypes.c_float),
+        ('yaw_torq_deadband', ctypes.c_float),
         ('yaw_filt_cut', ctypes.c_float),
         ('yaw_damping', ctypes.c_float),
         ('dt', ctypes.c_int),
@@ -140,14 +143,16 @@ def yawff(kine, config):
     config_struct.kine_map = config['kine_map']
     config_struct.dio_disable = config['dio_disable']
     config_struct.yaw_ain = config['yaw_ain']
+    config_struct.yaw_ain_zero_dt = config['yaw_ain_zero_dt']
+    config_struct.yaw_ain_zero_num = config['yaw_ain_zero_num'] 
     config_struct.yaw_volt2torq = config['yaw_volt2torq']
     config_struct.yaw_inertia = config['yaw_inertia']
     config_struct.yaw_ind2deg = config['yaw_ind2deg']
     config_struct.yaw_torq_lim = config['yaw_torq_lim']
+    config_struct.yaw_torq_deadband = config['yaw_torq_deadband']
     config_struct.yaw_filt_cut = config['yaw_filt_cut']
     config_struct.yaw_damping = config['yaw_damping']
     config_struct.dt = int(S2NS*config['dt'])
-
 
     print config_struct.dio_subdev
 
@@ -157,10 +162,10 @@ def yawff(kine, config):
         
     # Time, position, velocity, and torque arrays for return data
     n = kine.shape[0]
-    t = scipy.zeros((n,1), dtype = scipy.dtype('float'))
-    pos = scipy.zeros((n,1), dtype = scipy.dtype('float'))
-    vel = scipy.zeros((n,1), dtype = scipy.dtype('float'))
-    torq = scipy.zeros((n,1), dtype = scipy.dtype('float'))
+    t = scipy.zeros((n,1), dtype = scipy.dtype('float32'))
+    pos = scipy.zeros((n,1), dtype = scipy.dtype('float32'))
+    vel = scipy.zeros((n,1), dtype = scipy.dtype('float32'))
+    torq = scipy.zeros((n,1), dtype = scipy.dtype('float32'))
 
     # Create c data structure
     data_struct = data_t()
@@ -168,7 +173,6 @@ def yawff(kine, config):
     data_struct.pos = get_c_array_struct(pos)
     data_struct.vel = get_c_array_struct(vel)
     data_struct.torq = get_c_array_struct(torq)
-    
     
     # Create array for ending positions
     end_pos = (ctypes.c_int*config['num_motor'])()
@@ -179,8 +183,6 @@ def yawff(kine, config):
         raise RuntimeError, "lib.yawff call failed"
 
     end_pos = scipy.array(end_pos)
-     
+
     return t, pos, vel, torq, end_pos
     
-    
-#int yawff(array_t kine, config_t config, data_t data, int *end_pos)

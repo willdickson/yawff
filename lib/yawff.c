@@ -311,8 +311,6 @@ static void *rt_handler(void *args)
 
 #ifdef ARRICK   
   // Initialize parallel port, enable stepper motors
-  //outb(0x000,CTRLPORT);
-  //outb(0x000,DATAPORT);
 #endif
 
   // Initialize, time, dynamic state, and motor indices
@@ -803,7 +801,7 @@ int update_state(state_t *state,
   torq_raw = torq_raw-(torq_info->zero);
 
   // Apply deadband about zero to limit drift
-  if (fabsf(torq_raw) <= (float)AIN_DEADBAND*(torq_info->std)) {
+  if (fabsf(torq_raw) <= config.yaw_torq_deadband*(torq_info->std)) {
       torq_raw = 0.0;
   }
 
@@ -902,19 +900,21 @@ int get_torq_zero(comedi_info_t comedi_info, config_t config, float *torq_zero, 
 int get_ain_zero(comedi_info_t comedi_info, config_t config, float *ain_zero, float *ain_std)
 {
   int i;
-  float ain[AIN_ZERO_NUM];
+  float ain[config.yaw_ain_zero_num];
   int ret_flag = SUCCESS;
   char err_msg[ERR_SZ];
   struct timespec sleep_req;
+  float t_zero;
 
-  fflush_printf("finding ain zero and std, T = %1.3f(s) \n", AIN_ZERO_DT*AIN_ZERO_NUM);
+  t_zero = config.yaw_ain_zero_dt*config.yaw_ain_zero_num;
+  fflush_printf("finding ain zero and std, T = %1.3f(s) \n", t_zero);
 
   // Set sleep timespec
-  sleep_req.tv_sec = (time_t) AIN_ZERO_DT;
-  sleep_req.tv_nsec = 1.0e9*(AIN_ZERO_DT - (time_t) AIN_ZERO_DT);
+  sleep_req.tv_sec = (time_t) config.yaw_ain_zero_dt;
+  sleep_req.tv_nsec = 1.0e9*(config.yaw_ain_zero_dt - (time_t) config.yaw_ain_zero_dt);
 
   // Get samples for ain mean  
-  for (i=0; i<AIN_ZERO_NUM; i++) {
+  for (i=0; i<config.yaw_ain_zero_num; i++) {
 
     if (get_ain(comedi_info, config, &ain[i]) != SUCCESS) {
       snprintf(err_msg, ERR_SZ, "unable to read ain, i = %d", i);
@@ -928,18 +928,18 @@ int get_ain_zero(comedi_info_t comedi_info, config_t config, float *ain_zero, fl
 
   // Compute ain mean - this is our zero
   *ain_zero = 0.0;
-  for (i=0; i<AIN_ZERO_NUM;i++) {
+  for (i=0; i<config.yaw_ain_zero_num;i++) {
       *ain_zero += ain[i];
   }
-  *ain_zero /= (float)AIN_ZERO_NUM;
+  *ain_zero /= (float)config.yaw_ain_zero_num;
   fflush_printf("ain_zero: %f(V)\n", *ain_zero);
 
   // Compute ain standard deviation
   *ain_std = 0.0;
-  for (i=0; i<AIN_ZERO_NUM; i++) {
-      *ain_std += powf(ain[i] - *ain_zero,2.0);
+  for (i=0; i<config.yaw_ain_zero_num; i++) {
+      *ain_std += powf(ain[i] - *ain_zero, 2.0);
   }
-  *ain_std /= (float) AIN_ZERO_NUM;
+  *ain_std /= (float) config.yaw_ain_zero_num;
   *ain_std = sqrtf(*ain_std);
   fflush_printf("ain_std: %f(V)\n", *ain_std);
   

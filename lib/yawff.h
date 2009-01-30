@@ -57,6 +57,7 @@
 #define MIN_TORQ_LIM 0.0   // Nm
 #define MAX_TORQ_LIM 0.5   // Nm
 #define NS2S 1.0e-9        // Convert nanoseconds to seconds 
+#define S2NS (1.0/NS2S)    // Convert seconds to nanoseconds
 
 #define INTEG_EULER 0      // Const for integration by Euler method 
 #define INTEG_RKUTTA 1     // Const for integration by Runge-Kutta
@@ -69,20 +70,16 @@
 #define UNKNOWN_ARRAY 3    // Indicates array of unkown type
                            //(use for unit testing)
 
-#define AIN_ZERO_DT 0.01   // Sample time interval for zeroing analog input 
-#define AIN_ZERO_NUM 1000  // Number of samples to acquire when zeroing analog input
-#define AIN_DEADBAND 5.0   // Analog input deadband (about zero) in std
-#define AIN_RANGE 0        // Analog input range
-#define AIN_AREF AREF_GROUND // Analog input reference
+#define AIN_ZERO_DT_MIN 0.0005   // Minimum allowed zeroing interval
+//#define AIN_ZERO_DT 0.01         // Sample time interval for zeroing analog input 
+//#define AIN_ZERO_NUM 1000        // Number of samples to acquire when zeroing analog input
+#define AIN_RANGE 0              // Analog input range
+#define AIN_AREF AREF_GROUND     // Analog input reference
 
 #define RT_TASK_ERROR 2   // Mask used to detect if an error occured in the realtime thread
 #define RT_TASK_SIGINT 4  // Mask used to detect if an sigint stopped the realtime thread
 
 #ifdef ARRICK               // If Arrick stepper motors are used
-#define DATAPORT 0x378      // Parallel port data register
-#define STATPORT 0x379      // Paeallel port status register
-#define CTRLPORT 0x37A      // Parallel port control register
-#define MASK_ENABLE  0x001  // Mask for enabling stepper motors
 #define NUM_HALF_STEPS 8    // Number of half step patterns
 #define NUM_STEPPER 2       // Number of stepper motors
 #endif
@@ -101,10 +98,13 @@ typedef struct {
   int kine_map[MAX_MOTOR]; // Map from kinematics to motors
   int dio_disable;         // Yaw motor disable pin 
   unsigned int yaw_ain;    // Analog input channel for yaw torque
+  float yaw_ain_zero_dt;   // Sampling interval for zeroing ain 
+  unsigned int yaw_ain_zero_num;  // Number of zeroing sample points 
   float yaw_volt2torq;     // Voltage to torque conversion
   float yaw_inertia;       // Moment of inertia about yaw axis
   float yaw_ind2deg;       // Index to degree conversion for yaw
   float yaw_torq_lim;      // Yaw torque limit (Nm)
+  float yaw_torq_deadband; // Yaw torque beadband (in std of noise)
   float yaw_filt_cut;      // Yaw torque lowpass filter cutoff (Hz)
   float yaw_damping;       // Damping constant for yaw axis
   int dt;                  // Realtime loop timestep (ns)

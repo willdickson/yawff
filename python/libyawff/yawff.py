@@ -154,8 +154,6 @@ def yawff(kine, config):
     config_struct.yaw_damping = config['yaw_damping']
     config_struct.dt = int(S2NS*config['dt'])
 
-    print config_struct.dio_subdev
-
     # Create c kinematics array structure
     kine_int = kine.astype(scipy.dtype('int'))
     kine_struct =  get_c_array_struct(kine_int)

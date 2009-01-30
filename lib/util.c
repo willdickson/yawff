@@ -147,7 +147,7 @@ state_t dynamics_func(state_t state_in, float force, float mass, float damping)
 {
   state_t state_out;
   state_out.pos = state_in.vel;
-  state_out.vel = force/mass - (damping/mass)*state_in.vel;
+  state_out.vel = force/mass - (damping/mass)*state_in.vel*fabsf(state_in.vel);
   return state_out;
 }
 

@@ -3,7 +3,7 @@ import scipy
 import pylab
 import libyawff
 
-N=50000
+N=100000
 
 config = {
     'dev_name'          : '/dev/comedi0',
@@ -17,14 +17,14 @@ config = {
     'dio_disable'       : 23,
     'yaw_ain'           : 0,
     'yaw_ain_zero_dt'   : 0.01,
-    'yaw_ain_zero_num'  : 500, 
-    'yaw_volt2torq'     : 5.0,
+    'yaw_ain_zero_num'  : 1000, 
+    'yaw_volt2torq'     : 2.5,
     'yaw_inertia'       : 0.0001,
     'yaw_ind2deg'       : 180.0/2000.0,
     'yaw_torq_lim'      : 0.5,
-    'yaw_torq_deadband' : 5.0,
+    'yaw_torq_deadband' : 1.0,
     'yaw_filt_cut'      : 2.0,
-    'yaw_damping'       : 0.0001,
+    'yaw_damping'       : 0.00002,
     'dt'                : 1.0/3000.0,
 }
 

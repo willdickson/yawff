@@ -104,7 +104,7 @@ typedef struct {
   float yaw_inertia;       // Moment of inertia about yaw axis
   float yaw_ind2deg;       // Index to degree conversion for yaw
   float yaw_torq_lim;      // Yaw torque limit (Nm)
-  float yaw_torq_deadband; // Yaw torque beadband (in std of noise)
+  float yaw_torq_deadband; // Yaw torque beadband (Nm)
   float yaw_filt_cut;      // Yaw torque lowpass filter cutoff (Hz)
   float yaw_damping;       // Damping constant for yaw axis
   int dt;                  // Realtime loop timestep (ns)
@@ -146,8 +146,8 @@ typedef struct {
   float zero;
   float last;
   float std;
+  float raw;
 } torq_info_t;
-
 
 // Yaw force-feedback function 
 extern int yawff(array_t kine, 

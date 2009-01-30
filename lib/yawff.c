@@ -804,6 +804,7 @@ int update_state(state_t *state,
   if (fabsf(torq_raw) <= config.yaw_torq_deadband*(torq_info->std)) {
       torq_raw = 0.0;
   }
+  torq_info->raw = torq_raw;
 
   // Lowpass filter torque
   torq_filt = lowpass_filt1(torq_raw,torq_info->last,config.yaw_filt_cut,dt);
@@ -837,7 +838,7 @@ int update_state(state_t *state,
 		    config.yaw_inertia, 
 		    config.yaw_damping, 
 		    dt,
-		    INTEG_RKUTTA);
+		    INTEG_EULER);
   if (rval != SUCCESS ) {
     PRINT_ERR_MSG("integrator failed");
     return FAIL;

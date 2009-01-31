@@ -586,6 +586,10 @@ int update_data(data_t data,
     PRINT_ERR_MSG("setting torq array value failed");
     return FAIL;
   }
+  if (set_array_val(data.torq,ind,1,&torq_info.raw) != SUCCESS) {
+      PRINT_ERR_MSG("setting torq array value failed");
+      return FAIL;
+  }
   return SUCCESS;
 }
 
@@ -838,7 +842,7 @@ int update_state(state_t *state,
 		    config.yaw_inertia, 
 		    config.yaw_damping, 
 		    dt,
-		    INTEG_EULER);
+		    config.integ_type);
   if (rval != SUCCESS ) {
     PRINT_ERR_MSG("integrator failed");
     return FAIL;

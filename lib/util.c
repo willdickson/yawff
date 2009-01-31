@@ -400,6 +400,17 @@ void print_config(config_t config)
   printf("  yaw_filt_cut:        %f\n", config.yaw_filt_cut);
   printf("  yaw_damping:         %f\n", config.yaw_damping);
   printf("  dt:                  %f\n", NS2S*config.dt);
+  printf("  integ_type:          ");
+  if (config.integ_type == INTEG_RKUTTA) {
+      printf("Runge-Kutta\n");
+  }
+  else if (config.integ_type == INTEG_EULER) {
+      printf("Euler\n");
+  }
+  else {
+      printf("unkown\n");
+  }
+
   printf(" ------------------------------------------------\n");
   printf("\n");
   

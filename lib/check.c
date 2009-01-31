@@ -225,6 +225,12 @@ int check_ranges(config_t config)
     flag = FAIL;
   }
 
+  // Check integrator
+  if ((config.integ_type != INTEG_EULER) && (config.integ_type != INTEG_RKUTTA)) {
+      PRINT_ERR_MSG("unknown integrator");
+      flag = FAIL;
+  }
+
   return flag;
 }
 
@@ -481,7 +487,7 @@ int check_data(data_t data)
     flag = FAIL;
   }
 
-  // Check that all arrays are Nx1
+  // Check that t, pos, and vel arrays are Nx1
   if (data.t.ncol != 1) {
     PRINT_ERR_MSG("t array not Nx1");
     flag = FAIL;
@@ -494,7 +500,9 @@ int check_data(data_t data)
     PRINT_ERR_MSG("vel array not Nx1");
     flag = FAIL;
   }
-  if (data.torq.ncol != 1) {
+  
+  // Check that torq array is  Nx2
+  if (data.torq.ncol != 2) {
     PRINT_ERR_MSG("torq array not Nx1");
     flag = FAIL;
   }

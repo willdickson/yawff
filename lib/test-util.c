@@ -71,6 +71,7 @@ void init_test_config(config_t *config)
   config -> yaw_filt_cut = YAW_FILT_CUT;
   config -> yaw_damping = YAW_DAMPING;
   config -> dt = DT_NS;
+  config -> integ_type = INTEG_RKUTTA;
   return;
 }
 
@@ -135,7 +136,7 @@ int init_test_data(data_t *data, int N)
   if (init_array(&(data -> vel), N, 1, FLT_ARRAY) != SUCCESS) {
     flag = FAIL;
   }
-  if (init_array(&(data -> torq), N, 1, FLT_ARRAY) != SUCCESS) {
+  if (init_array(&(data -> torq), N, 2, FLT_ARRAY) != SUCCESS) {
     flag = FAIL;
   }
   return flag;

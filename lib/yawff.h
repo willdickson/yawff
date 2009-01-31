@@ -71,8 +71,6 @@
                            //(use for unit testing)
 
 #define AIN_ZERO_DT_MIN 0.0005   // Minimum allowed zeroing interval
-//#define AIN_ZERO_DT 0.01         // Sample time interval for zeroing analog input 
-//#define AIN_ZERO_NUM 1000        // Number of samples to acquire when zeroing analog input
 #define AIN_RANGE 0              // Analog input range
 #define AIN_AREF AREF_GROUND     // Analog input reference
 
@@ -108,6 +106,7 @@ typedef struct {
   float yaw_filt_cut;      // Yaw torque lowpass filter cutoff (Hz)
   float yaw_damping;       // Damping constant for yaw axis
   int dt;                  // Realtime loop timestep (ns)
+  int integ_type;          // Integrator type
 } config_t;
 
 // Structure for numpy array
@@ -143,7 +142,7 @@ typedef struct {
 
 // Structure for torque data
 typedef struct {
-  float zero;
+  float zero;   
   float last;
   float std;
   float raw;

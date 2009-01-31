@@ -384,6 +384,11 @@ void test_check_config(void)
   CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
   config_test.dt = MIN_DT_NS - 1;
   CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);  
+
+  // Integrator type test
+  config_test = config;
+  config_test.dt = INTEG_UNKNOWN;
+  CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);   
 }
 
 // -------------------------------------------------------------
@@ -508,7 +513,7 @@ void test_check_data(void)
   test_data.vel.ncol = 2;
   CU_ASSERT(check_data(test_data) == FAIL);
   test_data = data;
-  test_data.torq.ncol = 2;
+  test_data.torq.ncol = 3;
   CU_ASSERT(check_data(test_data) == FAIL);
 
   // Test type check

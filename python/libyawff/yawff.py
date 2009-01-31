@@ -56,7 +56,7 @@ MAX_DT = lib.define_max_dt()
 MIN_DT = lib.define_min_dt()
 CLOCK_HI_NS = lib.define_clock_hi_ns()
 INTEG_EULER = lib.define_integ_euler()
-INTEG_RKUTTA = lib.define_integ_euler()
+INTEG_RKUTTA = lib.define_integ_rkutta()
 INTEG_UNKNOWN = lib.define_integ_unknown()
 EMPTY_ARRAY = lib.define_empty_array()
 INT_ARRAY = lib.define_int_array()
@@ -99,6 +99,7 @@ class config_t(ctypes.Structure):
         ('yaw_filt_cut', ctypes.c_float),
         ('yaw_damping', ctypes.c_float),
         ('dt', ctypes.c_int),
+        ('integ_type', ctypes.c_int),
         ]
 
 class data_t(ctypes.Structure):
@@ -153,6 +154,7 @@ def yawff(kine, config):
     config_struct.yaw_filt_cut = config['yaw_filt_cut']
     config_struct.yaw_damping = config['yaw_damping']
     config_struct.dt = int(S2NS*config['dt'])
+    config_struct.integ_type = int(config['integ_type'])
 
     # Create c kinematics array structure
     kine_int = kine.astype(scipy.dtype('int'))
@@ -163,7 +165,7 @@ def yawff(kine, config):
     t = scipy.zeros((n,1), dtype = scipy.dtype('float32'))
     pos = scipy.zeros((n,1), dtype = scipy.dtype('float32'))
     vel = scipy.zeros((n,1), dtype = scipy.dtype('float32'))
-    torq = scipy.zeros((n,1), dtype = scipy.dtype('float32'))
+    torq = scipy.zeros((n,2), dtype = scipy.dtype('float32'))
 
     # Create c data structure
     data_struct = data_t()

@@ -3,6 +3,7 @@ import scipy
 import pylab
 import libyawff
 
+RAD2DEG = 180.0/scipy.pi
 N=100000
 
 config = {
@@ -19,7 +20,7 @@ config = {
     'yaw_ain_zero_dt'   : 0.01,
     'yaw_ain_zero_num'  : 500, 
     'yaw_volt2torq'     : 0.05,
-    'yaw_inertia'       : 0.0008,
+    'yaw_inertia'       : 0.08,
     'yaw_ind2deg'       : 180.0/2000.0,
     'yaw_torq_lim'      : 0.5,
     'yaw_torq_deadband' : 1.0,
@@ -32,6 +33,8 @@ config = {
 kine = scipy.zeros((N,config['num_motor']))
 
 t, pos, vel, torq, end_pos = libyawff.yawff(kine, config)
+pos = RAD2DEG*pos
+vel = RAD2DEG*vel
 
 print torq.shape
 

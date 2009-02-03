@@ -722,7 +722,7 @@ int update_ind(int motor_ind[][2],
   for (i=0; i<config.num_motor; i++) {
     if (i == config.yaw_motor) {
       // This is the yaw motor get index from current state
-      ind = (int)((1.0/config.yaw_ind2deg)*state[1].pos);
+      ind = (int)((RAD2DEG/config.yaw_ind2deg)*state[1].pos);
       motor_num = config.yaw_motor;
     }
     else {

@@ -51,13 +51,15 @@
 #define MAX_DIO 23
 #define MAX_AIN 15
 #define ERR_SZ 200
-#define MAX_DT_NS 10000000 // 100 Hz 
-#define MIN_DT_NS 40000    // 25 kHz
-#define CLOCK_HI_NS 40000  
-#define MIN_TORQ_LIM 0.0   // Nm
-#define MAX_TORQ_LIM 0.5   // Nm
-#define NS2S 1.0e-9        // Convert nanoseconds to seconds 
-#define S2NS (1.0/NS2S)    // Convert seconds to nanoseconds
+#define MAX_DT_NS 10000000    // 100 Hz 
+#define MIN_DT_NS 40000       // 25 kHz
+#define CLOCK_HI_NS 40000     // Time in ns for which clocl is high 
+#define MIN_TORQ_LIM 0.0      // Minimum allowed torque limit Nm
+#define MAX_TORQ_LIM 0.5      // Maximum allowed torque limit Nm
+#define NS2S 1.0e-9           // Convert nanoseconds to seconds 
+#define S2NS (1.0/NS2S)       // Convert seconds to nanoseconds
+#define RAD2DEG (180.0/M_PI)  // Convert radians to degrees
+#define DEG2RAD (M_PI/180.0)  // Convert degrees to radians
 
 #define INTEG_EULER 0      // Const for integration by Euler method 
 #define INTEG_RKUTTA 1     // Const for integration by Runge-Kutta
@@ -121,16 +123,16 @@ typedef struct {
 
 // Structure for dynamic state
 typedef struct {
-  float pos;
-  float vel;
+  float pos;  // Yaw axis position (rad)
+  float vel;  // Yaw axis velocity (rad/s)
 } state_t;
 
 // Structure for return data
 typedef struct {
-  array_t t;
-  array_t pos;
-  array_t vel;
-  array_t torq;
+  array_t t;     // Time (s)
+  array_t pos;   // Yaw axis position (rad)
+  array_t vel;   // Yaw axis velocity (rad/s)
+  array_t torq;  // Torque (Nm), column 1 filtered, column 1 raw.
 } data_t;
 
 // Structure for comedi device information 
@@ -142,10 +144,10 @@ typedef struct {
 
 // Structure for torque data
 typedef struct {
-  float zero;   
-  float last;
-  float std;
-  float raw;
+  float zero;   // Torque sensor zero
+  float last;   // Last filtered torque measurement (Nm)
+  float std;    // Torque sensor standard deviation
+  float raw;    // Last raw torque measurement (Nm) 
 } torq_info_t;
 
 // Yaw force-feedback function 

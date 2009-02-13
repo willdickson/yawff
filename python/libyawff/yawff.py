@@ -120,7 +120,7 @@ lib.yawff.argstype = [
 ]
 
 
-def yawff(kine, config):
+def yawff_c_wrapper(kine, config):
     """
     Python wrapper for yawff function. Performs yaw force-feedback
     task. Spawns real-time thread to handle kinematics outscan, data

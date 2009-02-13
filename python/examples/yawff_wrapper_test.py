@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import libmove_motor
 import scipy 
 import pylab
 import libyawff
@@ -6,33 +7,45 @@ import libyawff
 RAD2DEG = 180.0/scipy.pi
 N=100000
 
+# Read in data from motor map
+mapfile = 'yawff_motor_maps.conf'
+motor_maps = libmove_motor.read_motor_maps(mapfile)
+clk_pins, dir_pins = libmove_motor.get_clkdir_pins(motor_maps)
+yaw_num = motor_maps['yaw']['number']
+yaw_ind2deg = motor_maps['yaw']['deg_per_ind']
+motor_num_list = libmove_motor.get_motor_nums(motor_maps)
+num_motor = len(motor_num_list)
+kine_map = tuple([i for i in motor_num_list if i != yaw_num]) 
+
 config = {
     'dev_name'          : '/dev/comedi0',
     'ain_subdev'        : 0,
     'dio_subdev'        : 2,
-    'num_motor'         : 7,
-    'yaw_motor'         : 6,
-    'dio_clk'           : (0,2,4,6,8,10,12),
-    'dio_dir'           : (1,3,5,7,9,11,13),
-    'kine_map'          : (0,1,2,3,4,5),
+    'num_motor'         : num_motor,
+    'yaw_motor'         : yaw_num,
+    'dio_clk'           : clk_pins,
+    'dio_dir'           : dir_pins,
+    'kine_map'          : kine_map,
     'dio_disable'       : 23,
     'yaw_ain'           : 0,
     'yaw_ain_zero_dt'   : 0.01,
     'yaw_ain_zero_num'  : 500, 
-    'yaw_volt2torq'     : 0.05,
-    'yaw_inertia'       : 0.008,
-    'yaw_ind2deg'       : 180.0/2000.0,
+    'yaw_volt2torq'     : 0.01,
+    'yaw_inertia'       : 3.0,
+    'yaw_ind2deg'       : yaw_ind2deg,
     'yaw_torq_lim'      : 0.5,
     'yaw_torq_deadband' : 1.0,
-    'yaw_filt_cut'      : 10.0,
+    'yaw_filt_cut'      : 3.0,
     'yaw_damping'       : 0.000002,
     'dt'                : 1.0/3000.0,
     'integ_type'        : libyawff.INTEG_RKUTTA,
 }
 
+print config
+
 kine = scipy.zeros((N,config['num_motor']))
 
-t, pos, vel, torq, end_pos = libyawff.yawff(kine, config)
+t, pos, vel, torq, end_pos = libyawff.yawff_c_wrapper(kine, config)
 pos = RAD2DEG*pos
 vel = RAD2DEG*vel
 

@@ -55,7 +55,7 @@
 #define MIN_DT_NS 40000       // 25 kHz
 #define CLOCK_HI_NS 40000     // Time in ns for which clocl is high 
 #define MIN_TORQ_LIM 0.0      // Minimum allowed torque limit Nm
-#define MAX_TORQ_LIM 0.5      // Maximum allowed torque limit Nm
+#define MAX_TORQ_LIM 10.0     // Maximum allowed torque limit Nm
 #define NS2S 1.0e-9           // Convert nanoseconds to seconds 
 #define S2NS (1.0/NS2S)       // Convert seconds to nanoseconds
 #define RAD2DEG (180.0/M_PI)  // Convert radians to degrees

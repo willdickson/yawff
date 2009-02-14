@@ -38,8 +38,8 @@ BORFRC_DIR = os.path.join(os.environ['HOME'],'.borfrc')
 DFLT_CONFIG_FILE = os.path.join(BORFRC_DIR, 'defaults')
 DFLT_SENSOR_CAL_DIR = os.path.join(BORFRC_DIR,'sensor_cal')
 DFLT_COMEDI_CONF_DIR = os.path.join(BORFRC_DIR, 'comedi_conf')
-DFLT_MOVE_VMAX = 500
-DFLT_MOVE_ACCEL = 500
+DFLT_MOVE_VMAX = 10
+DFLT_MOVE_ACCEL = 100
 DFLT_MOVE_DT = 1.0/3000.0
 
 class Yawff:
@@ -99,7 +99,7 @@ class Yawff:
         clk_pins, dir_pins = libmove_motor.get_clkdir_pins(self.motor_maps)
         yaw_motor = self.motor_maps['yaw']['number']
         yaw_ind2deg = self.motor_maps['yaw']['deg_per_ind']
-        motor_num_list = libmove_motor.get_motor_nums(self.motor_maps)
+        motor_num_list = libmove_motor.get_motor_num_list(self.motor_maps)
         num_motor = len(motor_num_list)
         kine_map = tuple([i for i in motor_num_list if i != yaw_motor]) 
         config['num_motor'] = num_motor
@@ -117,30 +117,27 @@ class Yawff:
         config.update(self.run_params)
         return config
 
-    def run(self, kine):
+    def run(self, kine_deg):
         """
         Run yaw force-feedback function.
         """
         import pylab
         config = self.create_config_dict()
 
-        # Convert kinematics from degrees to indices
-        kine_ind = scipy.zeros(kine.shape) 
-        for motor, map in self.motor_maps.iteritems():
-            n = map['number']
-            kine_ind[:,n] = libmove_motor.convert_deg2ind(kine[:,n],map)
-            
         # Move to kinematics starting positon
-        zero_pos = scipy.zeros(kine_ind[0,:].shape)
-        ramps = libmove_motor.get_ramp_moves(zero_pos,kine_ind[0,:],self.move_vmax, self.move_accel, self.move_dt)
-        #for i in range(0,ramps.shape[1]):
-        #    pylab.plot(ramps[:,i])
-        #    pylab.title('motor %d'%(i,))
-        #    pylab.show()
-        end_pos, ret_val = libmove_motor.outscan_kine(ramps,config,self.move_dt)
+        zero_indpos_deg = libmove_motor.get_zero_indpos_deg(self.motor_maps)
+        start_pos_deg = kine_deg[0,:]
+        ramps_deg = libmove_motor.get_ramp_moves(zero_indpos_deg,
+                                                 start_pos_deg,
+                                                 self.move_vmax, 
+                                                 self.move_accel, 
+                                                 self.move_dt)
+        ramps_ind = libmove_motor.deg2ind(ramps_deg, self.motor_maps)
+        end_pos, ret_val = libmove_motor.outscan_kine(ramps_ind,config,self.move_dt)
 
         # Run force-feed back function
-        t, pos, vel, torq, end_pos = libyawff.yawff_c_wrapper(kine_ind, config)
+        kine_ind = libmove_motor.deg2ind(kine_deg, self.motor_maps)
+        t, pos, vel, torq, end_pos_ind = libyawff.yawff_c_wrapper(kine_ind, config)
         
         # Convert from radians to degrees
         pos = RAD2DEG*pos
@@ -151,8 +148,14 @@ class Yawff:
         torq_raw = torq[:,1]
         
         # Return to zero position
-        ramps = libmove_motor.get_ramp_moves(end_pos,zero_pos,self.move_vmax, self.move_accel, self.move_dt)
-        end_pos, ret_val = libmove_motor.outscan_kine(ramps,config,self.move_dt)
+        end_pos_deg = libmove_motor.ind2deg(end_pos_ind,self.motor_maps)
+        ramps_deg = libmove_motor.get_ramp_moves(end_pos_deg,
+                                                 zero_indpos_deg,
+                                                 self.move_vmax, 
+                                                 self.move_accel, 
+                                                 self.move_dt)
+        ramps_ind = libmove_motor.deg2ind(ramps_deg, self.motor_maps)
+        end_pos, ret_val = libmove_motor.outscan_kine(ramps_ind,config,self.move_dt)
 
         return t, pos, vel, torq_flt, torq_raw
 
@@ -160,8 +163,14 @@ class Yawff:
         """
         Returns the number of motors
         """
-        motor_num_list = libmove_motor.get_motor_nums(self.motor_maps)
+        motor_num_list = libmove_motor.get_motor_num_list(self.motor_maps)
         return len(motor_num_list)
+
+    def get_motor_num(self,name):
+        """
+        Returns motor number given the motor name
+        """
+        return self.motor_maps[name]['number']
 
 
 def read_defaults(defaults_file=BORFRC_DIR):

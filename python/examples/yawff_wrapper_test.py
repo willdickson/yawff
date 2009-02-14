@@ -13,7 +13,7 @@ motor_maps = libmove_motor.read_motor_maps(mapfile)
 clk_pins, dir_pins = libmove_motor.get_clkdir_pins(motor_maps)
 yaw_num = motor_maps['yaw']['number']
 yaw_ind2deg = motor_maps['yaw']['deg_per_ind']
-motor_num_list = libmove_motor.get_motor_nums(motor_maps)
+motor_num_list = libmove_motor.get_motor_num_list(motor_maps)
 num_motor = len(motor_num_list)
 kine_map = tuple([i for i in motor_num_list if i != yaw_num]) 
 

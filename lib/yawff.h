@@ -52,8 +52,8 @@
 #define MAX_AIN 15
 #define ERR_SZ 200
 #define MAX_DT_NS 10000000    // 100 Hz 
-#define MIN_DT_NS 40000       // 25 kHz
-#define CLOCK_HI_NS 40000     // Time in ns for which clocl is high 
+#define MIN_DT_NS 100000      // 10 kHz
+#define CLOCK_HI_NS 60000     // Time in ns for which clock is high 
 #define MIN_TORQ_LIM 0.0      // Minimum allowed torque limit Nm
 #define MAX_TORQ_LIM 10.0     // Maximum allowed torque limit Nm
 #define NS2S 1.0e-9           // Convert nanoseconds to seconds 

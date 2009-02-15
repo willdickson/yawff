@@ -6,5 +6,6 @@ syntax: glob
 *.so.*
 *.egg
 *.swp
+*.pkl
 test-yawff
 devel-yawff

@@ -213,8 +213,8 @@ int yawff(array_t kine, config_t config, data_t data, int end_pos[])
       fflush_printf("%3.0f\%, t: %3.2f, pos: %3.2f, vel: %3.2f, torq: %3.5f",
 		    100.0*(float)status.ind/(float)kine.nrow, 
 		    status_copy.t,
-		    status_copy.pos,
-		    status_copy.vel,
+		    status_copy.pos*RAD2DEG,
+		    status_copy.vel*RAD2DEG,
 		    status_copy.torq);
       fflush_printf("\r");
     }
@@ -320,6 +320,13 @@ static void *rt_handler(void *args)
   }  
   init_ind(motor_ind,config);
   t = 0;
+
+  // Initialize torque info
+  torq_info.zero = 0.0;
+  torq_info.last = 0.0;
+  torq_info.std = 0.0;
+  torq_info.raw = 0.0;
+  torq_info.highpass = 0.0;
   
   // Find yaw torque zero
   if (get_torq_zero(comedi_info, config, &torq_info.zero, &torq_info.std) != SUCCESS) {
@@ -358,7 +365,7 @@ static void *rt_handler(void *args)
     now_ns = rt_get_time_ns();
     
     // Update dynamic state
-    if (update_state(state,&torq_info,comedi_info,config) != SUCCESS) {
+    if (update_state(state, t, &torq_info, comedi_info,config) != SUCCESS) {
       PRINT_ERR_MSG("updating dynamic state failed");
       err_flag |= RT_TASK_ERROR;
       break;
@@ -671,8 +678,8 @@ int update_motor(int motor_ind[][2],
 			      config.dio_clk[i],
 			      DIO_HI);
       
-      if (rval != 1) {
-	PRINT_ERR_MSG("conedi write dio clk failed");
+    if (rval != 1) {
+        PRINT_ERR_MSG("conedi write dio clk failed");
 	return FAIL;
 	
       }
@@ -720,16 +727,17 @@ int update_ind(int motor_ind[][2],
   // Set current index
   kine_num = 0;
   for (i=0; i<config.num_motor; i++) {
-    if (i == config.yaw_motor) {
+    if ((i == config.yaw_motor) && (config.ff_flag == FF_ON)) {
       // This is the yaw motor get index from current state
+      // when force-feedback is turned on.
       ind = (int)((RAD2DEG/config.yaw_ind2deg)*state[1].pos);
       motor_num = config.yaw_motor;
     }
     else {
       // This is a wing kinematics motor get index from kine array
       if (get_array_val(kine,kine_ind,kine_num,&ind) != SUCCESS) {
-	PRINT_ERR_MSG("problem accessing kine array");
-	return FAIL;
+          PRINT_ERR_MSG("problem accessing kine array");
+          return FAIL;
       }
       motor_num = config.kine_map[kine_num];
       kine_num += 1;
@@ -775,6 +783,7 @@ void init_ind(int motor_ind[][2], config_t config)
 //
 // Arguments:
 //   state        = array of dyanmic state vectors
+//   t            = time in secs
 //   torque_info  = torque information structure
 //   comedi_info  = daq/dio device information structure
 //   config       = system configuration structure
@@ -782,15 +791,18 @@ void init_ind(int motor_ind[][2], config_t config)
 // Return: SUCCESS or FAIL
 //
 // ---------------------------------------------------------------------- 
-int update_state(state_t *state, 
-		 torq_info_t *torq_info,
-		 comedi_info_t comedi_info, 
-		 config_t config
-		 )
+int update_state(
+        state_t *state, 
+        float t,
+		torq_info_t *torq_info,
+		comedi_info_t comedi_info, 
+		config_t config
+        )
 {
-
   float dt;
   float torq_raw;
+  float torq_diff;
+  float torq_highpass;
   float torq_filt;
   int rval;
 
@@ -803,16 +815,31 @@ int update_state(state_t *state,
     return FAIL;
   }
   torq_raw = torq_raw-(torq_info->zero);
-
   // Apply deadband about zero to limit drift
   if (fabsf(torq_raw) <= config.yaw_torq_deadband*(torq_info->std)) {
       torq_raw = 0.0;
   }
-  torq_info->raw = torq_raw;
+  // If we are inside start up window set torque to zero
+  if (t < config.startup_t) {
+      torq_raw = 0.0;
+  }
 
+  // Highpass filter torque
+  if (config.yaw_filt_hpcut > 0.0) {
+      torq_diff = torq_raw - (torq_info->raw);
+      torq_highpass = highpass_filt1(torq_diff,torq_info->highpass,config.yaw_filt_hpcut,dt);
+  }
+  else {
+      torq_highpass = torq_raw;
+  }
+  
   // Lowpass filter torque
-  torq_filt = lowpass_filt1(torq_raw,torq_info->last,config.yaw_filt_cut,dt);
+  torq_filt = lowpass_filt1(torq_highpass,torq_info->last,config.yaw_filt_lpcut,dt);
+
+  // Update torq_info
   torq_info->last = torq_filt;
+  torq_info->raw = torq_raw;
+  torq_info->highpass = torq_highpass;
 
   // DEBUG ///////////////////////////////////////////
   // // Constant torque for testing 

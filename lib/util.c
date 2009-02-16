@@ -178,6 +178,27 @@ float lowpass_filt1(float x,float y_old, float f_cut, float dt)
   return y_new;
 }
 
+// -----------------------------------------------------------------
+// Function: highpass_filt1
+//
+// Purpose: Discrete implementation of a simple first order highpass
+// filter.
+//
+// Arguments:
+//
+// Return filter ouput value.
+//
+// -----------------------------------------------------------------
+float highpass_filt1(float dx,  float y_old, float f_cut, float dt)
+{
+    float tc = 1.0/(2.0*M_PI*f_cut);
+    float y_new;
+    float alpha;
+    alpha = tc/(tc + dt);
+    y_new = alpha*y_old + alpha*dx;
+    return y_new;
+}
+
 // ----------------------------------------------------------------
 // Function: get_array_val
 //
@@ -397,7 +418,8 @@ void print_config(config_t config)
   printf("  yaw_ind2deg:         %f\n", config.yaw_ind2deg);
   printf("  yaw_torq_lim:        %f\n", config.yaw_torq_lim);
   printf("  yaw_torq_deadband:   %f\n", config.yaw_torq_deadband);
-  printf("  yaw_filt_cut:        %f\n", config.yaw_filt_cut);
+  printf("  yaw_filt_lpcut:      %f\n", config.yaw_filt_lpcut);
+  printf("  yaw_filt_hpcut:      %f\n", config.yaw_filt_hpcut);
   printf("  yaw_damping:         %f\n", config.yaw_damping);
   printf("  dt:                  %f\n", NS2S*config.dt);
   printf("  integ_type:          ");
@@ -409,6 +431,17 @@ void print_config(config_t config)
   }
   else {
       printf("unkown\n");
+  }
+  printf("  startup_t:           %f\n", config.startup_t);
+  printf("  ff_flag:             ");
+  if (config.ff_flag == FF_ON) {
+      printf("FF_ON\n");
+  }
+  else if (config.ff_flag == FF_OFF) {
+      printf("FF_OFF\n");
+  }
+  else {
+      printf("unknown\n");
   }
 
   printf(" ------------------------------------------------\n");
@@ -457,3 +490,5 @@ int define_flt_array(void) {return FLT_ARRAY;};
 int define_unknown_array(void) {return UNKNOWN_ARRAY;};
 int define_success(void) {return SUCCESS;};
 int define_fail(void) {return FAIL;};
+int define_ff_on(void) {return FF_ON;};
+int define_ff_off(void) {return FF_OFF;};

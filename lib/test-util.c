@@ -68,7 +68,8 @@ void init_test_config(config_t *config)
   config -> yaw_ind2deg = YAW_IND2DEG;
   config -> yaw_torq_lim = YAW_TORQ_LIM;
   config -> yaw_torq_deadband = YAW_TORQ_DEADBAND;
-  config -> yaw_filt_cut = YAW_FILT_CUT;
+  config -> yaw_filt_lpcut = YAW_FILT_LPCUT;
+  config -> yaw_filt_hpcut = YAW_FILT_HPCUT;
   config -> yaw_damping = YAW_DAMPING;
   config -> dt = DT_NS;
   config -> integ_type = INTEG_RKUTTA;

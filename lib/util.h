@@ -47,10 +47,10 @@ extern int integrator(state_t state_curr,
 		      int method);
 
 // First order lowpass filter
-extern float lowpass_filt1(float x,
-			   float y, 
-			   float f_cut, 
-			   float dt);
+extern float lowpass_filt1(float x,float y_old, float f_cut, float dt);
+
+// First order highpass filter
+float highpass_filt1(float dx,  float y_old, float f_cut, float dt);
 
 // Initialize array structure memory
 extern int init_array(array_t *array, 
@@ -99,6 +99,8 @@ extern int define_flt_array(void);
 extern int define_unknown_array(void);
 extern int define_success(void);
 extern int define_fail(void);
+extern int define_ff_on(void);
+extern int define_ff_off(void);
 #endif // INC_UTIL_H_
 
 

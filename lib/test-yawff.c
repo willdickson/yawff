@@ -368,9 +368,14 @@ void test_check_config(void)
   config_test.yaw_torq_deadband = -1.0;
   CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
 
-  // Yaw filter cutoff test
+  // Yaw filter lowpass cutoff test
   config_test = config;
-  config_test.yaw_filt_cut = -1.0;
+  config_test.yaw_filt_lpcut = -1.0;
+  CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
+
+  // Yaw filter highpass cutoff test
+  config_test = config;
+  config_test.yaw_filt_hpcut = -1.0;
   CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
 
   // Yaw damping constant

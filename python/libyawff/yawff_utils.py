@@ -183,9 +183,10 @@ class Yawff:
         return self.motor_maps[name]['number']
 
     
-    def set_stroke_tilt_kine(self, t, f, u, amp_stroke, amp_rotation, k_stroke=0.01, k_rotation=1.5, rotation_offset=5.0):
+    def set_stroke_tilt_kine(self, t, f, u, amp_stroke, amp_rotation, k_stroke=0.01, k_rotation=1.5, rotation_offset=0.0):
         """
-        Returns kinemtics with differential tilt in stroke-plane angle.
+        Sets current kinemtics to those with differential tilt in stroke-plane angle determined by 
+        control signal u.
         """
         u_0, u_1 = u, -u
         ro_0, ro_1 = rotation_offset, -rotation_offset
@@ -203,6 +204,29 @@ class Yawff:
         kine[:,r1] = get_rotation_angle(t, f, amp_rotation, ro_1, k_rotation)
         kine[:,d0] = get_deviation_angle(t, f, u_0) 
         kine[:,d1] = get_deviation_angle(t, f, u_1) 
+        self.kine_deg = kine
+
+    def set_diff_aoa_kine(self, t, f, u, amp_stroke, amp_rotation, k_stroke=0.01, k_rotation=1.5, rotation_offset=0.0):
+        """
+        Sets current kinematics to those with a differential angle of attach on the up stroke
+        and downstroke. The amount of asymmetry is determined by the control input u.
+        """
+        u_0, u_1 = u, -u
+        ro_0, ro_1 = rotation_offset, -rotation_offset
+        num_motors = self.num_motors()
+        kine = scipy.zeros((t.shape[0],num_motors))
+        s0 = self.get_motor_num('stroke_0')
+        s1 = self.get_motor_num('stroke_1')
+        r0 = self.get_motor_num('rotation_0')
+        r1 = self.get_motor_num('rotation_1')
+        d0 = self.get_motor_num('deviation_0')
+        d1 = self.get_motor_num('deviation_1')
+        kine[:,s0] = get_stroke_angle(t, f, amp_stroke, 0.5, k_stroke)
+        kine[:,s1] = get_stroke_angle(t, f, amp_stroke, 0.5, k_stroke)
+        kine[:,r0] = get_rotation_angle(t, f, amp_rotation, u_0 + ro_0, k_rotation)
+        kine[:,r1] = get_rotation_angle(t, f, amp_rotation, u_1 + ro_1, k_rotation)
+        kine[:,d0] = get_deviation_angle(t, f, 0.0) 
+        kine[:,d1] = get_deviation_angle(t, f, 0.0) 
         self.kine_deg = kine
 
     def plot_kine(self,kine_deg=None):
@@ -416,4 +440,11 @@ def control_step(t,u0,u1,t0,t1,t2,t3):
     return f
 
     
-
+def resample(x,n):
+    """
+    Resample data in array x with step size n.
+    """
+    if len(x.shape) == 1:
+        return x[0:-1:n]
+    else:
+        return x[0:-1:n,:]

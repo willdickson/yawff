@@ -35,10 +35,13 @@ config = {
     'yaw_ind2deg'       : yaw_ind2deg,
     'yaw_torq_lim'      : 0.5,
     'yaw_torq_deadband' : 1.0,
-    'yaw_filt_cut'      : 3.0,
+    'yaw_filt_lpcut'    : 3.0,
+    'yaw_filt_hpcut'    : 0.01,
     'yaw_damping'       : 0.000002,
     'dt'                : 1.0/3000.0,
     'integ_type'        : libyawff.INTEG_RKUTTA,
+    'startup_t'         : 0.0,
+    'ff_flag'           : libyawff.FF_ON,
 }
 
 print config

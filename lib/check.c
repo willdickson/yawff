@@ -207,10 +207,16 @@ int check_ranges(config_t config)
       flag = FAIL;
   }
 
-  // Check yaw filter cutoff frequency
-  if (config.yaw_filt_cut < 0.0) {
-    PRINT_ERR_MSG("yaw_filt_cut < 0");
+  // Check yaw lowpass filter cutoff frequency
+  if (config.yaw_filt_lpcut < 0.0) {
+    PRINT_ERR_MSG("yaw_filt_lpcut < 0");
     flag = FAIL;
+  }
+
+  // Check yaw highpss filter cutoff frequency
+  if (config.yaw_filt_hpcut < 0.0) {
+      PRINT_ERR_MSG("yaw_filt_hpcut < 0");
+      flag = FAIL;
   }
 
   // Check damping constant
@@ -228,6 +234,12 @@ int check_ranges(config_t config)
   // Check integrator
   if ((config.integ_type != INTEG_EULER) && (config.integ_type != INTEG_RKUTTA)) {
       PRINT_ERR_MSG("unknown integrator");
+      flag = FAIL;
+  }
+
+  // Check ff_flag
+  if ((config.ff_flag != FF_ON) && (config.ff_flag != FF_OFF)) {
+      PRINT_ERR_MSG("unknown ff_flag value");
       flag = FAIL;
   }
 

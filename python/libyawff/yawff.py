@@ -64,7 +64,8 @@ FLT_ARRAY = lib.define_flt_array()
 UNKOWN_ARRAY = lib.define_unknown_array()
 SUCCESS = lib.define_success()
 FAIL = lib.define_fail()
-
+FF_ON = lib.define_ff_on()
+FF_OFF = lib.define_ff_off()
 
 # Structures
 class array_t(ctypes.Structure):
@@ -96,10 +97,13 @@ class config_t(ctypes.Structure):
         ('yaw_ind2deg', ctypes.c_float),
         ('yaw_torq_lim', ctypes.c_float),
         ('yaw_torq_deadband', ctypes.c_float),
-        ('yaw_filt_cut', ctypes.c_float),
+        ('yaw_filt_lpcut', ctypes.c_float),
+        ('yaw_filt_hpcut', ctypes.c_float),
         ('yaw_damping', ctypes.c_float),
         ('dt', ctypes.c_int),
         ('integ_type', ctypes.c_int),
+        ('startup_t', ctypes.c_float),
+        ('ff_flag', ctypes.c_int),
         ]
 
 class data_t(ctypes.Structure):
@@ -151,10 +155,13 @@ def yawff_c_wrapper(kine, config):
     config_struct.yaw_ind2deg = config['yaw_ind2deg']
     config_struct.yaw_torq_lim = config['yaw_torq_lim']
     config_struct.yaw_torq_deadband = config['yaw_torq_deadband']
-    config_struct.yaw_filt_cut = config['yaw_filt_cut']
+    config_struct.yaw_filt_lpcut = config['yaw_filt_lpcut']
+    config_struct.yaw_filt_hpcut = config['yaw_filt_hpcut']
     config_struct.yaw_damping = config['yaw_damping']
     config_struct.dt = int(S2NS*config['dt'])
     config_struct.integ_type = int(config['integ_type'])
+    config_struct.startup_t = float(config['startup_t'])
+    config_struct.ff_flag = int(config['ff_flag'])
 
     # Create c kinematics array structure
     kine_int = kine.astype(scipy.dtype('int'))

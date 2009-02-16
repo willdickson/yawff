@@ -60,6 +60,8 @@
 #define S2NS (1.0/NS2S)       // Convert seconds to nanoseconds
 #define RAD2DEG (180.0/M_PI)  // Convert radians to degrees
 #define DEG2RAD (M_PI/180.0)  // Convert degrees to radians
+#define FF_ON 0               // Force-feedback on
+#define FF_OFF 1              // Force-feedback off
 
 #define INTEG_EULER 0      // Const for integration by Euler method 
 #define INTEG_RKUTTA 1     // Const for integration by Runge-Kutta
@@ -105,10 +107,13 @@ typedef struct {
   float yaw_ind2deg;       // Index to degree conversion for yaw
   float yaw_torq_lim;      // Yaw torque limit (Nm)
   float yaw_torq_deadband; // Yaw torque beadband (Nm)
-  float yaw_filt_cut;      // Yaw torque lowpass filter cutoff (Hz)
+  float yaw_filt_lpcut;    // Yaw torque lowpass filter cutoff (Hz)
+  float yaw_filt_hpcut;    // Yaw torque highpss filter cutoff (Hz)
   float yaw_damping;       // Damping constant for yaw axis
   int dt;                  // Realtime loop timestep (ns)
   int integ_type;          // Integrator type
+  float startup_t;         // Startup window in which torque is set to zero
+  int ff_flag;             // Sets force-feedback on or off
 } config_t;
 
 // Structure for numpy array
@@ -144,10 +149,11 @@ typedef struct {
 
 // Structure for torque data
 typedef struct {
-  float zero;   // Torque sensor zero
-  float last;   // Last filtered torque measurement (Nm)
-  float std;    // Torque sensor standard deviation
-  float raw;    // Last raw torque measurement (Nm) 
+  float zero;       // Torque sensor zero
+  float last;       // Last filtered (both high and low pass) torque measurement (Nm)
+  float std;        // Torque sensor standard deviation
+  float raw;        // Last raw torque measurement (Nm) 
+  float highpass;   // Intermediate highpass filtered torque
 } torq_info_t;
 
 // Yaw force-feedback function 
@@ -193,10 +199,13 @@ extern int ain_to_phys(lsampl_t data,
 		       float *volts);
 
 // Update yaw dynamics state vector one timestep
-extern int update_state(state_t *state, 
-			torq_info_t *torq_info, 
-			comedi_info_t comedi_info, 
-			config_t config);
+extern int update_state(
+        state_t *state, 
+        float t,
+        torq_info_t *torq_info, 
+        comedi_info_t comedi_info, 
+        config_t config
+        );
 
 // Initialize motor indices to zeros
 extern void init_ind(int motor_ind[][2], config_t config);

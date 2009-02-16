@@ -32,13 +32,19 @@ yawff = libyawff.Yawff(run_params)
 
 t = scipy.arange(0.0, T*N/dt)*dt
 
-#u = libyawff.control_step(t, 0.0, 5.0, 4*T, 5*T, 12*T, 13*T)
-#yawff.set_stroke_tilt_kine(t, f, u, amp_stroke, amp_rotation, rotation_offset=0.0)
+if 0:
+    u = libyawff.control_step(t, 0.0, 5.0, 4*T, 5*T, 12*T, 13*T)
+    yawff.set_stroke_tilt_kine(t, f, u, amp_stroke, amp_rotation, rotation_offset=0.0)
+if 1:
+    u = libyawff.control_step(t, 0.0, 10.0, 3*T, 3.25*T, 11*T, 11.25*T)
+    yawff.set_diff_aoa_kine(t, f, u, amp_stroke, amp_rotation, rotation_offset=2.0)
 
-u = libyawff.control_step(t, 0.0, 10.0, 3*T, 4*T, 11*T, 12*T)
-yawff.set_diff_aoa_kine(t, f, u, amp_stroke, amp_rotation, rotation_offset=2.0)
-
-#yawff.plot_kine()
+if 0:
+    pylab.plot(t,u)
+    pylab.show()
+if 0:
+    yawff.plot_kine()
+   
 t, pos, vel, torq_flt, torq_raw =  yawff.run()
 
 # Save data to file

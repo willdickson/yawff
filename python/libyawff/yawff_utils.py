@@ -440,14 +440,15 @@ def control_step(t,u0,u1,t0,t1,t2,t3):
     mask3 = scipy.logical_and(t >= t2, t < t3)
     mask4 = t >= t3
     # Constants for linear transition regions
-    a = (u0 - u1)/(t0 - t1)
-    b_01 = u0 - a*t0
-    b_23 = u1 + a*t2
+    a_01 = (u0 - u1)/(t0 - t1)
+    a_23 = (u1 - u0)/(t2 - t3)
+    b_01 = u0 - a_01*t0
+    b_23 = u1 - a_23*t2
     # Assign functin values
     f[mask0] = u0*scipy.ones(t[mask0].shape)
-    f[mask1] = a*t[mask1] + b_01
+    f[mask1] = a_01*t[mask1] + b_01
     f[mask2] = u1*scipy.ones(t[mask2].shape)
-    f[mask3] = -a*t[mask3] + b_23
+    f[mask3] = a_23*t[mask3] + b_23
     f[mask4] = u0*scipy.ones(t[mask4].shape)
     return f
 

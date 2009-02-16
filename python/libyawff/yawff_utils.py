@@ -90,6 +90,7 @@ class Yawff:
         self.move_dt = move_dt
         self.config_dict = self.create_config_dict()
         self.kine_deg = None
+        self.t = None
 
     def create_config_dict(self):
         """
@@ -228,6 +229,17 @@ class Yawff:
         kine[:,d0] = get_deviation_angle(t, f, 0.0) 
         kine[:,d1] = get_deviation_angle(t, f, 0.0) 
         self.kine_deg = kine
+        self.t = t
+
+    def set_yaw_to_const_vel(self,vel,accel):
+        """
+        Sets the kinematics of the yaw motor to constant velocity.
+        """
+        if self.t == None or self.kine_deg == None:
+            raise RuntimeError, 'cannot set yaw to constant vel - no t or kine_deg'
+        n = self.get_motor_num('yaw')
+        self.kine_deg[:,n] = ramp_to_const_vel(self.t,vel,accel)
+       
 
     def plot_kine(self,kine_deg=None):
         """
@@ -439,6 +451,17 @@ def control_step(t,u0,u1,t0,t1,t2,t3):
     f[mask4] = u0*scipy.ones(t[mask4].shape)
     return f
 
+def ramp_to_const_vel(t,vel,accel):
+    """
+    Generates a ramp trajectory to constant velocity.
+    """
+    x = scipy.zeros(t.shape)
+    t_accel = vel/accel
+    mask0 = t < t_accel
+    mask1 = t >= t_accel
+    x[mask0] = accel*t**2
+    x[mask1] = vel*t + accel*(t_accel**2)
+    return x
     
 def resample(x,n):
     """

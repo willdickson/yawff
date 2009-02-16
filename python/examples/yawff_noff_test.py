@@ -5,10 +5,10 @@ import libyawff
 import cPickle as pickle
 
 T = 6.0   # Period (s)
-N = 20    # Number of stroke cycles
+N = 5    # Number of stroke cycles
 amp_stroke = 70.0    # Stroke amplitude
 amp_rotation = 45.0  # Rotation amplitude
-dt = 1.0/3000.0
+dt = 1.0/3000.0 # rt-loop time step (s)
 f = 1.0/T
 datafile = 'test_data.pkl'
 ds_n = 10 # Resampling step
@@ -20,24 +20,20 @@ run_params = {
     'yaw_torq_lim'      : 0.5,
     'yaw_torq_deadband' : 1.5,
     'yaw_filt_lpcut'    : 3.0,
-    'yaw_filt_hpcut'    : 1.0/(10.0*T),
+    'yaw_filt_hpcut'    : 0.0, 
     'yaw_ain_zero_dt'   : 0.01,
     'yaw_ain_zero_num'  : 500, 
     'integ_type'        : libyawff.INTEG_RKUTTA,
-    'startup_t'         : 2*T,
-    'ff_flag'           : libyawff.FF_ON,
+    'startup_t'         : 0.0,
+    'ff_flag'           : libyawff.FF_OFF,
 }
 
 yawff = libyawff.Yawff(run_params)
 
 t = scipy.arange(0.0, T*N/dt)*dt
-
-#u = libyawff.control_step(t, 0.0, 5.0, 4*T, 5*T, 12*T, 13*T)
-#yawff.set_stroke_tilt_kine(t, f, u, amp_stroke, amp_rotation, rotation_offset=0.0)
-
-u = libyawff.control_step(t, 0.0, 10.0, 3*T, 4*T, 11*T, 12*T)
+u = 0.0
 yawff.set_diff_aoa_kine(t, f, u, amp_stroke, amp_rotation, rotation_offset=2.0)
-
+yawff.set_yaw_to_const_vel(3.0, 1.0)
 #yawff.plot_kine()
 t, pos, vel, torq_flt, torq_raw =  yawff.run()
 
@@ -48,13 +44,14 @@ data = {'t'         : libyawff.resample(t,ds_n),
         'torq_flt'  : libyawff.resample(torq_flt,ds_n),
         'torq_raw'  : libyawff.resample(torq_raw,ds_n),
         'config'    : yawff.config_dict,
-        'u'         : libyawff.resample(u,ds_n),
+        'u'         : u,
         'kine'      : libyawff.resample(yawff.kine_deg,ds_n),}
 
 fd = open(datafile,'wb')
 pickle.dump(data,fd)
 fd.close()
 
+# Plot results
 pylab.subplot(411)
 pylab.plot(data['t'],data['pos'])
 pylab.ylabel('positin (deg)')

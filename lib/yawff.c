@@ -727,19 +727,29 @@ int update_ind(int motor_ind[][2],
   // Set current index
   kine_num = 0;
   for (i=0; i<config.num_motor; i++) {
-    if ((i == config.yaw_motor) && (config.ff_flag == FF_ON)) {
-      // This is the yaw motor get index from current state
-      // when force-feedback is turned on.
-      ind = (int)((RAD2DEG/config.yaw_ind2deg)*state[1].pos);
-      motor_num = config.yaw_motor;
+    if (i == config.yaw_motor)  {
+      // This is the yaw motor 
+      if (config.ff_flag == FF_ON) {
+          // Force-feedback is on - get index from current state
+          ind = (int)((RAD2DEG/config.yaw_ind2deg)*state[1].pos);
+          motor_num = config.yaw_motor;
+      }
+      else {
+          // Force-feedback is off - get index from kinematics
+          motor_num = config.yaw_motor;
+          if (get_array_val(kine,kine_ind,motor_num,&ind) != SUCCESS) {
+              PRINT_ERR_MSG("problem accessing kine array");
+              return FAIL;
+          } 
+      }
     }
     else {
-      // This is a wing kinematics motor get index from kine array
-      if (get_array_val(kine,kine_ind,kine_num,&ind) != SUCCESS) {
+      // This is a wing  motor get index from kine array
+      motor_num = config.kine_map[kine_num];
+      if (get_array_val(kine,kine_ind,motor_num,&ind) != SUCCESS) {
           PRINT_ERR_MSG("problem accessing kine array");
           return FAIL;
       }
-      motor_num = config.kine_map[kine_num];
       kine_num += 1;
     }
     motor_ind[motor_num][1] = ind;

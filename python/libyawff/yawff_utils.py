@@ -456,6 +456,9 @@ def ramp_to_const_vel(t,vel,accel):
     """
     Generates a ramp trajectory to constant velocity.
     """
+    accel = abs(accel)
+    if vel < 0:
+        accel = -accel
     x = scipy.zeros(t.shape)
     t_accel = vel/accel
     mask0 = t < t_accel

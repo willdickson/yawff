@@ -73,6 +73,7 @@ void init_test_config(config_t *config)
   config -> yaw_damping = YAW_DAMPING;
   config -> dt = DT_NS;
   config -> integ_type = INTEG_RKUTTA;
+  config -> ff_flag = FF_OFF;
   return;
 }
 

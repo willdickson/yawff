@@ -41,8 +41,8 @@ BORFRC_DIR = os.path.join(os.environ['HOME'],'.borfrc')
 DFLT_CONFIG_FILE = os.path.join(BORFRC_DIR, 'defaults')
 DFLT_SENSOR_CAL_DIR = os.path.join(BORFRC_DIR,'sensor_cal')
 DFLT_COMEDI_CONF_DIR = os.path.join(BORFRC_DIR, 'comedi_conf')
-DFLT_MOVE_VMAX = 10
-DFLT_MOVE_ACCEL = 100
+DFLT_MOVE_VMAX = 10.0
+DFLT_MOVE_ACCEL = 80.0
 DFLT_MOVE_DT = 1.0/3000.0
 
 class Yawff:
@@ -122,6 +122,63 @@ class Yawff:
         # Add run parameters
         config.update(self.run_params)
         return config
+
+    def move_to_test_pos(self, pos_name, vmax=DFLT_MOVE_VMAX, accel=DFLT_MOVE_ACCEL):
+        """
+        Move the robot into various test positions
+        """
+        config = self.config_dict
+        n = self.num_motors()
+        if pos_name == 'zero':
+            zero_pos = scipy.zeros((n,))
+            self.move_to_pos(zero_pos,vmax=vmax,accel=accel) 
+        elif pos_name == 'rot_plus_90':
+            self.move_rot_to_pos(89.99,vmax=vmax,accel=accel)
+        elif pos_name == 'rot_minus_90':
+            self.move_rot_to_pos(-89.99,vmax=vmax,accel=accel)
+        else:
+            raise ValueError, 'unknown test position'
+
+    def move_rot_to_pos(self,ang, vmax=DFLT_MOVE_VMAX, accel=DFLT_MOVE_ACCEL):
+        """
+        Move robots rotation angles to the given position
+        """
+        n = self.num_motors()
+        pos = scipy.zeros((n,))
+        r0 = self.get_motor_num('rotation_0')
+        r1 = self.get_motor_num('rotation_1')
+        pos[r0] = ang 
+        pos[r1] = ang
+        self.move_to_pos(pos,vmax=vmax,accel=accel)
+
+    def move_to_pos(self, pos, vmax=DFLT_MOVE_VMAX, accel=DFLT_MOVE_ACCEL):
+        """
+        Move the robot to the given position.
+        """
+        config = self.config_dict
+        # Move to kinematics starting positon
+        print 'moving to position'
+        zero_indpos_deg = libmove_motor.get_zero_indpos_deg(self.motor_maps)
+        ramps_deg = libmove_motor.get_ramp_moves(zero_indpos_deg,
+                                                 pos,
+                                                 vmax, 
+                                                 accel, 
+                                                 self.move_dt)
+        ramps_ind = libmove_motor.deg2ind(ramps_deg, self.motor_maps)
+        end_pos, ret_val = libmove_motor.outscan_kine(ramps_ind,config,self.move_dt)
+
+        # Wait until done
+        ans = raw_input('Press enter to return to zero index position:')
+
+        # Return to the zero index position 
+        print 'returning to zero index positon'
+        ramps_deg = libmove_motor.get_ramp_moves(pos,
+                                                 zero_indpos_deg,
+                                                 vmax, 
+                                                 accel, 
+                                                 self.move_dt)
+        ramps_ind = libmove_motor.deg2ind(ramps_deg, self.motor_maps)
+        end_pos, ret_val = libmove_motor.outscan_kine(ramps_ind,config,self.move_dt)
 
     def run(self, kine_deg=None):
         """

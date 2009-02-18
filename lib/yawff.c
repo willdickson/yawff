@@ -741,6 +741,9 @@ int update_ind(int motor_ind[][2],
               PRINT_ERR_MSG("problem accessing kine array");
               return FAIL;
           } 
+          // Set position in state
+          state[0].pos = config.yaw_ind2deg*DEG2RAD*ind;
+          state[1].pos = config.yaw_ind2deg*DEG2RAD*ind;
       }
     }
     else {
@@ -825,6 +828,11 @@ int update_state(
     return FAIL;
   }
   torq_raw = torq_raw-(torq_info->zero);
+  ///////////////////////////////////////////////////////////////////
+  // Constant torque test 
+  // torq_raw = 0.01;
+  ///////////////////////////////////////////////////////////////////
+
   // Apply deadband about zero to limit drift
   if (fabsf(torq_raw) <= config.yaw_torq_deadband*(torq_info->std)) {
       torq_raw = 0.0;
@@ -851,11 +859,6 @@ int update_state(
   torq_info->raw = torq_raw;
   torq_info->highpass = torq_highpass;
 
-  // DEBUG ///////////////////////////////////////////
-  // // Constant torque for testing 
-  // torq_info->last = 0.1;
-  ////////////////////////////////////////////////////
-
   // Check if torque is greater than torque limit and if so disable motor
   if (fabsf(torq_filt) > config.yaw_torq_lim) {
     rval = comedi_dio_config(comedi_info.device, 
@@ -869,20 +872,24 @@ int update_state(
     return FAIL;
   }
 
-  // Set previous state to current state
-  state[0] = state[1];
-  
-  // Integrate one time step
-  rval = integrator(state[1],
-		    &state[1],
-		    torq_filt,
-		    config.yaw_inertia, 
-		    config.yaw_damping, 
-		    dt,
-		    config.integ_type);
-  if (rval != SUCCESS ) {
-    PRINT_ERR_MSG("integrator failed");
-    return FAIL;
+  // Update dynamic state - only if force-feedback is turned on
+  if (config.ff_flag == FF_ON) {
+
+    // Set previous state to current state
+    state[0] = state[1];
+    
+    // Integrate one time step
+    rval = integrator(state[1],
+      	    &state[1],
+      	    torq_filt,
+      	    config.yaw_inertia, 
+      	    config.yaw_damping, 
+      	    dt,
+      	    config.integ_type);
+    if (rval != SUCCESS ) {
+      PRINT_ERR_MSG("integrator failed");
+      return FAIL;
+    }
   }
  
   return SUCCESS;

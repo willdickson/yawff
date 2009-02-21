@@ -180,6 +180,26 @@ class Yawff:
         ramps_ind = libmove_motor.deg2ind(ramps_deg, self.motor_maps)
         end_pos, ret_val = libmove_motor.outscan_kine(ramps_ind,config,self.move_dt)
 
+    def move_by_ind(self, motor_name, ind, vmax=DFLT_MOVE_VMAX, accel=DFLT_MOVE_ACCEL): 
+        """ 
+        Move motor given by motor_name by the specified number of indices.  
+        """
+        config=self.config_dict
+        n = self.num_motors()
+        motor_num = self.get_motor_num(motor_name)
+        print 'moving motor %s by %d indices'%(motor_name,ind)
+        zero_pos = scipy.zeros((n,))
+        next_pos = scipy.zeros((n,))
+        next_pos[motor_num]  = ind
+        ramp_move = libmove_motor.get_ramp_moves(zero_pos,
+                                               next_pos,
+                                               vmax,
+                                               accel,
+                                               self.move_dt)
+        ramp_move = libmove_motor.convert2int(ramp_move)
+        end_pos, ret_val = libmove_motor.outscan_kine(ramp_move,config,self.move_dt)
+        
+
     def run(self, kine_deg=None):
         """
         Run yaw force-feedback function.
@@ -240,6 +260,14 @@ class Yawff:
         """
         return self.motor_maps[name]['number']
 
+    def set_zero_kine(self, T):
+        config = self.config_dict
+        dt = config['dt']
+        num_motors = self.num_motors()
+        t = scipy.arange(0.0, T/dt)*dt
+        kine = scipy.zeros((t.shape[0],num_motors))
+        self.kine_deg = kine
+        self.t = t
     
     def set_stroke_tilt_kine(self, t, f, u, amp_stroke, amp_rotation, k_stroke=0.01, k_rotation=1.5, rotation_offset=0.0):
         """
@@ -263,6 +291,7 @@ class Yawff:
         kine[:,d0] = get_deviation_angle(t, f, u_0) 
         kine[:,d1] = get_deviation_angle(t, f, u_1) 
         self.kine_deg = kine
+        self.t = t
 
     def set_diff_aoa_kine(self, t, f, u, amp_stroke, amp_rotation, k_stroke=0.01, k_rotation=1.5, rotation_offset=0.0):
         """

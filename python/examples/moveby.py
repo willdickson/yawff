@@ -5,8 +5,11 @@ import pylab
 import libyawff
 import cPickle as pickle
 
-dt = 1.0/3000.0
-pos = float(sys.argv[1])
+motor_name = sys.argv[1]
+move_ind = int(sys.argv[2])
+
+dt = 1.0/5000.0
+
 run_params = {
     'dt'                : dt, 
     'yaw_inertia'       : 3.22,
@@ -23,7 +26,5 @@ run_params = {
 }
 
 yawff = libyawff.Yawff(run_params)
-#yawff.move_to_test_pos('zero')
-yawff.move_rot_to_pos(pos,vmax=60)
-
+yawff.move_by_ind(motor_name, move_ind, vmax=50)
 

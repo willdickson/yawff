@@ -28,6 +28,7 @@ License along with yawff.  If not, see
 """
 import ctypes 
 import scipy
+from libmove_motor import convert2int
 
 def get_c_array_struct(x):
     """
@@ -135,6 +136,9 @@ def yawff_c_wrapper(kine, config):
       kine    = Nx6 array of wing kinematics in indices
       config  = system configuration dictionary 
     """
+
+    # Convert kinematics to integers
+    kine = convert2int(kine)
 
     # Create c configuration structure
     config_struct = config_t()

@@ -33,6 +33,7 @@ import libmove_motor
 import libyawff
 import scipy
 import pylab
+import scipy.interpolate
 
 PI = scipy.pi
 DEG2RAD = scipy.pi/180.0
@@ -536,6 +537,40 @@ def control_step(t,u0,u1,t0,t1,t2,t3):
     f[mask2] = u1*scipy.ones(t[mask2].shape)
     f[mask3] = a_23*t[mask3] + b_23
     f[mask4] = u0*scipy.ones(t[mask4].shape)
+    return f
+
+def sqr_wave(t,amp,T,epsilon):
+    """
+    Generates a square wave with the given frequency and amplitude
+    """
+    f = scipy.zeros(t.shape)
+    t_curr = 0.5*T
+    cnt = 0
+    while (t_curr - T < t[-1]):
+        if cnt%2 == 0:
+            val = amp
+        else:
+            val = -amp
+
+        t0 = t_curr - 0.5*T 
+        t1 = t_curr - 0.5*T + 0.5*epsilon
+        mask0 = scipy.logical_and(t >= t0, t < t1)
+        interp_func = scipy.interpolate.interp1d([t0,t1],[0,val])
+        f[mask0] = interp_func(t[mask0])
+
+        t0 = t_curr - 0.5*T + 0.5*epsilon
+        t1 = t_curr - 0.5*epsilon
+        mask1 = scipy.logical_and(t >= t0, t < t1)
+        f[mask1] = val
+
+        t0 = t_curr - 0.5*epsilon
+        t1 = t_curr
+        mask2 = scipy.logical_and(t >= t0, t < t1)
+        interp_func = scipy.interpolate.interp1d([t0,t1],[val,0])
+        f[mask2] = interp_func(t[mask2])
+
+        t_curr += 0.5*T
+        cnt += 1
     return f
 
 def ramp_to_const_vel(t,vel,accel):

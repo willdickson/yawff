@@ -519,11 +519,13 @@ int check_data(data_t data)
     flag = FAIL;
   }
 
-  // Check that all arrays are float arrays
-  if (data.t.type != FLT_ARRAY) {
-    PRINT_ERR_MSG("t array not FLT_ARRAY");
+  // Check that time is double array 
+  if (data.t.type != DBL_ARRAY) {
+    PRINT_ERR_MSG("t array not DBL_ARRAY");
     flag = FAIL;
   }
+
+  // Check that all other arrays are float arrays
   if (data.pos.type != FLT_ARRAY) {
     PRINT_ERR_MSG("pos array not FLT_ARRAY");
     flag = FAIL;

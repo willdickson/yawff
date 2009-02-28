@@ -265,7 +265,7 @@ class Yawff:
         config = self.config_dict
         dt = config['dt']
         num_motors = self.num_motors()
-        t = scipy.arange(0.0, T/dt)*dt
+        t = scipy.arange(0.0, (T+dt)/dt)*dt
         kine = scipy.zeros((t.shape[0],num_motors))
         self.kine_deg = kine
         self.t = t

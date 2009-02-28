@@ -70,7 +70,7 @@ typedef struct {
 // Struture for reporting status information 
 typedef struct {
   int ind;
-  float t;
+  double t;
   float pos;
   float vel;
   float torq;
@@ -292,7 +292,7 @@ static void *rt_handler(void *args)
   state_t state[2];            // state[0] = previous, state[1] = current 
   int motor_ind[MAX_MOTOR][2]; // Motor index position [i][0] previous, [i][1] current
   float runtime;
-  float t;
+  double t;
   int err_flag = 0;
   int i;
 
@@ -319,7 +319,7 @@ static void *rt_handler(void *args)
     state[i].vel = 0.0;
   }  
   init_ind(motor_ind,config);
-  t = 0;
+  t = 0.0;
 
   // Initialize torque info
   torq_info.zero = 0.0;
@@ -413,7 +413,7 @@ static void *rt_handler(void *args)
     rt_sleep_until(nano2count(now_ns + config.dt));
 
     // Update time
-    t += NS2S*config.dt;
+    t += NS2S*((double)config.dt);
   } // End for i
 
   // Set status information to final values before exiting
@@ -573,7 +573,7 @@ void update_status(int i,
 // --------------------------------------------------------------------- 
 int update_data(data_t data, 
 		 int ind, 
-		 float t,
+		 double t,
 		 state_t *state, 
 		 torq_info_t torq_info)
 {
@@ -806,7 +806,7 @@ void init_ind(int motor_ind[][2], config_t config)
 // ---------------------------------------------------------------------- 
 int update_state(
         state_t *state, 
-        float t,
+        double t,
 		torq_info_t *torq_info,
 		comedi_info_t comedi_info, 
 		config_t config
@@ -820,7 +820,7 @@ int update_state(
   int rval;
 
   // Get time step in secs
-  dt = config.dt*NS2S;
+  dt = ((float)config.dt)*NS2S;
   
   // Get data from  torque sensor and zero 
   if (get_torq(comedi_info, config, &torq_raw) != SUCCESS) {
@@ -838,7 +838,7 @@ int update_state(
       torq_raw = 0.0;
   }
   // If we are inside start up window set torque to zero
-  if (t < config.startup_t) {
+  if (t < (double)config.startup_t) {
       torq_raw = 0.0;
   }
 

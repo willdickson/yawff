@@ -213,6 +213,7 @@ int get_array_val(array_t array, int row, int col, void *val)
   int s0, s1;
   int *iptr;
   float *fptr;
+  double *dptr;
   int rtn_val = SUCCESS;
 
   // Check row and col ranges
@@ -241,6 +242,11 @@ int get_array_val(array_t array, int row, int col, void *val)
     *fptr = *((float*)(array.data + row*s0 + col*s1));
     break;
 
+  case DBL_ARRAY:
+    dptr = val;
+    *dptr = *((double*)(array.data + row*s0 + col*s1));
+    break;
+
   default:
     PRINT_ERR_MSG("unknown array type");
     rtn_val = FAIL;
@@ -262,6 +268,7 @@ int set_array_val(array_t array, int row, int col, void *val)
   int s0, s1;
   int *iptr;
   float *fptr;
+  double *dptr;
   int rtn_val = SUCCESS;
 
   // Check row and col ranges
@@ -288,6 +295,11 @@ int set_array_val(array_t array, int row, int col, void *val)
   case FLT_ARRAY:
     fptr = val;
     *((float*)((array.data) + row*s0 + col*s1)) = *fptr;    
+    break;
+
+  case DBL_ARRAY:
+    dptr = val;
+    *((double*)((array.data) + row*s0 + col*s1)) = *dptr;    
     break;
 
   default:
@@ -329,6 +341,10 @@ int init_array(array_t *array, int nrow, int ncol, int type)
       
   case FLT_ARRAY:
     size = sizeof(float);
+    break;
+
+  case DBL_ARRAY:
+    size = sizeof(double);
     break;
     
   default:
@@ -490,6 +506,7 @@ int define_integ_unknown(void) {return INTEG_UNKNOWN;};
 int define_empty_array(void) {return EMPTY_ARRAY;};
 int define_int_array(void) {return INT_ARRAY;};
 int define_flt_array(void) {return FLT_ARRAY;};
+int define_dbl_array(void) {return DBL_ARRAY;};
 int define_unknown_array(void) {return UNKNOWN_ARRAY;};
 int define_success(void) {return SUCCESS;};
 int define_fail(void) {return FAIL;};

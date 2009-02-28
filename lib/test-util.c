@@ -129,7 +129,7 @@ int init_test_data(data_t *data, int N)
 {
   int flag = SUCCESS;
 
-  if (init_array(&(data -> t), N, 1, FLT_ARRAY) != SUCCESS) {
+  if (init_array(&(data -> t), N, 1, DBL_ARRAY) != SUCCESS) {
     flag = FAIL;
   }
   if (init_array(&(data -> pos), N, 1, FLT_ARRAY) != SUCCESS) {

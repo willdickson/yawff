@@ -96,6 +96,7 @@ extern int define_integ_unknown(void);
 extern int define_empty_array(void);
 extern int define_int_array(void);
 extern int define_flt_array(void);
+extern int define_dbl_array(void);
 extern int define_unknown_array(void);
 extern int define_success(void);
 extern int define_fail(void);

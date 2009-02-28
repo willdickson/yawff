@@ -71,7 +71,8 @@
 #define EMPTY_ARRAY 0      // Indicates array type is empty
 #define INT_ARRAY 1        // Indicates array type ingeter
 #define FLT_ARRAY 2        // Indicates array type float
-#define UNKNOWN_ARRAY 3    // Indicates array of unkown type
+#define DBL_ARRAY 3        // Indicates array type double
+#define UNKNOWN_ARRAY 4    // Indicates array of unkown type
                            //(use for unit testing)
 
 #define AIN_ZERO_DT_MIN 0.0005   // Minimum allowed zeroing interval
@@ -157,51 +158,67 @@ typedef struct {
 } torq_info_t;
 
 // Yaw force-feedback function 
-extern int yawff(array_t kine, 
-		 config_t config, 
-		 data_t data, 
-		 int end_pos[]); 
+extern int yawff(
+        array_t kine, 
+        config_t config, 
+        data_t data, 
+        int end_pos[]
+        ); 
 
 // Cleanup fucntion for realtime thread 
-extern int rt_cleanup(int level, 
-		      comedi_info_t comedi_info, 
-		      RT_TASK *rt_task);
+extern int rt_cleanup(
+        int level, 
+		comedi_info_t comedi_info, 
+		RT_TASK *rt_task
+        );
 
 // Initialize comedi device based on configuration
-extern int init_comedi(comedi_info_t *comedi_info, 
-		       config_t config);
+extern int init_comedi(
+        comedi_info_t *comedi_info, 
+		config_t config
+        );
 
 // Get zero value for yaw torque analog input channel
-extern int get_ain_zero(comedi_info_t comedi_info,  
-            config_t config, 
-			float *ain_zero,
-            float *ain_std);
+extern int get_ain_zero(
+        comedi_info_t comedi_info,  
+        config_t config, 
+	    float *ain_zero,
+        float *ain_std
+        );
 
 // Get zero value for yaw torque 
-extern int get_torq_zero(comedi_info_t comedi_info, 
-			 config_t config, 
-			 float *torq_zero,
-             float *torq_std);
+extern int get_torq_zero(
+        comedi_info_t comedi_info, 
+	    config_t config, 
+	    float *torq_zero,
+        float *torq_std
+        );
 
 // Read yaw torque sensor analog inout
-extern int get_ain(comedi_info_t comedi_info, 
-		   config_t config, 
-		   float *ain);
+extern int get_ain(
+        comedi_info_t comedi_info, 
+		config_t config, 
+		float *ain
+        );
 
 // Read torque from yaw torque sensor
-extern int get_torq(comedi_info_t comedi_info, 
-		    config_t config, 
-		    float *torq);
+extern int get_torq(
+        comedi_info_t comedi_info, 
+		config_t config, 
+		float *torq
+        );
 
 // Convert analog input value to voltage
-extern int ain_to_phys(lsampl_t data, 
-		       comedi_info_t comedi_info, 
-		       float *volts);
+extern int ain_to_phys(
+        lsampl_t data, 
+		comedi_info_t comedi_info, 
+		float *volts
+        );
 
 // Update yaw dynamics state vector one timestep
 extern int update_state(
         state_t *state, 
-        float t,
+        double t,
         torq_info_t *torq_info, 
         comedi_info_t comedi_info, 
         config_t config
@@ -211,27 +228,35 @@ extern int update_state(
 extern void init_ind(int motor_ind[][2], config_t config);
 
 // Update motor indices one timestep
-extern int update_ind(int motor_ind[][2], 
-		      array_t kine, 
-		      int kine_ind, 
-		      state_t *state, 
-		      config_t config);
+extern int update_ind(
+        int motor_ind[][2], 
+		array_t kine, 
+		int kine_ind, 
+		state_t *state, 
+		config_t config
+        );
 
 // Update motor positions - move the motors
-extern int update_motor(int motor_ind[][2], 
-			comedi_info_t comedi_info, 
-			config_t config);
+extern int update_motor(
+        int motor_ind[][2], 
+		comedi_info_t comedi_info, 
+		config_t config
+        );
 
 // Update data (t,pos,vel,torq) and index ind 
-extern int update_data(data_t data, 
-		       int ind, 
-		       float t, 
-		       state_t *state, 
-		       torq_info_t torq_info); 
+extern int update_data(
+        data_t data, 
+		int ind, 
+		double t, 
+		state_t *state, 
+		torq_info_t torq_info
+        ); 
 
 // Set clock dio lines to DIO_LO
-extern int set_clks_lo(comedi_info_t comedi_info, 
-		       config_t config);
+extern int set_clks_lo(
+        comedi_info_t comedi_info, 
+		config_t config
+        );
 
 // Reassign sigint signal handler
 extern sighandler_t reassign_sigint(sighandler_t sigint_func);

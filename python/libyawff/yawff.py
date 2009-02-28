@@ -44,8 +44,10 @@ def get_c_array_struct(x):
         x_struct.type = INT_ARRAY
     elif x.dtype == scipy.dtype('float32'):
         x_struct.type = FLT_ARRAY
+    elif x.dtype == scipy.dtype('float64'):
+        x_struct.type = DBL_ARRAY
     else:
-        raise ValueError, "array must be of type INT_ARRAY or FLT_ARRAY" 
+        raise ValueError, "array must be of type INT_ARRAY, FLT_ARRAY or DBL_ARRAY" 
     return x_struct
 
 lib = ctypes.cdll.LoadLibrary("libyawff.so.1")
@@ -62,6 +64,7 @@ INTEG_UNKNOWN = lib.define_integ_unknown()
 EMPTY_ARRAY = lib.define_empty_array()
 INT_ARRAY = lib.define_int_array()
 FLT_ARRAY = lib.define_flt_array()
+DBL_ARRAY = lib.define_dbl_array()
 UNKOWN_ARRAY = lib.define_unknown_array()
 SUCCESS = lib.define_success()
 FAIL = lib.define_fail()
@@ -173,7 +176,7 @@ def yawff_c_wrapper(kine, config):
         
     # Time, position, velocity, and torque arrays for return data
     n = kine.shape[0]
-    t = scipy.zeros((n,1), dtype = scipy.dtype('float32'))
+    t = scipy.zeros((n,1), dtype = scipy.dtype('float64'))
     pos = scipy.zeros((n,1), dtype = scipy.dtype('float32'))
     vel = scipy.zeros((n,1), dtype = scipy.dtype('float32'))
     torq = scipy.zeros((n,2), dtype = scipy.dtype('float32'))

@@ -326,8 +326,17 @@ class Yawff:
             raise RuntimeError, 'cannot set yaw to constant vel - no t or kine_deg'
         n = self.get_motor_num('yaw')
         self.kine_deg[:,n] = ramp_to_const_vel(self.t,vel,accel)
-       
 
+    def set_yaw_to_ramp(self,x0,x1,vmax,a):
+        """
+        Sets kinematics of the yaw motor to a point to point ramp
+        """
+        if self.t == None or self.kine_deg == None:
+            raise RuntimeError, 'cannot set yaw to ramp - no t or kine_deg'
+        n = self.get_motor_num('yaw')
+        dt = self.config['dt']
+        self.kine_deg[:,n] = get_ramp(x0,x1,vmax,a,dt,output='ramp only')
+       
     def plot_kine(self,kine_deg=None):
         """
         Plot wing kinematics

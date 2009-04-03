@@ -34,6 +34,7 @@ import libyawff
 import scipy
 import pylab
 import scipy.interpolate
+import time
 
 PI = scipy.pi
 DEG2RAD = scipy.pi/180.0
@@ -43,8 +44,9 @@ DFLT_CONFIG_FILE = os.path.join(BORFRC_DIR, 'defaults')
 DFLT_SENSOR_CAL_DIR = os.path.join(BORFRC_DIR,'sensor_cal')
 DFLT_COMEDI_CONF_DIR = os.path.join(BORFRC_DIR, 'comedi_conf')
 DFLT_MOVE_VMAX = 10.0
-DFLT_MOVE_ACCEL = 80.0
+DFLT_MOVE_ACCEL = 40.0
 DFLT_MOVE_DT = 1.0/3000.0
+DFLT_PAUSE_T = 10.0
 
 class Yawff:
 
@@ -92,6 +94,7 @@ class Yawff:
         self.config_dict = self.create_config_dict()
         self.kine_deg = None
         self.t = None
+        self.pause_t = DFLT_PAUSE_T
 
     def create_config_dict(self):
         """
@@ -126,7 +129,7 @@ class Yawff:
 
     def move_to_test_pos(self, pos_name, vmax=DFLT_MOVE_VMAX, accel=DFLT_MOVE_ACCEL):
         """
-        Move the robot into various test positions
+        Move the robot into commonly used test positions
         """
         config = self.config_dict
         n = self.num_motors()
@@ -137,6 +140,21 @@ class Yawff:
             self.move_rot_to_pos(89.99,vmax=vmax,accel=accel)
         elif pos_name == 'rot_minus_90':
             self.move_rot_to_pos(-89.99,vmax=vmax,accel=accel)
+        elif pos_name == 'yaw_90':
+            pos = scipy.zeros((n,))
+            yn = self.get_motor_num('yaw')
+            pos[yn] = 90.0
+            self.move_to_pos(pos,vmax=vmax,accel=accel) 
+        elif pos_name == 'yaw_minus_90':
+            pos = scipy.zeros((n,))
+            yn = self.get_motor_num('yaw')
+            pos[yn] = -90.0
+            self.move_to_pos(pos,vmax=vmax,accel=accel) 
+        elif pos_name == 'yaw_180':
+            pos = scipy.zeros((n,))
+            yn = self.get_motor_num('yaw')
+            pos[yn] = 180.0
+            self.move_to_pos(pos,vmax=vmax,accel=accel) 
         else:
             raise ValueError, 'unknown test position'
 
@@ -224,6 +242,9 @@ class Yawff:
         ramps_ind = libmove_motor.deg2ind(ramps_deg, self.motor_maps)
         end_pos, ret_val = libmove_motor.outscan_kine(ramps_ind,config,self.move_dt)
 
+        # Sleep to wait for force transients to die down - can effect autozero
+        time.sleep(self.pause_t)
+
         # Run force-feed back function
         kine_ind = libmove_motor.deg2ind(kine_deg, self.motor_maps)
         t, pos, vel, torq, end_pos_ind = libyawff.yawff_c_wrapper(kine_ind, config)
@@ -299,7 +320,7 @@ class Yawff:
         Sets current kinematics to those with a differential angle of attach on the up stroke
         and downstroke. The amount of asymmetry is determined by the control input u.
         """
-        u_0, u_1 = u, -u
+        u_0, u_1 = -u, u
         ro_0, ro_1 = rotation_offset, -rotation_offset
         num_motors = self.num_motors()
         kine = scipy.zeros((t.shape[0],num_motors))
@@ -331,11 +352,37 @@ class Yawff:
         """
         Sets kinematics of the yaw motor to a point to point ramp
         """
-        if self.t == None or self.kine_deg == None:
-            raise RuntimeError, 'cannot set yaw to ramp - no t or kine_deg'
+        num_motors = self.num_motors()
         n = self.get_motor_num('yaw')
-        dt = self.config['dt']
-        self.kine_deg[:,n] = get_ramp(x0,x1,vmax,a,dt,output='ramp only')
+        dt = self.config_dict['dt']
+        ramp = libmove_motor.get_ramp(x0,x1,vmax,a,dt,output='ramp only')
+        print ramp.shape
+        if self.kine_deg == None:
+            self.kine_deg = scipy.zeros((ramp.shape[0],num_motors))
+            self.t = scipy.arange(0,ramp.shape[0])*dt
+            self.kine_deg[:,n] = ramp
+        else:
+            raise RuntimeError, 'set_yaw_to_ramp w/ existing kinematics not implemented yet'
+
+    def set_yaw_to_const(self,val):
+        """
+        Set yaw kinematics to constant position
+        """
+        num_motors = self.num_motors()
+        n = self.get_motor_num('yaw')
+        self.kine_deg[:,n] = val*scipy.ones((self.kine_deg.shape[0],))
+
+    def set_cable_test_kine(self,yaw_range,yaw_step,T_meas,dt):
+        """
+        Set kinematics for testing for cable effects 
+        """
+        num_motors = self.num_motors()
+        n = self.get_motor_num('yaw')
+        t, yaw_kine, yaw_meas_pos = get_cable_test_kine(yaw_range,yaw_step,T_meas,dt)
+        self.kine_deg = scipy.zeros((yaw_kine.shape[0],num_motors))
+        self.kine_deg[:,n] = yaw_kine
+        self.t = t
+        return yaw_meas_pos
        
     def plot_kine(self,kine_deg=None):
         """
@@ -596,6 +643,38 @@ def ramp_to_const_vel(t,vel,accel):
     x[mask0] = accel*t**2
     x[mask1] = vel*t + accel*(t_accel**2)
     return x
+
+def get_cable_test_kine(yaw_range,yaw_step,T_meas,dt,max_vel=10.0,accel=10.0):
+    """
+    Get yaw kinematics for testing for cable effects 
+    
+    Inputs:
+        yaw_range = range for measurement sample points
+        yaw_step  = step size between measurement samples
+        T_meas    = sample duration
+        dt        = sample rate
+
+    Output:
+        t         = array of time points 
+        yaw_kine  = array of yaw kinematics
+        pos_array = array of yaw measurement positions
+    """
+    N_meas = int(T_meas/dt)
+    pos_array = scipy.arange(-0.5*yaw_range,0.5*yaw_range+yaw_step,yaw_step)
+    pos_last = 0.0
+    for i, pos in enumerate(pos_array):
+        # Create ramp to position
+        ramp = libmove_motor.get_ramp(pos_last, pos, max_vel, accel, dt) 
+        if i == 0:
+            yaw_kine = ramp
+        else:
+            yaw_kine = scipy.concatenate((yaw_kine,ramp))
+        # Dwell at positoin for measurement
+        dwell = pos*scipy.ones((N_meas,))
+        yaw_kine = scipy.concatenate((yaw_kine,dwell))
+        pos_last =  pos
+    t = scipy.arange(0,yaw_kine.shape[0])*dt
+    return t, yaw_kine, pos_array
     
 def resample(x,n):
     """

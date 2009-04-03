@@ -6,7 +6,8 @@ import libyawff
 import cPickle as pickle
 
 dt = 1.0/3000.0
-pos = float(sys.argv[1])
+#pos = 0.0
+#pos = float(sys.argv[1])
 run_params = {
     'dt'                : dt, 
     'yaw_inertia'       : 3.22,
@@ -23,7 +24,9 @@ run_params = {
 }
 
 yawff = libyawff.Yawff(run_params)
-#yawff.move_to_test_pos('zero')
-yawff.move_rot_to_pos(pos,vmax=60)
+#yawff.move_to_test_pos('yaw_90')
+yawff.move_to_test_pos('yaw_minus_90')
+#yawff.move_to_test_pos('yaw_180')
+#yawff.move_rot_to_pos(pos,vmax=60)
 
 

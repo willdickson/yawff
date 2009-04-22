@@ -34,4 +34,5 @@ setup(name='libyawff',
       author='William Dickson',
       author_email='wbd@caltech.edu',
       packages=find_packages(),
+      entry_points = {'console_scripts': ['yawff-ctl = libyawff:cmd_line_main',]}
      )

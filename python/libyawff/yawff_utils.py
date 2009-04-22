@@ -26,15 +26,18 @@ License along with yawff.  If not, see
 
 ------------------------------------------------------------------------
 """
+import sys
 import os
 import os.path
 import ConfigParser
+import optparse
 import libmove_motor
 import libyawff
 import scipy
 import pylab
 import scipy.interpolate
 import time
+import clkdirpwm
 
 PI = scipy.pi
 DEG2RAD = scipy.pi/180.0
@@ -127,53 +130,68 @@ class Yawff:
         config.update(self.run_params)
         return config
 
-    def move_to_test_pos(self, pos_name, vmax=DFLT_MOVE_VMAX, accel=DFLT_MOVE_ACCEL):
-        """
-        Move the robot into commonly used test positions
-        """
-        config = self.config_dict
-        n = self.num_motors()
-        if pos_name == 'zero':
-            zero_pos = scipy.zeros((n,))
-            self.move_to_pos(zero_pos,vmax=vmax,accel=accel) 
-        elif pos_name == 'rot_plus_90':
-            self.move_rot_to_pos(89.99,vmax=vmax,accel=accel)
-        elif pos_name == 'rot_minus_90':
-            self.move_rot_to_pos(-89.99,vmax=vmax,accel=accel)
-        elif pos_name == 'yaw_90':
-            pos = scipy.zeros((n,))
-            yn = self.get_motor_num('yaw')
-            pos[yn] = 90.0
-            self.move_to_pos(pos,vmax=vmax,accel=accel) 
-        elif pos_name == 'yaw_minus_90':
-            pos = scipy.zeros((n,))
-            yn = self.get_motor_num('yaw')
-            pos[yn] = -90.0
-            self.move_to_pos(pos,vmax=vmax,accel=accel) 
-        elif pos_name == 'yaw_180':
-            pos = scipy.zeros((n,))
-            yn = self.get_motor_num('yaw')
-            pos[yn] = 180.0
-            self.move_to_pos(pos,vmax=vmax,accel=accel) 
-        else:
-            raise ValueError, 'unknown test position'
+    #def move_to_test_pos(self, pos_name, vmax=DFLT_MOVE_VMAX, accel=DFLT_MOVE_ACCEL):
+    #    """
+    #    Move the robot into commonly used test positions
+    #    """
+    #    config = self.config_dict
+    #    n = self.num_motors()
+    #    if pos_name == 'zero':
+    #        zero_pos = scipy.zeros((n,))
+    #        self.move_to_pos(zero_pos,vmax=vmax,accel=accel) 
+    #    elif pos_name == 'rot_plus_90':
+    #        self.move_rot_to_pos(89.99,vmax=vmax,accel=accel)
+    #    elif pos_name == 'rot_minus_90':
+    #        self.move_rot_to_pos(-89.99,vmax=vmax,accel=accel)
+    #    elif pos_name == 'yaw_90':
+    #        pos = scipy.zeros((n,))
+    #        yn = self.get_motor_num('yaw')
+    #        pos[yn] = 90.0
+    #        self.move_to_pos(pos,vmax=vmax,accel=accel) 
+    #    elif pos_name == 'yaw_minus_90':
+    #        pos = scipy.zeros((n,))
+    #        yn = self.get_motor_num('yaw')
+    #        pos[yn] = -90.0
+    #        self.move_to_pos(pos,vmax=vmax,accel=accel) 
+    #    elif pos_name == 'yaw_180':
+    #        pos = scipy.zeros((n,))
+    #        yn = self.get_motor_num('yaw')
+    #        pos[yn] = 180.0
+    #        self.move_to_pos(pos,vmax=vmax,accel=accel) 
+    #    else:
+    #        raise ValueError, 'unknown test position'
 
-    def move_rot_to_pos(self,ang, vmax=DFLT_MOVE_VMAX, accel=DFLT_MOVE_ACCEL):
-        """
-        Move robots rotation angles to the given position
-        """
-        n = self.num_motors()
-        pos = scipy.zeros((n,))
-        r0 = self.get_motor_num('rotation_0')
-        r1 = self.get_motor_num('rotation_1')
-        pos[r0] = ang 
-        pos[r1] = ang
-        self.move_to_pos(pos,vmax=vmax,accel=accel)
+    #def move_rot_to_pos(self,ang, vmax=DFLT_MOVE_VMAX, accel=DFLT_MOVE_ACCEL):
+    #    """
+    #    Move robots rotation angles to the given position
+    #    """
+    #    n = self.num_motors()
+    #    pos = scipy.zeros((n,))
+    #    r0 = self.get_motor_num('rotation_0')
+    #    r1 = self.get_motor_num('rotation_1')
+    #    pos[r0] = ang 
+    #    pos[r1] = ang
+    #    self.move_to_pos(pos,vmax=vmax,accel=accel)
 
-    def move_to_pos(self, pos, vmax=DFLT_MOVE_VMAX, accel=DFLT_MOVE_ACCEL):
+    def move_to_pos(self,name_list,pos_list,noreturn=False,vmax=DFLT_MOVE_VMAX, accel=DFLT_MOVE_ACCEL):
         """
         Move the robot to the given position.
         """
+        n = self.num_motors()
+        pos = scipy.zeros((n,))
+
+        if len(pos_list) == len(name_list):
+            for p, name in zip(pos_list,name_list):
+                motor_num = self.get_motor_num(name)
+                pos[motor_num] = p
+        elif len(pos_list) == 1:
+            p = pos_list[0]
+            for name in name_list:
+                motor_num = self.get_motor_num(name)
+                pos[motor_num] = p
+        else:
+            raise ValueError, 'len(pos_list) must equal len(name_list) or 1'
+
         config = self.config_dict
         # Move to kinematics starting positon
         print 'moving to position'
@@ -186,30 +204,39 @@ class Yawff:
         ramps_ind = libmove_motor.deg2ind(ramps_deg, self.motor_maps)
         end_pos, ret_val = libmove_motor.outscan_kine(ramps_ind,config,self.move_dt)
 
-        # Wait until done
-        ans = raw_input('Press enter to return to zero index position:')
+        if noreturn == False:
+            # Wait until done
+            ans = raw_input('Press enter to return to zero index position:')
+            # Return to the zero index position 
+            print 'returning to zero index positon'
+            ramps_deg = libmove_motor.get_ramp_moves(pos,
+                                                     zero_indpos_deg,
+                                                     vmax, 
+                                                     accel, 
+                                                     self.move_dt)
+            ramps_ind = libmove_motor.deg2ind(ramps_deg, self.motor_maps)
+            end_pos, ret_val = libmove_motor.outscan_kine(ramps_ind,config,self.move_dt)
 
-        # Return to the zero index position 
-        print 'returning to zero index positon'
-        ramps_deg = libmove_motor.get_ramp_moves(pos,
-                                                 zero_indpos_deg,
-                                                 vmax, 
-                                                 accel, 
-                                                 self.move_dt)
-        ramps_ind = libmove_motor.deg2ind(ramps_deg, self.motor_maps)
-        end_pos, ret_val = libmove_motor.outscan_kine(ramps_ind,config,self.move_dt)
-
-    def move_by_ind(self, motor_name, ind, vmax=DFLT_MOVE_VMAX, accel=DFLT_MOVE_ACCEL): 
+    def move_by_ind(self, name_list, ind_list, noreturn=False,vmax=DFLT_MOVE_VMAX, accel=DFLT_MOVE_ACCEL): 
         """ 
         Move motor given by motor_name by the specified number of indices.  
         """
         config=self.config_dict
         n = self.num_motors()
-        motor_num = self.get_motor_num(motor_name)
-        print 'moving motor %s by %d indices'%(motor_name,ind)
         zero_pos = scipy.zeros((n,))
         next_pos = scipy.zeros((n,))
-        next_pos[motor_num]  = ind
+        if len(ind_list) == len(name_list):
+            for ind, name in zip(ind_list,name_list):
+                motor_num = self.get_motor_num(name)
+                next_pos[motor_num] = ind 
+        elif len(ind_list) == 1:
+            ind = ind_list[0]
+            for name in name_list:
+                motor_num = self.get_motor_num(name)
+                next_pos[motor_num] = ind 
+        else:
+            raise ValueError, 'len(pos_list) must equal len(name_list) or 1'
+        
         ramp_move = libmove_motor.get_ramp_moves(zero_pos,
                                                next_pos,
                                                vmax,
@@ -217,7 +244,19 @@ class Yawff:
                                                self.move_dt)
         ramp_move = libmove_motor.convert2int(ramp_move)
         end_pos, ret_val = libmove_motor.outscan_kine(ramp_move,config,self.move_dt)
+
+        if noreturn == False:
+            # Wait until done
+            ans = raw_input('Press enter to return to starting position:')
+            print 'returning to starting positon'
         
+            ramp_move = libmove_motor.get_ramp_moves(zero_pos,
+                                                   -next_pos,
+                                                   vmax,
+                                                   accel,
+                                                   self.move_dt)
+            ramp_move = libmove_motor.convert2int(ramp_move)
+            end_pos, ret_val = libmove_motor.outscan_kine(ramp_move,config,self.move_dt)
 
     def run(self, kine_deg=None):
         """
@@ -266,6 +305,12 @@ class Yawff:
                                                  self.move_dt)
         ramps_ind = libmove_motor.deg2ind(ramps_deg, self.motor_maps)
         end_pos, ret_val = libmove_motor.outscan_kine(ramps_ind,config,self.move_dt)
+        
+        # Reset all pwm signal to there default positions. This is a kludge to help
+        # w/ the fact that we seem to sometimes lose a bit of position in the pwm 
+        # signals. I am not sure what is causing this - hardware or software. 
+        # I will need to to some more tests after this next set of experiments.
+        clkdirpwm.set_pwm_to_default(None)
 
         return t, pos, vel, torq_flt, torq_raw
 
@@ -297,7 +342,7 @@ class Yawff:
         control signal u.
         """
         u_0, u_1 = u, -u
-        ro_0, ro_1 = rotation_offset, -rotation_offset
+        ro_0, ro_1 = -rotation_offset, rotation_offset
         num_motors = self.num_motors()
         kine = scipy.zeros((t.shape[0],num_motors))
         s0 = self.get_motor_num('stroke_0')
@@ -321,7 +366,7 @@ class Yawff:
         and downstroke. The amount of asymmetry is determined by the control input u.
         """
         u_0, u_1 = -u, u
-        ro_0, ro_1 = rotation_offset, -rotation_offset
+        ro_0, ro_1 = -rotation_offset, rotation_offset
         num_motors = self.num_motors()
         kine = scipy.zeros((t.shape[0],num_motors))
         s0 = self.get_motor_num('stroke_0')
@@ -684,3 +729,272 @@ def resample(x,n):
         return x[0:-1:n]
     else:
         return x[0:-1:n,:]
+
+
+# ------------------------------------------------------------------------------
+# Command line utilties
+
+class yawff_cmd_line:
+
+    move2pos_help = """\
+command: move2pos 
+
+usage: %prog [options] move2pos motor_0, ..., motor_k, pos
+
+       or
+
+       %prog [options] move2pos motor_0, ..., motor_k, pos_0, ... pos_k
+
+Move motors, specified by name, to the given positions. If one position value
+is given then all motors specified are moved to that position. Otherwise the
+number of positions specified must equal the number of motors and each motor
+is moved to the corresponding position which is determined by the order. By 
+default, after the move, the routine will prompt the user press enter and then 
+return  the motors to the zero position unless the noreturn option is specified.
+"""
+
+    move_by_ind_help = """\
+command: move-by-ind 
+
+usage: %prog [options] move-by-ind motor_0, ..., motor_k, pos
+ 
+       or
+
+       %prog [options] move-by-ind motor_0, ..., motor_k, pos_0, ..., pos_k
+
+Move motors, specified by name, by the given number of indices. If one value 
+is given then all motors specified are moved by that number of indices. Otherwise 
+the number of values specified must equal the number of motors and each motor
+is moved by the corresponding value which is determined by the order. By 
+default, after the move, the routine will prompt the user press enter and then 
+return  the motors to the zero position unless the noreturn option is specified.
+"""
+
+    reset_pwm_help = """\
+command: reset-pwm
+
+usage: %prog [options] reset-pwm 
+
+Resets all pwm signal to their default (start-up) positions.
+"""
+
+    motor_names_help = """\
+command: motor-names
+
+usage: %prog [options] motor-names
+
+Displays a list of all motors names.
+"""
+
+    sensor_cal_help = """\
+command: sensor-cal
+    
+This command has not been implemented yet.
+"""
+
+    help_help = """\
+command: help
+
+usage: %prog [options] help [COMMAND]
+
+Prints help information. If the optional argument COMMAND is not given
+then general usage information for the %prog is displayed. If a specific 
+command, COMMAND, is given then help for that command will be displayed.
+
+Examples:
+ %prog help         # prints general usage information
+ %prog help status  # prints help for the status command 
+"""
+
+    usage = """%prog [OPTION] command [arg0, ...] 
+
+%prog is a command line utility providing simple positioning and other useful 
+commands for working with the yawff controlled robot. This utitily is intended 
+for aiding the experimenter with zeroing and calibration.
+
+Commands:
+
+    move2pos      - move motor to specified position
+    move-by-ind   - move motor by specified number of indices 
+    reset-pwm     - reset pwm output to their default positions
+    motor-names   - list motor names
+    sensor-cal    - calibrate torque sensor
+    help          - get help  
+     
+* To get help for a specific command type: %prog help COMMAND
+"""
+
+    def __init__(self):
+        self.cmd_table = {
+            'move2pos': self.move2pos,
+            'move-by-ind': self.move_by_ind,
+            'reset-pwm': self.reset_pwm, 
+            'motor-names': self.motor_names,
+            'sensor-cal': self.sensor_cal,
+            'help': self.help,
+        }
+        self.help_table = {
+            'move2pos': yawff_cmd_line.move2pos_help,
+            'move-by-ind': yawff_cmd_line.move_by_ind_help,
+            'reset-pwm': yawff_cmd_line.reset_pwm_help,
+            'motor-names': yawff_cmd_line.motor_names_help,
+            'sensor-cal': yawff_cmd_line.sensor_cal_help,
+            'help': yawff_cmd_line.help_help,
+        }
+
+        self.progname = os.path.split(sys.argv[0])[1]
+        self.options_cmd, self.args, self.parser = self.parse_cmd_options()
+        
+        self.run_params = {
+                'dt'                : 1.0/5000.0, 
+                'yaw_inertia'       : 3.22,
+                'yaw_damping'       : 0.0,
+                'yaw_torq_lim'      : 0.5,
+                'yaw_torq_deadband' : 1.5,
+                'yaw_filt_lpcut'    : 3.0,
+                'yaw_filt_hpcut'    : 0.0,
+                'yaw_ain_zero_dt'   : 0.01,
+                'yaw_ain_zero_num'  : 500, 
+                'integ_type'        : libyawff.INTEG_RKUTTA,
+                'startup_t'         : 0.0,
+                'ff_flag'           : libyawff.FF_ON,
+        }
+        
+
+    def parse_cmd_options(self):
+        """
+        Parse command line options 
+        """
+
+        parser = optparse.OptionParser(usage=yawff_cmd_line.usage)
+
+        parser.add_option('-v', '--verbose',
+                               action='store_true',
+                               dest = 'verbose',
+                               help = 'verbose mode - print additional information',
+                               default = False)
+
+        parser.add_option('-n', '--noreturn',
+                               action='store_true',
+                               dest = 'noreturn',
+                               help = 'noreturn mode - do not return to starting positin after making move',
+                               default = False)
+
+        options, args = parser.parse_args()
+
+        # Convert options to dictionary
+        options = options.__dict__
+        return options, args, parser
+
+    def run(self):
+        """
+        Run command given on the command line
+        """
+        if len(self.args) == 0:
+            print "ERROR: no command given"
+            print 
+            self.parser.print_help()
+            sys.exit(0)
+        else:
+            cmd_str = self.args[0]
+            try:
+                cmd = self.cmd_table[cmd_str]
+            except KeyError:
+                print "ERROR: command, '%s', not found"%(cmd_str,)
+                print 
+                self.parser.print_help()
+                sys.exit(1)
+            # Run command
+            cmd()
+        return
+
+    def help(self):
+        """
+        Print help messages
+        """
+        if len(self.args)==1:
+            self.parser.print_help()
+        elif len(self.args)==2:
+            cmd_str = self.args[1].lower()
+            try:
+                help_str = self.help_table[cmd_str]
+            except KeyError:
+                print "ERROR: can't get help unkown command"
+                sys.exit(1)
+            print help_str.replace('%prog', self.progname)
+        else:
+            print "ERROR: too many arguments for command help"
+            sys.exit(1)
+
+    def move2pos(self):
+        self.args.remove('move2pos')
+        motor_names, values = self.get_motors_and_value_from_args()
+        if self.options_cmd['verbose'] == True:
+            if len(motor_names) == len(values):
+                print 'moving motors %s to positions %s'%(motor_names,values)
+            else:
+                print 'moving motors %s to position %s'%(motor_names,values)
+        yawff = Yawff(self.run_params)
+        yawff.move_to_pos(motor_names, values, noreturn = self.options_cmd['noreturn'])
+
+    def move_by_ind(self):
+        self.args.remove('move-by-ind')
+        motor_names, values = self.get_motors_and_value_from_args()
+        if self.options_cmd['verbose'] == True:
+            print 'moving motors %s by indices %s'%(motor_names,values)
+        yawff = Yawff(self.run_params)
+        yawff.move_by_ind(motor_names, values, noreturn = self.options_cmd['noreturn'])
+
+    def reset_pwm(self):
+        """
+        Reset pwm outputs to default values.
+        """
+        if self.options_cmd['verbose'] == True:
+            print 'resetting pwms to default values' 
+        clkdirpwm.set_pwm_to_default(None)
+
+    def motor_names(self):
+        motor_names = self.get_motor_names()
+        for name in motor_names:
+            print ' ', name
+
+    def sensor_cal(self):
+        print  'sensor_cal - not implemented yet'
+
+    def get_motor_names(self):
+        yawff = Yawff(self.run_params)
+        motor_names = yawff.motor_maps.keys()
+        motor_names.sort()
+        return motor_names
+
+    def get_motors_and_value_from_args(self):
+        motor_names = self.get_motor_names()
+        motors_in_args = [x for x in self.args if x in motor_names]
+        others_in_args = [x for x in self.args if x not in motor_names]
+        if len(others_in_args) == 1:
+            try:
+                values = [float(others_in_args[0])]
+            except ValueError:
+                print 'ERROR: cannot cast value to float'
+                sys.exit(1)
+        elif len(others_in_args) == len(motors_in_args):
+            values = []
+            for v_str in others_in_args:
+                try:
+                    v = float(v_str)
+                except ValueError:
+                    print 'ERROR: cannot cast value to float'
+                    sys.exit(1)
+                values.append(v)
+        else:
+            print 'ERROR: incorrect number of angle values -  must equal 1 or number of motor names given' 
+            sys.exit(1)
+        return motors_in_args, values
+
+def cmd_line_main():
+    """
+    Command line interface entry point.
+    """
+    cmd_line = yawff_cmd_line()
+    cmd_line.run()
+    pass

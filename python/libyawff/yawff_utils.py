@@ -48,6 +48,8 @@ DFLT_SENSOR_CAL_DIR = os.path.join(BORFRC_DIR,'sensor_cal')
 DFLT_COMEDI_CONF_DIR = os.path.join(BORFRC_DIR, 'comedi_conf')
 DFLT_MOVE_VMAX = 10.0
 DFLT_MOVE_ACCEL = 40.0
+DFLT_MOVE_VMAX_IND = 100.0
+DFLT_MOVE_ACCEL_IND = 400.0
 DFLT_MOVE_DT = 1.0/3000.0
 DFLT_PAUSE_T = 10.0
 
@@ -217,7 +219,7 @@ class Yawff:
             ramps_ind = libmove_motor.deg2ind(ramps_deg, self.motor_maps)
             end_pos, ret_val = libmove_motor.outscan_kine(ramps_ind,config,self.move_dt)
 
-    def move_by_ind(self, name_list, ind_list, noreturn=False,vmax=DFLT_MOVE_VMAX, accel=DFLT_MOVE_ACCEL): 
+    def move_by_ind(self, name_list, ind_list, noreturn=False,vmax=DFLT_MOVE_VMAX_IND, accel=DFLT_MOVE_ACCEL_IND): 
         """ 
         Move motor given by motor_name by the specified number of indices.  
         """
@@ -972,24 +974,32 @@ Commands:
         motors_in_args = [x for x in self.args if x in motor_names]
         others_in_args = [x for x in self.args if x not in motor_names]
         if len(others_in_args) == 1:
-            try:
-                values = [float(others_in_args[0])]
-            except ValueError:
-                print 'ERROR: cannot cast value to float'
-                sys.exit(1)
+            v_str = others_in_args[0]
+            v = self.get_float_value(v_str)
+            values = [v]
         elif len(others_in_args) == len(motors_in_args):
             values = []
             for v_str in others_in_args:
-                try:
-                    v = float(v_str)
-                except ValueError:
-                    print 'ERROR: cannot cast value to float'
-                    sys.exit(1)
+                v = self.get_float_value(v_str)
                 values.append(v)
         else:
             print 'ERROR: incorrect number of angle values -  must equal 1 or number of motor names given' 
             sys.exit(1)
         return motors_in_args, values
+
+    def get_float_value(self,v_str):
+        if v_str[0] == 'n':
+            v_str = v_str[1:]
+            sign = -1
+        else:
+            sign = 1
+        try:
+            v = sign*float(v_str)
+        except ValueError:
+            print 'ERROR: cannot cast value to float'
+            sys.exit(1)
+        return v
+
 
 def cmd_line_main():
     """

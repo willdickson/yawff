@@ -132,49 +132,6 @@ class Yawff:
         config.update(self.run_params)
         return config
 
-    #def move_to_test_pos(self, pos_name, vmax=DFLT_MOVE_VMAX, accel=DFLT_MOVE_ACCEL):
-    #    """
-    #    Move the robot into commonly used test positions
-    #    """
-    #    config = self.config_dict
-    #    n = self.num_motors()
-    #    if pos_name == 'zero':
-    #        zero_pos = scipy.zeros((n,))
-    #        self.move_to_pos(zero_pos,vmax=vmax,accel=accel) 
-    #    elif pos_name == 'rot_plus_90':
-    #        self.move_rot_to_pos(89.99,vmax=vmax,accel=accel)
-    #    elif pos_name == 'rot_minus_90':
-    #        self.move_rot_to_pos(-89.99,vmax=vmax,accel=accel)
-    #    elif pos_name == 'yaw_90':
-    #        pos = scipy.zeros((n,))
-    #        yn = self.get_motor_num('yaw')
-    #        pos[yn] = 90.0
-    #        self.move_to_pos(pos,vmax=vmax,accel=accel) 
-    #    elif pos_name == 'yaw_minus_90':
-    #        pos = scipy.zeros((n,))
-    #        yn = self.get_motor_num('yaw')
-    #        pos[yn] = -90.0
-    #        self.move_to_pos(pos,vmax=vmax,accel=accel) 
-    #    elif pos_name == 'yaw_180':
-    #        pos = scipy.zeros((n,))
-    #        yn = self.get_motor_num('yaw')
-    #        pos[yn] = 180.0
-    #        self.move_to_pos(pos,vmax=vmax,accel=accel) 
-    #    else:
-    #        raise ValueError, 'unknown test position'
-
-    #def move_rot_to_pos(self,ang, vmax=DFLT_MOVE_VMAX, accel=DFLT_MOVE_ACCEL):
-    #    """
-    #    Move robots rotation angles to the given position
-    #    """
-    #    n = self.num_motors()
-    #    pos = scipy.zeros((n,))
-    #    r0 = self.get_motor_num('rotation_0')
-    #    r1 = self.get_motor_num('rotation_1')
-    #    pos[r0] = ang 
-    #    pos[r1] = ang
-    #    self.move_to_pos(pos,vmax=vmax,accel=accel)
-
     def move_to_pos(self,name_list,pos_list,noreturn=False,vmax=DFLT_MOVE_VMAX, accel=DFLT_MOVE_ACCEL):
         """
         Move the robot to the given position.
@@ -381,6 +338,30 @@ class Yawff:
         kine[:,s1] = get_stroke_angle(t, f, amp_stroke, 0.5, k_stroke)
         kine[:,r0] = get_rotation_angle(t, f, amp_rotation, u_0 + ro_0, k_rotation)
         kine[:,r1] = get_rotation_angle(t, f, amp_rotation, u_1 + ro_1, k_rotation)
+        kine[:,d0] = get_deviation_angle(t, f, 0.0) 
+        kine[:,d1] = get_deviation_angle(t, f, 0.0) 
+        self.kine_deg = kine
+        self.t = t
+
+    def set_asym_stroke_vel_kine(self, t, f, u, amp_stroke, amp_rotation, k_stroke=0.01, k_rotation=1.5, rotation_offset=0.0):
+        """
+        Sets current kinematics to those with asymmetric stroke velocity. The amount of velocity asymmetry
+        is determined by the control input u.
+        """
+        u_0, u_1 = 0.5 - u, 0.5 + u 
+        ro_0, ro_1 = -rotation_offset, rotation_offset
+        num_motors = self.num_motors()
+        kine = scipy.zeros((t.shape[0], num_motors))
+        s0 = self.get_motor_num('stroke_0')
+        s1 = self.get_motor_num('stroke_1')
+        r0 = self.get_motor_num('rotation_0')
+        r1 = self.get_motor_num('rotation_1')
+        d0 = self.get_motor_num('deviation_0')
+        d1 = self.get_motor_num('deviation_1')
+        kine[:,s0] = get_stroke_angle(t, f, amp_stroke, u_0, k_stroke)
+        kine[:,s1] = get_stroke_angle(t, f, amp_stroke, u_1, k_stroke)
+        kine[:,r0] = get_rotation_angle(t, f, amp_rotation, ro_0, k_rotation)
+        kine[:,r1] = get_rotation_angle(t, f, amp_rotation, ro_1, k_rotation)
         kine[:,d0] = get_deviation_angle(t, f, 0.0) 
         kine[:,d1] = get_deviation_angle(t, f, 0.0) 
         self.kine_deg = kine

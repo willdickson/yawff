@@ -38,6 +38,7 @@ import pylab
 import scipy.interpolate
 import time
 import clkdirpwm
+import qarray
 
 PI = scipy.pi
 DEG2RAD = scipy.pi/180.0
@@ -52,6 +53,9 @@ DFLT_MOVE_VMAX_IND = 100.0
 DFLT_MOVE_ACCEL_IND = 400.0
 DFLT_MOVE_DT = 1.0/3000.0
 DFLT_PAUSE_T = 10.0
+DFLT_K_STROKE = 0.01
+DFLT_K_ROTATION = 1.5
+DFLT_ROTATION_OFFSET = 0.0 
 
 class Yawff:
 
@@ -294,8 +298,54 @@ class Yawff:
         kine = scipy.zeros((t.shape[0],num_motors))
         self.kine_deg = kine
         self.t = t
+
+    def set_stroke_rot_kine(self, t, f, u, amp_stroke, amp_rotation, k_stroke=DFLT_K_STROKE, 
+                            k_rotation=DFLT_K_ROTATION, rotation_offset=DFLT_ROTATION_OFFSET):
+        """
+        Sets current kinematics to those with differential rotation of the stroke
+        plane. 
+        """
+        u_0, u_1 = -u, u
+        ro_0, ro_1 = -rotation_offset, rotation_offset
+        num_motors = self.num_motors()
+        kine = scipy.zeros((t.shape[0],num_motors))
+        kine_base_0 = scipy.zeros((t.shape[0],3))
+        kine_base_1 = scipy.zeros((t.shape[0],3))
+
+        if type(u) == float or type(u) == int or type(u) == scipy.float_:
+            ax = scipy.array([1.0,0.0,0.0])
+        else:
+            ax = scipy.zeros((kine.shape[0],3))
+            ax[:,0] = 1.0
+
+        kine_base_0[:,0] = get_stroke_angle(t, f, amp_stroke, 0.5, k_stroke)
+        kine_base_1[:,0] = get_stroke_angle(t, f, amp_stroke, 0.5, k_stroke)
+        kine_base_0[:,1] = get_deviation_angle(t, f, 0.0) 
+        kine_base_1[:,1] = get_deviation_angle(t, f, 0.0) 
+        kine_base_0[:,2] = get_rotation_angle(t, f, amp_rotation, ro_0, k_rotation)
+        kine_base_1[:,2] = get_rotation_angle(t, f, amp_rotation, ro_1, k_rotation)
+
+        kine_base_0 = RAD2DEG*qarray.rotate_euler_array(DEG2RAD*kine_base_0, ax, DEG2RAD*u_0)
+        kine_base_1 = RAD2DEG*qarray.rotate_euler_array(DEG2RAD*kine_base_1, ax, DEG2RAD*u_1)
+
+        s0 = self.get_motor_num('stroke_0')
+        s1 = self.get_motor_num('stroke_1')
+        r0 = self.get_motor_num('rotation_0')
+        r1 = self.get_motor_num('rotation_1')
+        d0 = self.get_motor_num('deviation_0')
+        d1 = self.get_motor_num('deviation_1')
+        
+        kine[:,s0] = kine_base_0[:,0]
+        kine[:,s1] = kine_base_1[:,0]
+        kine[:,d0] = kine_base_0[:,1] 
+        kine[:,d1] = kine_base_1[:,1] 
+        kine[:,r0] = kine_base_0[:,2] 
+        kine[:,r1] = kine_base_1[:,2] 
+        self.kine_deg = kine
+        self.t = t
     
-    def set_stroke_tilt_kine(self, t, f, u, amp_stroke, amp_rotation, k_stroke=0.01, k_rotation=1.5, rotation_offset=0.0):
+    def set_stroke_tilt_kine(self, t, f, u, amp_stroke, amp_rotation, k_stroke=DFLT_K_STROKE, 
+                             k_rotation=DFLT_K_ROTATION, rotation_offset=DFLT_ROTATION_OFFSET):
         """
         Sets current kinemtics to those with differential tilt in stroke-plane angle determined by 
         control signal u.
@@ -319,7 +369,8 @@ class Yawff:
         self.kine_deg = kine
         self.t = t
 
-    def set_diff_aoa_kine(self, t, f, u, amp_stroke, amp_rotation, k_stroke=0.01, k_rotation=1.5, rotation_offset=0.0):
+    def set_diff_aoa_kine(self, t, f, u, amp_stroke, amp_rotation, k_stroke=DFLT_K_STROKE, 
+                          k_rotation=DFLT_K_ROTATION, rotation_offset=DFLT_ROTATION_OFFSET):
         """
         Sets current kinematics to those with a differential angle of attach on the up stroke
         and downstroke. The amount of asymmetry is determined by the control input u.
@@ -343,7 +394,8 @@ class Yawff:
         self.kine_deg = kine
         self.t = t
 
-    def set_asym_stroke_vel_kine(self, t, f, u, amp_stroke, amp_rotation, k_stroke=0.01, k_rotation=1.5, rotation_offset=0.0):
+    def set_asym_stroke_vel_kine(self, t, f, u, amp_stroke, amp_rotation, k_stroke=DFLT_K_STROKE,
+                                 k_rotation=DFLT_K_ROTATION, rotation_offset=DFLT_ROTATION_OFFSET):
         """
         Sets current kinematics to those with asymmetric stroke velocity. The amount of velocity asymmetry
         is determined by the control input u.

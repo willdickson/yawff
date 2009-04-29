@@ -4,6 +4,8 @@ pylibyawff Installation instructions
 Requirements: 
 -------------
 yawff version 1.0
+qarray version 0.1
+move_motor version 0.1
 
 Installation:
 -------------

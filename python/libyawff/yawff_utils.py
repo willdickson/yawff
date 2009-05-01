@@ -299,6 +299,55 @@ class Yawff:
         self.kine_deg = kine
         self.t = t
 
+    def set_combo_kine(self, t, f, u_diff_aoa, u_stroke_rot, u_stroke_tilt, u_asym_vel,
+                       amp_stroke, amp_rotation, k_stroke=DFLT_K_STROKE,k_rotation=DFLT_K_ROTATION,
+                       rotation_offset=DFLT_ROTATION_OFFSET):
+
+        # Create control inputs for wings 0 and 1
+        u_diff_aoa_0, u_diff_aoa_1 = -u_diff_aoa, u_diff_aoa
+        u_stroke_rot_0, u_stroke_rot_1 = -u_stroke_rot, u_stroke_rot
+        u_stroke_tilt_0, u_stroke_tilt_1 = u_stroke_tilt, -u_stroke_tilt
+        u_asym_vel_0, u_asym_vel_1 = 0.5 - u_asym_vel, 0.5 + u_asym_vel 
+
+        # Set up base kinematics
+        ro_0, ro_1 = -rotation_offset, rotation_offset
+        num_motors = self.num_motors()
+        kine = scipy.zeros((t.shape[0],num_motors))
+        kine_base_0 = scipy.zeros((t.shape[0],3))
+        kine_base_1 = scipy.zeros((t.shape[0],3))
+
+        kine_base_0[:,0] = get_stroke_angle(t, f, amp_stroke, u_asym_vel_0, k_stroke)
+        kine_base_1[:,0] = get_stroke_angle(t, f, amp_stroke, u_asym_vel_1, k_stroke)
+        kine_base_0[:,1] = get_deviation_angle(t, f, u_stroke_tilt_0) 
+        kine_base_1[:,1] = get_deviation_angle(t, f, u_stroke_tilt_1) 
+        kine_base_0[:,2] = get_rotation_angle(t, f, amp_rotation, u_diff_aoa_0 + ro_0, k_rotation)
+        kine_base_1[:,2] = get_rotation_angle(t, f, amp_rotation, u_diff_aoa_1 + ro_1, k_rotation)
+
+        # Rotate kinematics
+        if type(u_stroke_rot) == float or type(u_stroke_rot) == int or type(u_stroke_rot) == scipy.float_:
+            ax = scipy.array([1.0,0.0,0.0])
+        else:
+            ax = scipy.zeros((kine.shape[0],3))
+            ax[:,0] = 1.0
+        kine_base_0 = RAD2DEG*qarray.rotate_euler_array(DEG2RAD*kine_base_0, ax, DEG2RAD*u_stroke_rot_0)
+        kine_base_1 = RAD2DEG*qarray.rotate_euler_array(DEG2RAD*kine_base_1, ax, DEG2RAD*u_stroke_rot_1)
+
+        s0 = self.get_motor_num('stroke_0')
+        s1 = self.get_motor_num('stroke_1')
+        r0 = self.get_motor_num('rotation_0')
+        r1 = self.get_motor_num('rotation_1')
+        d0 = self.get_motor_num('deviation_0')
+        d1 = self.get_motor_num('deviation_1')
+        
+        kine[:,s0] = kine_base_0[:,0]
+        kine[:,s1] = kine_base_1[:,0]
+        kine[:,d0] = kine_base_0[:,1] 
+        kine[:,d1] = kine_base_1[:,1] 
+        kine[:,r0] = kine_base_0[:,2] 
+        kine[:,r1] = kine_base_1[:,2] 
+        self.kine_deg = kine
+        self.t = t
+
     def set_stroke_rot_kine(self, t, f, u, amp_stroke, amp_rotation, k_stroke=DFLT_K_STROKE, 
                             k_rotation=DFLT_K_ROTATION, rotation_offset=DFLT_ROTATION_OFFSET):
         """
@@ -307,16 +356,12 @@ class Yawff:
         """
         u_0, u_1 = -u, u
         ro_0, ro_1 = -rotation_offset, rotation_offset
+
+        # Set up base kinematics
         num_motors = self.num_motors()
         kine = scipy.zeros((t.shape[0],num_motors))
         kine_base_0 = scipy.zeros((t.shape[0],3))
         kine_base_1 = scipy.zeros((t.shape[0],3))
-
-        if type(u) == float or type(u) == int or type(u) == scipy.float_:
-            ax = scipy.array([1.0,0.0,0.0])
-        else:
-            ax = scipy.zeros((kine.shape[0],3))
-            ax[:,0] = 1.0
 
         kine_base_0[:,0] = get_stroke_angle(t, f, amp_stroke, 0.5, k_stroke)
         kine_base_1[:,0] = get_stroke_angle(t, f, amp_stroke, 0.5, k_stroke)
@@ -325,6 +370,12 @@ class Yawff:
         kine_base_0[:,2] = get_rotation_angle(t, f, amp_rotation, ro_0, k_rotation)
         kine_base_1[:,2] = get_rotation_angle(t, f, amp_rotation, ro_1, k_rotation)
 
+        # Rotate kinematics
+        if type(u) == float or type(u) == int or type(u) == scipy.float_:
+            ax = scipy.array([1.0,0.0,0.0])
+        else:
+            ax = scipy.zeros((kine.shape[0],3))
+            ax[:,0] = 1.0
         kine_base_0 = RAD2DEG*qarray.rotate_euler_array(DEG2RAD*kine_base_0, ax, DEG2RAD*u_0)
         kine_base_1 = RAD2DEG*qarray.rotate_euler_array(DEG2RAD*kine_base_1, ax, DEG2RAD*u_1)
 
@@ -419,7 +470,7 @@ class Yawff:
         self.kine_deg = kine
         self.t = t
 
-    def set_yaw_to_const_vel(self,vel,accel):
+    def set_yaw_to_const_vel(self,vel,accel,center=False):
         """
         Sets the kinematics of the yaw motor to constant velocity.
         """
@@ -427,6 +478,9 @@ class Yawff:
             raise RuntimeError, 'cannot set yaw to constant vel - no t or kine_deg'
         n = self.get_motor_num('yaw')
         self.kine_deg[:,n] = ramp_to_const_vel(self.t,vel,accel)
+        if center == True:
+            mid_pt = 0.5*(self.kine_deg[:,n].max() + self.kine_deg[:,n].min())
+            self.kine_deg[:,n] = self.kine_deg[:,n] - mid_pt
 
     def set_yaw_to_ramp(self,x0,x1,vmax,a):
         """
@@ -505,7 +559,7 @@ class Yawff:
             elif name == 'deviation':
                 pylab.subplot(3,1,3)
                 pylab.ylabel('deviation')
-                pylab.ylabel('t')
+                pylab.ylabel('deviation')
             elif name == 'yaw':
                 pylab.ylabel('yaw')
                 pylab.xlabel('t')

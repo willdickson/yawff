@@ -717,8 +717,7 @@ int update_ind(int motor_ind[][2],
   int i;
   int ind;
   int kine_num;
-  int motor_num;
-  
+  int motor_num; 
   // Set current indices to previous indices 
   for (i=0; i<config.num_motor; i++) {
     motor_ind[i][0] = motor_ind[i][1];
@@ -744,6 +743,11 @@ int update_ind(int motor_ind[][2],
           // Set position in state
           state[0].pos = config.yaw_ind2deg*DEG2RAD*ind;
           state[1].pos = config.yaw_ind2deg*DEG2RAD*ind;
+      }
+      // Check that yaw is within allowed range
+      if (fabs(state[0].pos) > MAX_YAW) {
+          PRINT_ERR_MSG("fabs(yaw position) > MAX_YAW");
+          return FAIL;
       }
     }
     else {

@@ -745,8 +745,12 @@ int update_ind(int motor_ind[][2],
           state[1].pos = config.yaw_ind2deg*DEG2RAD*ind;
       }
       // Check that yaw is within allowed range
-      if (fabs(state[0].pos) > MAX_YAW) {
+      if (fabs(state[0].pos) > MAX_YAW)  {
           PRINT_ERR_MSG("fabs(yaw position) > MAX_YAW");
+          return FAIL;
+      }
+      if (fabs(state[0].pos) < MIN_YAW) {
+          PRINT_ERR_MSG("fabs(yaw position) < MIN_YAW");
           return FAIL;
       }
     }

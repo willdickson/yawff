@@ -51,18 +51,19 @@
 #define MAX_DIO 23
 #define MAX_AIN 15
 #define ERR_SZ 200
-#define MAX_DT_NS 10000000    // 100 Hz 
-#define MIN_DT_NS 100000      // 10 kHz
-#define CLOCK_HI_NS 60000     // Time in ns for which clock is high 
-#define RAD2DEG (180.0/M_PI)  // Convert radians to degrees
-#define DEG2RAD (M_PI/180.0)  // Convert degrees to radians
-#define NS2S 1.0e-9           // Convert nanoseconds to seconds 
-#define S2NS (1.0/NS2S)       // Convert seconds to nanoseconds
-#define MIN_TORQ_LIM 0.0      // Minimum allowed torque limit Nm
-#define MAX_TORQ_LIM 10.0     // Maximum allowed torque limit Nm
-#define MAX_YAW (DEG2RAD*400) // Maximum allowed yaw position
-#define FF_ON 0               // Force-feedback on
-#define FF_OFF 1              // Force-feedback off
+#define MAX_DT_NS 10000000         // 100 Hz 
+#define MIN_DT_NS 100000           // 10 kHz
+#define CLOCK_HI_NS 60000          // Time in ns for which clock is high 
+#define RAD2DEG (180.0/M_PI)       // Convert radians to degrees
+#define DEG2RAD (M_PI/180.0)       // Convert degrees to radians
+#define NS2S 1.0e-9                // Convert nanoseconds to seconds 
+#define S2NS (1.0/NS2S)            // Convert seconds to nanoseconds
+#define MIN_TORQ_LIM 0.0           // Minimum allowed torque limit Nm
+#define MAX_TORQ_LIM 10.0          // Maximum allowed torque limit Nm
+#define MAX_YAW (DEG2RAD*500.0)    // Maximum allowed yaw position
+#define MIN_YAW (DEG2RAD*(-400.0)) // Maximum allowed yaw position
+#define FF_ON 0                    // Force-feedback on
+#define FF_OFF 1                   // Force-feedback off
 
 #define INTEG_EULER 0      // Const for integration by Euler method 
 #define INTEG_RKUTTA 1     // Const for integration by Runge-Kutta

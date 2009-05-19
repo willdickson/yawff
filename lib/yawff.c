@@ -208,7 +208,7 @@ int yawff(array_t kine, config_t config, data_t data, int end_pos[])
 
     // Once realtime task is running display data
     if (status_copy.running) {
-      fflush_printf("                                                      ");
+      fflush_printf("                                                             ");
       fflush_printf("\r");
       fflush_printf("%3.0f\%, t: %3.2f, pos: %3.2f, vel: %3.2f, torq: %3.5f",
 		    100.0*(float)status.ind/(float)kine.nrow, 
@@ -745,11 +745,11 @@ int update_ind(int motor_ind[][2],
           state[1].pos = config.yaw_ind2deg*DEG2RAD*ind;
       }
       // Check that yaw is within allowed range
-      if (fabs(state[0].pos) > MAX_YAW)  {
+      if (state[0].pos > MAX_YAW)  {
           PRINT_ERR_MSG("fabs(yaw position) > MAX_YAW");
           return FAIL;
       }
-      if (fabs(state[0].pos) < MIN_YAW) {
+      if (state[0].pos < MIN_YAW) {
           PRINT_ERR_MSG("fabs(yaw position) < MIN_YAW");
           return FAIL;
       }

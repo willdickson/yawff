@@ -60,7 +60,7 @@
 #define S2NS (1.0/NS2S)            // Convert seconds to nanoseconds
 #define MIN_TORQ_LIM 0.0           // Minimum allowed torque limit Nm
 #define MAX_TORQ_LIM 10.0          // Maximum allowed torque limit Nm
-#define MAX_YAW (DEG2RAD*500.0)    // Maximum allowed yaw position
+#define MAX_YAW (DEG2RAD*400.0)    // Maximum allowed yaw position
 #define MIN_YAW (DEG2RAD*(-400.0)) // Maximum allowed yaw position
 #define FF_ON 0                    // Force-feedback on
 #define FF_OFF 1                   // Force-feedback off

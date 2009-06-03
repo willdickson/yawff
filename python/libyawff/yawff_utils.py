@@ -763,6 +763,29 @@ def sqr_wave(t,amp,T,epsilon):
         cnt += 1
     return f
 
+def step_func(t,mag,t_start,t_stop,epsilon):
+    """
+    Generates a step function with given magnitude starting at t_start
+    and finishing at t_stop.
+    """
+    
+    if type(t) == scipy.ndarray:
+        vals = scipy.zeros(t.shape)
+        for i in range(t.shape[0]):
+            vals[i] = step_func(t[i],mag,t_start,t_stop,epsilon)
+        return vals
+    else:
+        if (t > t_start) and (t < t_start + epsilon):
+            interp_func = scipy.interpolate.interp1d([t_start,t_start+epsilon],[0,mag])
+            return interp_func(t)
+        elif (t >= t_start + epsilon) and (t <= t_stop):
+            return mag
+        elif (t > t_stop) and (t < t_stop + epsilon):
+            interp_func = scipy.interpolate.interp1d([t_stop,t_stop+epsilon],[mag,0])
+            return interp_func(t)
+        else:
+            return 0
+
 def ramp_to_const_vel(t,vel,accel):
     """
     Generates a ramp trajectory to constant velocity.

@@ -482,7 +482,7 @@ class Yawff:
             mid_pt = 0.5*(self.kine_deg[:,n].max() + self.kine_deg[:,n].min())
             self.kine_deg[:,n] = self.kine_deg[:,n] - mid_pt
 
-    def set_yaw_to_ramp(self,x0,x1,vmax,a):
+    def set_yaw_to_ramp(self,x0,x1,vmax,a,startup_pause=False,startup_t=10):
         """
         Sets kinematics of the yaw motor to a point to point ramp
         """
@@ -490,7 +490,10 @@ class Yawff:
         n = self.get_motor_num('yaw')
         dt = self.config_dict['dt']
         ramp = libmove_motor.get_ramp(x0,x1,vmax,a,dt,output='ramp only')
-        print ramp.shape
+        if startup_pause == True:
+            n_pause = int(startup_t/dt)
+            pause = ramp[0]*scipy.ones((n_pause,))
+            ramp = scipy.concatenate((pause,ramp))
         if self.kine_deg == None:
             self.kine_deg = scipy.zeros((ramp.shape[0],num_motors))
             self.t = scipy.arange(0,ramp.shape[0])*dt

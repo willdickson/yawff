@@ -87,7 +87,7 @@ int check_yawff_input(array_t kine, config_t config, data_t data)
 
   // Check that kinematics configuration compatibility
   if (check_kine_compat(config,kine) != SUCCESS){
-    PRINT_ERR_MSG("kinematics incompatilbe");
+    PRINT_ERR_MSG("kinematics incompatible");
     rtn_flag = FAIL;
   }
   

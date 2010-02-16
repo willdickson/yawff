@@ -44,16 +44,24 @@ config = {
     'ff_flag'           : libyawff.FF_ON,
 }
 
+print 
+print 'config'
+print '-'*60
 for k,v in config.iteritems():
     print k,v 
 
-kine = scipy.zeros((N,config['num_motor']))
+setpt = scipy.zeros((N,1))
 
-t, pos, vel, torq, end_pos = libyawff.yawff_c_wrapper(kine, config)
+t, pos, vel, torq, kine, end_pos = libyawff.yawff_ctlr_c_wrapper(setpt, config)
 pos = RAD2DEG*pos
 vel = RAD2DEG*vel
 
-print torq.shape
+print 
+print 't.shape', t.shape
+print 'pos.shape', pos.shape
+print 'vel.shape', vel.shape
+print 'torq.shape', torq.shape
+print 'kine.shape', kine.shape
 
 pylab.subplot(311)
 pylab.plot(t,pos)

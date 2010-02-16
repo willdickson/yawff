@@ -167,6 +167,14 @@ extern int yawff(
         int end_pos[]
         ); 
 
+extern int yawff_w_ctlr(
+        array_t setpt,
+        config_t config, 
+        array_t kine, 
+        data_t data, 
+        int end_pos[]
+        ); 
+
 // Cleanup fucntion for realtime thread 
 extern int rt_cleanup(
         int level, 

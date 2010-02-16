@@ -81,7 +81,7 @@ typedef struct {
 } status_t;
   
 // Function prototypes
-static void *rt_handler(void *args);
+static void *yawff_rt_thread(void *args);
 void sigint_func(int sig);
 void init_status_vals(status_t *status);
 void read_status(status_t *status_copy);
@@ -195,7 +195,7 @@ int yawff(array_t kine, config_t config, data_t data, int end_pos[])
   
   // Start motor thread
   fflush_printf("starting rt_thread\n");
-  rt_thread = rt_thread_create(rt_handler, ((void *)&thread_args), STACK_SIZE);
+  rt_thread = rt_thread_create(yawff_rt_thread, ((void *)&thread_args), STACK_SIZE);
 
   // Set reporter sleep timespec
   sleep_ts.tv_sec = 0;
@@ -265,10 +265,11 @@ int yawff(array_t kine, config_t config, data_t data, int end_pos[])
 }
 
 // ------------------------------------------------------------------
-// Function: rt_handler
+// Function: yawff_rt_thread
 //
-// Purpose: Realtime thread function. Performs real-time yaw turn 
-// force-feedback task which consists of:
+// Purpose: Realtime thread for yawff function. Performs real-time yaw 
+// turn force-feedback task which consists of:
+//
 // 1.) Outscanning wing kinematics,
 // 2.) Acquiring data from torque sensor
 // 3.) Controlling yaw dynamics using acquired torque 
@@ -279,7 +280,7 @@ int yawff(array_t kine, config_t config, data_t data, int end_pos[])
 // Return: void.
 //
 // ------------------------------------------------------------------
-static void *rt_handler(void *args)
+static void *yawff_rt_thread(void *args)
 {
   RT_TASK *rt_task=NULL;
   RTIME now_ns;
@@ -439,6 +440,159 @@ static void *rt_handler(void *args)
   end = 1;
 
   return 0;
+}
+
+// -------------------------------------------------------------------
+// Function: yawff_w_ctlr
+//
+// Puropse: Main function for yaw turn force-feedback task with 
+// yaw controller. Spawns a real-time thread to handle controller, data 
+// acquisition, and yaw dynamics. During outscaning displays information 
+// regarding ongoing real-time task.   
+//
+// Arguments:
+//   
+//  setpt    = array of setpt values
+//  config   = system configuration structure
+//  kine     = array for wing kinematics (return) 
+//  data     = structure for data arrays (return)
+//  end_pod  = pointer to final position in motor ind
+//  
+// Return: SUCCESS or FAIL
+//
+// -------------------------------------------------------------------
+int yawff_w_ctlr(array_t setpt, config_t config, array_t kine, data_t data, int end_pos[])
+{
+  //RT_TASK *yawff_task;
+  //int rt_thread;
+  //sighandler_t sighandler = NULL;
+  int rtn_flag = SUCCESS;
+  //thread_args_t thread_args;
+  //status_t status_copy;
+  //struct timespec sleep_ts;
+  //int i;
+
+  // Initialize globals
+  end = 0;
+  init_status_vals(&status); // Values only - doesn't initialize lock
+ 
+  // Startup method 
+  printf("\n");
+  printf("                  Starting yawff \\w controller \n");
+  printf("=======================================================\n");
+
+  //// Check inputs
+  //fflush_printf("checking input args\n");
+  //if (check_yawff_input(kine,config,data) != SUCCESS) {
+  //  PRINT_ERR_MSG("bad input data");
+  //  return FAIL;
+  //}
+  //print_config(config);
+
+  //// Setup SIGINT handler
+  //fflush_printf("reassigning SIGINT handler\n");
+  //sighandler = reassign_sigint(sigint_func);
+  //if (sighandler == SIG_ERR) {
+  //  return FAIL;
+  //}
+
+  //// Intialize status semephore
+  //fflush_printf("initializing status semaphore\n");
+  //status.lock = rt_typed_sem_init(nam2num("STATUS"),1,BIN_SEM | FIFO_Q);
+  //if (status.lock == NULL) {
+  //  PRINT_ERR_MSG("unable to initialize status semaphore");
+  //  fflush_printf("restoring SIGINT handler\n");
+  //  sighandler = reassign_sigint(sighandler);
+  //  return FAIL;
+  //}
+  //
+  ////Initialize RT task
+  //fflush_printf("initializing yawff_task\n");
+  //rt_allow_nonroot_hrt();
+  //yawff_task = rt_task_init(nam2num("YAWFF"),PRIORITY,STACK_SIZE,MSG_SIZE);
+  //if (!yawff_task) {
+  //  PRINT_ERR_MSG("error initializing yawff_task");
+  //  fflush_printf("restoring SIGINT handler\n");
+  //  sighandler = reassign_sigint(sighandler);
+  //  return FAIL;
+  //}
+  //rt_set_oneshot_mode();
+  //start_rt_timer(0);
+
+  //// Assign arguments to thread
+  //thread_args.kine = &kine;
+  //thread_args.config = &config;
+  //thread_args.data = &data;
+  //
+  //// Start motor thread
+  //fflush_printf("starting rt_thread\n");
+  //rt_thread = rt_thread_create(yawff_rt_thread, ((void *)&thread_args), STACK_SIZE);
+
+  //// Set reporter sleep timespec
+  //sleep_ts.tv_sec = 0;
+  //sleep_ts.tv_nsec = 100000000;
+  //
+  //// Run time display
+  //do {
+  //  // copy of status information structure - use locks
+  //  read_status(&status_copy);
+
+  //  // Once realtime task is running display data
+  //  if (status_copy.running) {
+  //    fflush_printf("                                                             ");
+  //    fflush_printf("\r");
+  //    fflush_printf("%3.0f\%, t: %3.2f, pos: %3.2f, vel: %3.2f, torq: %3.5f",
+  //  	    100.0*(float)status.ind/(float)kine.nrow, 
+  //  	    status_copy.t,
+  //  	    status_copy.pos*RAD2DEG,
+  //  	    status_copy.vel*RAD2DEG,
+  //  	    status_copy.torq);
+  //    fflush_printf("\r");
+  //  }
+  //  nanosleep(&sleep_ts,NULL);
+  //} while (!end);
+
+  //// Wait to join
+  //rt_thread_join(rt_thread);
+  //fflush_printf("rt_thread joined\n");
+
+  //// One last read of status to get errors and final position
+  //read_status(&status_copy); 
+
+  //// Clean up
+  //stop_rt_timer();
+  //rt_task_delete(yawff_task);
+  //fflush_printf("yawff_task deleted\n");
+  //rt_sem_delete(status.lock);
+
+  //// Restore old SIGINT handler
+  //fflush_printf("restoring SIGINT handler\n");
+  //sighandler = reassign_sigint(sighandler);
+  //if (sighandler == SIG_ERR) {
+  //  PRINT_ERR_MSG("restoring signal handler failed");
+  //  rtn_flag = FAIL;
+  //}
+
+  //// Print any error messages
+  //if (status_copy.err_flag & RT_TASK_SIGINT) {
+  //  fflush_printf("real-time task stopped with: RT_SIGINT\n");
+  //}
+
+  //if (status_copy.err_flag & RT_TASK_ERROR) {
+  //  fflush_printf("real-time task stopped with: RT_ERROR \n");
+  //}
+
+  //// Copy motor indices into end_pos
+  //fflush_printf("end_pos: ");
+  //for (i=0; i<config.num_motor; i++) {
+  //  end_pos[i] = status_copy.motor_ind[i];
+  //  fflush_printf("%d", end_pos[i]);
+  //  if (i!=config.num_motor-1) fflush_printf(", ");
+  //}
+  //fflush_printf("\n");
+  //
+  //// Temporary
+  return rtn_flag;
 }
 
 // -------------------------------------------------------------------

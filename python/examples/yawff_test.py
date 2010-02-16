@@ -5,7 +5,7 @@ import libyawff
 import cPickle as pickle
 
 T = 6.0   # Period (s)
-N = 20    # Number of stroke cycles
+N = 5    # Number of stroke cycles
 amp_stroke = 70.0    # Stroke amplitude
 amp_rotation = 45.0  # Rotation amplitude
 dt = 1.0/3000.0

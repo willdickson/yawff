@@ -30,6 +30,8 @@ import ctypes
 import scipy
 from libmove_motor import convert2int
 
+lib = ctypes.cdll.LoadLibrary("libyawff.so.1")
+
 def get_c_array_struct(x):
     """
     Get the C array structure associated with the scipy or numpy array.
@@ -50,7 +52,36 @@ def get_c_array_struct(x):
         raise ValueError, "array must be of type INT_ARRAY, FLT_ARRAY or DBL_ARRAY" 
     return x_struct
 
-lib = ctypes.cdll.LoadLibrary("libyawff.so.1")
+def create_config_struct(config):
+    """
+    Create c configuration structure
+    """
+    config_struct = config_t()
+    config_struct.dev_name = config['dev_name']
+    config_struct.ain_subdev = config['ain_subdev']
+    config_struct.dio_subdev = config['dio_subdev']
+    config_struct.num_motor = config['num_motor']
+    config_struct.yaw_motor = config['yaw_motor']
+    config_struct.dio_clk = config['dio_clk']
+    config_struct.dio_dir = config['dio_dir']
+    config_struct.kine_map = config['kine_map']
+    config_struct.dio_disable = config['dio_disable']
+    config_struct.yaw_ain = config['yaw_ain']
+    config_struct.yaw_ain_zero_dt = config['yaw_ain_zero_dt']
+    config_struct.yaw_ain_zero_num = config['yaw_ain_zero_num'] 
+    config_struct.yaw_volt2torq = config['yaw_volt2torq']
+    config_struct.yaw_inertia = config['yaw_inertia']
+    config_struct.yaw_ind2deg = config['yaw_ind2deg']
+    config_struct.yaw_torq_lim = config['yaw_torq_lim']
+    config_struct.yaw_torq_deadband = config['yaw_torq_deadband']
+    config_struct.yaw_filt_lpcut = config['yaw_filt_lpcut']
+    config_struct.yaw_filt_hpcut = config['yaw_filt_hpcut']
+    config_struct.yaw_damping = config['yaw_damping']
+    config_struct.dt = int(S2NS*config['dt'])
+    config_struct.integ_type = int(config['integ_type'])
+    config_struct.startup_t = float(config['startup_t'])
+    config_struct.ff_flag = int(config['ff_flag'])
+    return config_struct
 
 # Constants 
 S2NS = 1.0e9
@@ -127,6 +158,62 @@ lib.yawff.argstype = [
     ctypes.c_void_p,
 ]
 
+lib.yawff_w_ctlr.restype = ctypes.c_int
+lib.yawff.argstype = [
+    array_t, 
+    config_t, 
+    array_t,
+    data_t,
+    ctypes.c_void_p,
+]
+
+
+def yawff_ctlr_c_wrapper(setpt, config):
+    """
+    Python wrapper for yawff_w_ctlr function. Perform yaw force-feedback
+    task with yaw controller.  Spawns real-time thread to handle controller,
+    data acquisition, and yaw dynamics. During outscan displays information
+    regarding ongoing real-time task.
+
+    Inputs:
+        setpt   = Nx1 array of setpt values at time steps 0, dt, ... (N-1)*dt
+        config  = system configuration dictionary 
+    """
+    config_struct = create_config_struct(config)
+
+    # Create c structure for setpt data
+    setpt_float32 = setpt.astype(scipy.dtype('float32'))
+    setpt_struct = get_c_array_struct(setpt_float32)
+
+    # Create time, position, velocity, torque, and kinematics arrarys for
+    # return data
+    n = setpt.shape[0]
+    t = scipy.zeros((n,1), dtype = scipy.dtype('float64'))
+    pos = scipy.zeros((n,1), dtype = scipy.dtype('float32'))
+    vel = scipy.zeros((n,1), dtype = scipy.dtype('float32'))
+    torq = scipy.zeros((n,2), dtype = scipy.dtype('float32'))
+    kine = scipy.zeros((n, config['num_motor']), scipy.dtype('int'))
+
+    # Create c data structure
+    data_struct = data_t()
+    data_struct.t = get_c_array_struct(t)
+    data_struct.pos = get_c_array_struct(pos)
+    data_struct.vel = get_c_array_struct(vel)
+    data_struct.torq = get_c_array_struct(torq)
+    kine_struct = get_c_array_struct(kine)
+
+    # Create array for ending positions
+    end_pos = (ctypes.c_int*config['num_motor'])()
+
+    # Call C library yawff function
+    ret_val = lib.yawff_w_ctlr(setpt_struct, config_struct, kine_struct, data_struct, end_pos)
+    if ret_val == FAIL:
+        raise RuntimeError, "lib.yawff_w_ctlr call failed"
+
+    end_pos = scipy.array(end_pos)
+
+    return t, pos, vel, torq, kine, end_pos
+
 
 def yawff_c_wrapper(kine, config):
     """
@@ -143,32 +230,7 @@ def yawff_c_wrapper(kine, config):
     # Convert kinematics to integers
     kine = convert2int(kine)
 
-    # Create c configuration structure
-    config_struct = config_t()
-    config_struct.dev_name = config['dev_name']
-    config_struct.ain_subdev = config['ain_subdev']
-    config_struct.dio_subdev = config['dio_subdev']
-    config_struct.num_motor = config['num_motor']
-    config_struct.yaw_motor = config['yaw_motor']
-    config_struct.dio_clk = config['dio_clk']
-    config_struct.dio_dir = config['dio_dir']
-    config_struct.kine_map = config['kine_map']
-    config_struct.dio_disable = config['dio_disable']
-    config_struct.yaw_ain = config['yaw_ain']
-    config_struct.yaw_ain_zero_dt = config['yaw_ain_zero_dt']
-    config_struct.yaw_ain_zero_num = config['yaw_ain_zero_num'] 
-    config_struct.yaw_volt2torq = config['yaw_volt2torq']
-    config_struct.yaw_inertia = config['yaw_inertia']
-    config_struct.yaw_ind2deg = config['yaw_ind2deg']
-    config_struct.yaw_torq_lim = config['yaw_torq_lim']
-    config_struct.yaw_torq_deadband = config['yaw_torq_deadband']
-    config_struct.yaw_filt_lpcut = config['yaw_filt_lpcut']
-    config_struct.yaw_filt_hpcut = config['yaw_filt_hpcut']
-    config_struct.yaw_damping = config['yaw_damping']
-    config_struct.dt = int(S2NS*config['dt'])
-    config_struct.integ_type = int(config['integ_type'])
-    config_struct.startup_t = float(config['startup_t'])
-    config_struct.ff_flag = int(config['ff_flag'])
+    config_struct = create_config_struct(config)
 
     # Create c kinematics array structure
     kine_int = kine.astype(scipy.dtype('int'))

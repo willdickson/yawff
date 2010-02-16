@@ -57,7 +57,7 @@
 
 
 // ------------------------------------------------------------------
-// Function: check_yawff_inputs
+// Function: check_yawff_input
 //
 // Purpose: Checks the inputs to the yawff function.
 //
@@ -100,6 +100,69 @@ int check_yawff_input(array_t kine, config_t config, data_t data)
   // Check data compatibility
   if (check_data_compat(kine,data)!=SUCCESS) {
     PRINT_ERR_MSG("data incompatible");
+    rtn_flag = FAIL;
+  }
+
+  return rtn_flag;
+}
+
+
+// ------------------------------------------------------------------
+// Function: check_yawff_w_ctlr_input
+//
+// Purpose: Checks the inputs to the yawff function.
+//
+// Arguments:
+//   kine    = array of wing kinematics 
+//   config  = system configuration structure
+//   data    = structure of return data arrays
+//
+// Return: SUCCESS or FAIL
+//
+// ------------------------------------------------------------------
+int check_yawff_w_ctlr_input(array_t setpt, config_t config, array_t kine, data_t data)
+{
+  int rtn_flag = SUCCESS;
+
+  // Check configuration
+  if (check_config(config) != SUCCESS) {
+    PRINT_ERR_MSG("bad configuration");
+    rtn_flag = FAIL;
+  }
+
+  // Check setpt array
+  if (check_array(setpt) != SUCCESS) {
+    PRINT_ERR_MSG("setpt array invalid");
+    rtn_flag = FAIL;
+  }
+
+  // Check kinematics - make sure is valid array
+  if (check_array(kine) != SUCCESS) {
+    PRINT_ERR_MSG("kinematics array invalid");
+    rtn_flag = FAIL;
+  }
+
+  // Check that kinematics configuration compatibility
+  if (check_kine_compat(config,kine) != SUCCESS){
+    PRINT_ERR_MSG("kinematics incompatible");
+    rtn_flag = FAIL;
+  }
+  
+  // Check data
+  if (check_data(data) != SUCCESS) {
+    PRINT_ERR_MSG("data invalid");
+    rtn_flag = FAIL;
+  }
+
+  // Check data compatibility
+  if (check_data_compat(kine,data)!=SUCCESS) {
+    PRINT_ERR_MSG("data and kinematics incompatible");
+    rtn_flag = FAIL;
+  }
+
+  // Check setpt compatibility
+  if (check_setpt_compat(kine,setpt)!=SUCCESS) {
+    PRINT_ERR_MSG("setpt and kinematics incompatible");
     rtn_flag = FAIL;
   }
 
@@ -542,7 +605,7 @@ int check_data(data_t data)
 }
 
 // -------------------------------------------------------------
-// Functtion: check_data_compat
+// Function: check_data_compat
 //
 // Purpose: check that structure of data arrays and kinematics 
 // array are compatible.
@@ -577,3 +640,27 @@ int check_data_compat(array_t kine, data_t data)
   }
   return flag;
 }
+
+// -------------------------------------------------------------
+// Function: check_setpt_compat
+//
+// Purpose: check that kinematics and setpt arrays are compatible.
+//
+// Arguments:
+//   kine   = kinematics array
+//   setpt  = setpt array 
+//
+// Return: SUCCESS or FAIL
+//
+// -------------------------------------------------------------
+int check_setpt_compat(array_t kine, array_t setpt)
+{
+  int flag = SUCCESS;
+  
+  if ((kine.nrow != setpt.nrow)) {
+    PRINT_ERR_MSG("setpt array incompatible with kinematics array");
+    flag = FAIL;
+  }
+  return flag;
+}
+

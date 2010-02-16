@@ -465,7 +465,7 @@ int yawff_w_ctlr(array_t setpt, config_t config, array_t kine, data_t data, int 
 {
   //RT_TASK *yawff_task;
   //int rt_thread;
-  //sighandler_t sighandler = NULL;
+  sighandler_t sighandler = NULL;
   int rtn_flag = SUCCESS;
   //thread_args_t thread_args;
   //status_t status_copy;
@@ -481,31 +481,31 @@ int yawff_w_ctlr(array_t setpt, config_t config, array_t kine, data_t data, int 
   printf("                  Starting yawff \\w controller \n");
   printf("=======================================================\n");
 
-  //// Check inputs
-  //fflush_printf("checking input args\n");
-  //if (check_yawff_input(kine,config,data) != SUCCESS) {
-  //  PRINT_ERR_MSG("bad input data");
-  //  return FAIL;
-  //}
-  //print_config(config);
+  // Check inputs
+  fflush_printf("checking input args\n");
+  if (check_yawff_w_ctlr_input(setpt,config,kine, data) != SUCCESS) {
+    PRINT_ERR_MSG("bad input data");
+    return FAIL;
+  }
+  print_config(config);
 
-  //// Setup SIGINT handler
-  //fflush_printf("reassigning SIGINT handler\n");
-  //sighandler = reassign_sigint(sigint_func);
-  //if (sighandler == SIG_ERR) {
-  //  return FAIL;
-  //}
+  // Setup SIGINT handler
+  fflush_printf("reassigning SIGINT handler\n");
+  sighandler = reassign_sigint(sigint_func);
+  if (sighandler == SIG_ERR) {
+    return FAIL;
+  }
 
-  //// Intialize status semephore
-  //fflush_printf("initializing status semaphore\n");
-  //status.lock = rt_typed_sem_init(nam2num("STATUS"),1,BIN_SEM | FIFO_Q);
-  //if (status.lock == NULL) {
-  //  PRINT_ERR_MSG("unable to initialize status semaphore");
-  //  fflush_printf("restoring SIGINT handler\n");
-  //  sighandler = reassign_sigint(sighandler);
-  //  return FAIL;
-  //}
-  //
+  // Intialize status semephore
+  fflush_printf("initializing status semaphore\n");
+  status.lock = rt_typed_sem_init(nam2num("STATUS"),1,BIN_SEM | FIFO_Q);
+  if (status.lock == NULL) {
+    PRINT_ERR_MSG("unable to initialize status semaphore");
+    fflush_printf("restoring SIGINT handler\n");
+    sighandler = reassign_sigint(sighandler);
+    return FAIL;
+  }
+  
   ////Initialize RT task
   //fflush_printf("initializing yawff_task\n");
   //rt_allow_nonroot_hrt();
@@ -563,15 +563,15 @@ int yawff_w_ctlr(array_t setpt, config_t config, array_t kine, data_t data, int 
   //stop_rt_timer();
   //rt_task_delete(yawff_task);
   //fflush_printf("yawff_task deleted\n");
-  //rt_sem_delete(status.lock);
+  rt_sem_delete(status.lock);
 
-  //// Restore old SIGINT handler
-  //fflush_printf("restoring SIGINT handler\n");
-  //sighandler = reassign_sigint(sighandler);
-  //if (sighandler == SIG_ERR) {
-  //  PRINT_ERR_MSG("restoring signal handler failed");
-  //  rtn_flag = FAIL;
-  //}
+  // Restore old SIGINT handler
+  fflush_printf("restoring SIGINT handler\n");
+  sighandler = reassign_sigint(sighandler);
+  if (sighandler == SIG_ERR) {
+    PRINT_ERR_MSG("restoring signal handler failed");
+    rtn_flag = FAIL;
+  }
 
   //// Print any error messages
   //if (status_copy.err_flag & RT_TASK_SIGINT) {

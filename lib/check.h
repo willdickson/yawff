@@ -73,6 +73,6 @@ extern int check_data(data_t data);
 extern int check_data_compat(array_t kine, data_t data);
 
 //Check that setpt and kinematics structures are compatible
-extern int chech_setpt_compat(array_t kine, array_t setpt);
+extern int check_setpt_compat(array_t kine, array_t setpt);
 
 #endif // INC_CHECK_H_

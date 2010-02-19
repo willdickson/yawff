@@ -54,12 +54,20 @@
 #define RT_STOPPED 0
 #define RT_RUNNING 1
 
-// Structure for arguments pass to real time thread
+// Structure for arguments passed to yawff real-time thread
 typedef struct {
-  array_t *kine;
-  config_t *config;
-  data_t *data;
-} thread_args_t;
+    array_t *kine;
+    config_t *config;
+    data_t *data;
+} yawff_args_t;
+
+// Structure for arguments passed to yawff_w_ctlr real-time thread
+typedef struct {
+    array_t *setpt;
+    config_t *config;
+    array_t *kine;
+    data_t *data;
+} yawff_ctlr_args_t;
 
 // Structure for motor information
 typedef struct {
@@ -98,20 +106,6 @@ void update_status(int i,
 volatile static int end = 0;
 static status_t status;
 
-// Motor half steps 
-#ifdef ARRICK
-const char step_pattern[NUM_HALF_STEPS ][NUM_STEPPER] = {
-    {0x0e,0xe0},
-    {0x0c,0xc0},
-    {0x0d,0xd0},
-    {0x09,0x90}, 
-    {0x0b,0xb0},
-    {0x03,0x30},
-    {0x07,0x70},
-    {0x06,0x60}
-};
-#endif
-
 // -------------------------------------------------------------------
 // Function: yawff
 //
@@ -136,7 +130,7 @@ int yawff(array_t kine, config_t config, data_t data, int end_pos[])
   int rt_thread;
   sighandler_t sighandler = NULL;
   int rtn_flag = SUCCESS;
-  thread_args_t thread_args;
+  yawff_args_t thread_args;
   status_t status_copy;
   struct timespec sleep_ts;
   int i;
@@ -284,7 +278,7 @@ static void *yawff_rt_thread(void *args)
 {
   RT_TASK *rt_task=NULL;
   RTIME now_ns;
-  thread_args_t *thread_args=NULL;
+  yawff_args_t *thread_args=NULL;
   comedi_info_t comedi_info;
   array_t kine;
   config_t config;
@@ -298,7 +292,7 @@ static void *yawff_rt_thread(void *args)
   int i;
 
   // Unpack arguments passed to thread
-  thread_args = (thread_args_t *) args;
+  thread_args = (yawff_args_t *) args;
   kine = *(thread_args -> kine);
   config = *(thread_args -> config);
   data = *(thread_args -> data);
@@ -309,10 +303,6 @@ static void *yawff_rt_thread(void *args)
     end = 1;
     return 0;
   }
-
-#ifdef ARRICK   
-  // Initialize parallel port, enable stepper motors
-#endif
 
   // Initialize, time, dynamic state, and motor indices
   for (i=0; i<2; i++) {
@@ -463,14 +453,14 @@ static void *yawff_rt_thread(void *args)
 // -------------------------------------------------------------------
 int yawff_w_ctlr(array_t setpt, config_t config, array_t kine, data_t data, int end_pos[])
 {
-  //RT_TASK *yawff_task;
+  RT_TASK *yawff_task;
   //int rt_thread;
   sighandler_t sighandler = NULL;
   int rtn_flag = SUCCESS;
-  //thread_args_t thread_args;
-  //status_t status_copy;
+  yawff_ctlr_args_t thread_args;
+  status_t status_copy;
   //struct timespec sleep_ts;
-  //int i;
+  int i;
 
   // Initialize globals
   end = 0;
@@ -506,24 +496,25 @@ int yawff_w_ctlr(array_t setpt, config_t config, array_t kine, data_t data, int 
     return FAIL;
   }
   
-  ////Initialize RT task
-  //fflush_printf("initializing yawff_task\n");
-  //rt_allow_nonroot_hrt();
-  //yawff_task = rt_task_init(nam2num("YAWFF"),PRIORITY,STACK_SIZE,MSG_SIZE);
-  //if (!yawff_task) {
-  //  PRINT_ERR_MSG("error initializing yawff_task");
-  //  fflush_printf("restoring SIGINT handler\n");
-  //  sighandler = reassign_sigint(sighandler);
-  //  return FAIL;
-  //}
-  //rt_set_oneshot_mode();
-  //start_rt_timer(0);
+  //Initialize RT task
+  fflush_printf("initializing yawff_task\n");
+  rt_allow_nonroot_hrt();
+  yawff_task = rt_task_init(nam2num("YAWFF"),PRIORITY,STACK_SIZE,MSG_SIZE);
+  if (!yawff_task) {
+    PRINT_ERR_MSG("error initializing yawff_task");
+    fflush_printf("restoring SIGINT handler\n");
+    sighandler = reassign_sigint(sighandler);
+    return FAIL;
+  }
+  rt_set_oneshot_mode();
+  start_rt_timer(0);
 
-  //// Assign arguments to thread
-  //thread_args.kine = &kine;
-  //thread_args.config = &config;
-  //thread_args.data = &data;
-  //
+  // Assign arguments to thread
+  thread_args.setpt = &setpt;
+  thread_args.config = &config;
+  thread_args.kine = &kine;
+  thread_args.data = &data;
+  
   //// Start motor thread
   //fflush_printf("starting rt_thread\n");
   //rt_thread = rt_thread_create(yawff_rt_thread, ((void *)&thread_args), STACK_SIZE);
@@ -559,10 +550,10 @@ int yawff_w_ctlr(array_t setpt, config_t config, array_t kine, data_t data, int 
   //// One last read of status to get errors and final position
   //read_status(&status_copy); 
 
-  //// Clean up
-  //stop_rt_timer();
-  //rt_task_delete(yawff_task);
-  //fflush_printf("yawff_task deleted\n");
+  // Clean up
+  stop_rt_timer();
+  rt_task_delete(yawff_task);
+  fflush_printf("yawff_task deleted\n");
   rt_sem_delete(status.lock);
 
   // Restore old SIGINT handler
@@ -573,25 +564,25 @@ int yawff_w_ctlr(array_t setpt, config_t config, array_t kine, data_t data, int 
     rtn_flag = FAIL;
   }
 
-  //// Print any error messages
-  //if (status_copy.err_flag & RT_TASK_SIGINT) {
-  //  fflush_printf("real-time task stopped with: RT_SIGINT\n");
-  //}
+  // Print any error messages
+  if (status_copy.err_flag & RT_TASK_SIGINT) {
+    fflush_printf("real-time task stopped with: RT_SIGINT\n");
+  }
 
-  //if (status_copy.err_flag & RT_TASK_ERROR) {
-  //  fflush_printf("real-time task stopped with: RT_ERROR \n");
-  //}
+  if (status_copy.err_flag & RT_TASK_ERROR) {
+    fflush_printf("real-time task stopped with: RT_ERROR \n");
+  }
 
-  //// Copy motor indices into end_pos
-  //fflush_printf("end_pos: ");
-  //for (i=0; i<config.num_motor; i++) {
-  //  end_pos[i] = status_copy.motor_ind[i];
-  //  fflush_printf("%d", end_pos[i]);
-  //  if (i!=config.num_motor-1) fflush_printf(", ");
-  //}
-  //fflush_printf("\n");
-  //
-  //// Temporary
+  // Copy motor indices into end_pos
+  fflush_printf("end_pos: ");
+  for (i=0; i<config.num_motor; i++) {
+    end_pos[i] = status_copy.motor_ind[i];
+    fflush_printf("%d", end_pos[i]);
+    if (i!=config.num_motor-1) fflush_printf(", ");
+  }
+  fflush_printf("\n");
+  
+  // Temporary
   return rtn_flag;
 }
 

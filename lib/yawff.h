@@ -69,25 +69,18 @@
 #define INTEG_RKUTTA 1     // Const for integration by Runge-Kutta
 #define INTEG_UNKNOWN 2    // Const for unknown integration method 
                            //(used for unit testing)
-
 #define EMPTY_ARRAY 0      // Indicates array type is empty
 #define INT_ARRAY 1        // Indicates array type ingeter
 #define FLT_ARRAY 2        // Indicates array type float
 #define DBL_ARRAY 3        // Indicates array type double
 #define UNKNOWN_ARRAY 4    // Indicates array of unkown type
                            //(use for unit testing)
-
 #define AIN_ZERO_DT_MIN 0.0005   // Minimum allowed zeroing interval
 #define AIN_RANGE 0              // Analog input range
 #define AIN_AREF AREF_GROUND     // Analog input reference
 
 #define RT_TASK_ERROR 2   // Mask used to detect if an error occured in the realtime thread
 #define RT_TASK_SIGINT 4  // Mask used to detect if an sigint stopped the realtime thread
-
-#ifdef ARRICK               // If Arrick stepper motors are used
-#define NUM_HALF_STEPS 8    // Number of half step patterns
-#define NUM_STEPPER 2       // Number of stepper motors
-#endif
 
 typedef void (*sighandler_t)(int);
 

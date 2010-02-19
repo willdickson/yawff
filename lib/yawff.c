@@ -593,9 +593,10 @@ int yawff_w_ctlr(array_t setpt, config_t config, array_t kine, data_t data, int 
 // Purpose: Realtime thread for yawff_w_ctlr function. Performs 
 // real-time yaw turn force-feedback task which consists of:
 //
-// 1.) Running controller 
-// 2.) Acquiring data from torque sensor
-// 3.) Controlling yaw dynamics using acquired torque 
+// 1.) Running controller to generate kinematics
+// 2.) Outscanning kinematics
+// 3.) Acquiring data from torque sensor
+// 4.) Controlling yaw dynamics using acquired torque 
 //
 // Arguments:
 //   args = pointer to thread_args structure.
@@ -1157,8 +1158,9 @@ int update_state(
     return FAIL;
   }
   torq_raw = torq_raw-(torq_info->zero);
+
   ///////////////////////////////////////////////////////////////////
-  // Constant torque test 
+  // Constant torque test  - set torque to some know value.
   // torq_raw = 0.01;
   ///////////////////////////////////////////////////////////////////
 
@@ -1183,7 +1185,7 @@ int update_state(
   // Lowpass filter torque
   torq_filt = lowpass_filt1(torq_highpass,torq_info->last,config.yaw_filt_lpcut,dt);
 
-  // Update torq_info
+  // Update torq_info structure
   torq_info->last = torq_filt;
   torq_info->raw = torq_raw;
   torq_info->highpass = torq_highpass;

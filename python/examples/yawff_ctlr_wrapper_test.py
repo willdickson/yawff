@@ -5,7 +5,7 @@ import pylab
 import libyawff
 
 RAD2DEG = 180.0/scipy.pi
-N=100000
+N=10000
 
 # Read in data from motor map
 mapfile = 'yawff_motor_maps.conf'
@@ -29,7 +29,7 @@ config = {
     'dio_disable'       : 23,
     'yaw_ain'           : 0,
     'yaw_ain_zero_dt'   : 0.01,
-    'yaw_ain_zero_num'  : 500, 
+    'yaw_ain_zero_num'  : 100, 
     'yaw_volt2torq'     : 0.01,
     'yaw_inertia'       : 3.0,
     'yaw_ind2deg'       : yaw_ind2deg,

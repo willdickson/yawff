@@ -89,7 +89,8 @@ typedef struct {
 } status_t;
   
 // Function prototypes
-static void *yawff_rt_thread(void *args);
+static void *yawff_thread(void *args);
+static void *yawff_ctlr_thread(void *args);
 void sigint_func(int sig);
 void init_status_vals(status_t *status);
 void read_status(status_t *status_copy);
@@ -189,7 +190,7 @@ int yawff(array_t kine, config_t config, data_t data, int end_pos[])
   
   // Start motor thread
   fflush_printf("starting rt_thread\n");
-  rt_thread = rt_thread_create(yawff_rt_thread, ((void *)&thread_args), STACK_SIZE);
+  rt_thread = rt_thread_create(yawff_thread, ((void *)&thread_args), STACK_SIZE);
 
   // Set reporter sleep timespec
   sleep_ts.tv_sec = 0;
@@ -259,7 +260,7 @@ int yawff(array_t kine, config_t config, data_t data, int end_pos[])
 }
 
 // ------------------------------------------------------------------
-// Function: yawff_rt_thread
+// Function: yawff_thread
 //
 // Purpose: Realtime thread for yawff function. Performs real-time yaw 
 // turn force-feedback task which consists of:
@@ -274,7 +275,7 @@ int yawff(array_t kine, config_t config, data_t data, int end_pos[])
 // Return: void.
 //
 // ------------------------------------------------------------------
-static void *yawff_rt_thread(void *args)
+static void *yawff_thread(void *args)
 {
   RT_TASK *rt_task=NULL;
   RTIME now_ns;
@@ -454,12 +455,12 @@ static void *yawff_rt_thread(void *args)
 int yawff_w_ctlr(array_t setpt, config_t config, array_t kine, data_t data, int end_pos[])
 {
   RT_TASK *yawff_task;
-  //int rt_thread;
+  int rt_thread;
   sighandler_t sighandler = NULL;
   int rtn_flag = SUCCESS;
   yawff_ctlr_args_t thread_args;
   status_t status_copy;
-  //struct timespec sleep_ts;
+  struct timespec sleep_ts;
   int i;
 
   // Initialize globals
@@ -515,40 +516,40 @@ int yawff_w_ctlr(array_t setpt, config_t config, array_t kine, data_t data, int 
   thread_args.kine = &kine;
   thread_args.data = &data;
   
-  //// Start motor thread
-  //fflush_printf("starting rt_thread\n");
-  //rt_thread = rt_thread_create(yawff_rt_thread, ((void *)&thread_args), STACK_SIZE);
+  // Start motor thread
+  fflush_printf("starting rt_thread\n");
+  rt_thread = rt_thread_create(yawff_ctlr_thread, ((void *)&thread_args), STACK_SIZE);
 
-  //// Set reporter sleep timespec
-  //sleep_ts.tv_sec = 0;
-  //sleep_ts.tv_nsec = 100000000;
-  //
-  //// Run time display
-  //do {
-  //  // copy of status information structure - use locks
-  //  read_status(&status_copy);
+  // Set reporter sleep timespec
+  sleep_ts.tv_sec = 0;
+  sleep_ts.tv_nsec = 100000000;
+  
+  // Run time display
+  do {
+    // copy of status information structure - use locks
+    read_status(&status_copy);
 
-  //  // Once realtime task is running display data
-  //  if (status_copy.running) {
-  //    fflush_printf("                                                             ");
-  //    fflush_printf("\r");
-  //    fflush_printf("%3.0f\%, t: %3.2f, pos: %3.2f, vel: %3.2f, torq: %3.5f",
-  //  	    100.0*(float)status.ind/(float)kine.nrow, 
-  //  	    status_copy.t,
-  //  	    status_copy.pos*RAD2DEG,
-  //  	    status_copy.vel*RAD2DEG,
-  //  	    status_copy.torq);
-  //    fflush_printf("\r");
-  //  }
-  //  nanosleep(&sleep_ts,NULL);
-  //} while (!end);
+    // Once realtime task is running display data
+    if (status_copy.running) {
+      fflush_printf("                                                             ");
+      fflush_printf("\r");
+      fflush_printf("%3.0f\%, t: %3.2f, pos: %3.2f, vel: %3.2f, torq: %3.5f",
+    	    100.0*(float)status.ind/(float)kine.nrow, 
+    	    status_copy.t,
+    	    status_copy.pos*RAD2DEG,
+    	    status_copy.vel*RAD2DEG,
+    	    status_copy.torq);
+      fflush_printf("\r");
+    }
+    nanosleep(&sleep_ts,NULL);
+  } while (!end);
 
-  //// Wait to join
-  //rt_thread_join(rt_thread);
-  //fflush_printf("rt_thread joined\n");
+  // Wait to join
+  rt_thread_join(rt_thread);
+  fflush_printf("rt_thread joined\n");
 
-  //// One last read of status to get errors and final position
-  //read_status(&status_copy); 
+  // One last read of status to get errors and final position
+  read_status(&status_copy); 
 
   // Clean up
   stop_rt_timer();
@@ -586,6 +587,181 @@ int yawff_w_ctlr(array_t setpt, config_t config, array_t kine, data_t data, int 
   return rtn_flag;
 }
 
+// ------------------------------------------------------------------
+// Function: yawff_ctlr_thread
+//
+// Purpose: Realtime thread for yawff_w_ctlr function. Performs 
+// real-time yaw turn force-feedback task which consists of:
+//
+// 1.) Running controller 
+// 2.) Acquiring data from torque sensor
+// 3.) Controlling yaw dynamics using acquired torque 
+//
+// Arguments:
+//   args = pointer to thread_args structure.
+// 
+// Return: void.
+//
+// ------------------------------------------------------------------
+static void *yawff_ctlr_thread(void *args)
+{
+  RT_TASK *rt_task=NULL;
+  RTIME now_ns;
+  yawff_ctlr_args_t *thread_args=NULL;
+  comedi_info_t comedi_info;
+  array_t setpt;
+  array_t kine;
+  config_t config;
+  data_t data;
+  torq_info_t torq_info;
+  state_t state[2];            // state[0] = previous, state[1] = current 
+  int motor_ind[MAX_MOTOR][2]; // Motor index position [i][0] previous, [i][1] current
+  float runtime;
+  double t;
+  int err_flag = 0;
+  int i;
+
+  // Unpack arguments passed to thread
+  thread_args = (yawff_ctlr_args_t *) args;
+  setpt = *(thread_args -> setpt);
+  config = *(thread_args -> config);
+  kine = *(thread_args -> kine);
+  data = *(thread_args -> data);
+
+  // Initialize comedi device
+  if (init_comedi(&comedi_info, config) != SUCCESS) {
+    PRINT_ERR_MSG("unable to initialize comedi device");
+    end = 1;
+    return 0;
+  }
+
+  // Initialize, time, dynamic state, and motor indices
+  for (i=0; i<2; i++) {
+    state[i].pos = 0.0;
+    state[i].vel = 0.0;
+  }  
+  init_ind(motor_ind,config);
+  t = 0.0;
+
+  // Initialize torque info
+  torq_info.zero = 0.0;
+  torq_info.last = 0.0;
+  torq_info.std = 0.0;
+  torq_info.raw = 0.0;
+  torq_info.highpass = 0.0;
+  
+  // Find yaw torque zero
+  if (get_torq_zero(comedi_info, config, &torq_info.zero, &torq_info.std) != SUCCESS) {
+    PRINT_ERR_MSG("failed to get ain zero");
+    // Error, clean up and exit
+    if (rt_cleanup(RT_CLEANUP_LEVEL_1,comedi_info,rt_task) != SUCCESS) {
+      PRINT_ERR_MSG("rt_cleanup failed");
+    }
+    end = 1;
+    return 0;
+  }  
+
+  // Initialize rt_task
+  fflush_printf("Initializing rt_task \n");
+  rt_task = rt_task_init_schmod(nam2num("MOTOR"),0, 0, 0, SCHED_FIFO, 0xF);
+  if (!rt_task) {          
+    PRINT_ERR_MSG("cannot initialize rt task");
+    // Error, clean up and exit
+    if (rt_cleanup(RT_CLEANUP_LEVEL_1,comedi_info,rt_task) != SUCCESS) {
+      PRINT_ERR_MSG("rt_cleanup failed");
+    }
+    end = 1;
+    return 0;
+  }
+  rt_task_use_fpu(rt_task,1); // Enable use of floating point math
+  
+  // Go to hard real-time
+  runtime = ((float) config.dt)*((float) kine.nrow)*NS2S;
+  fflush_printf("starting hard real-time, T = %1.3f(s)\n", runtime);
+  mlockall(MCL_CURRENT|MCL_FUTURE);
+  rt_make_hard_real_time();
+
+  // Loop over kinematics 
+  for (i=0; i<setpt.nrow; i++) {
+
+    now_ns = rt_get_time_ns();
+    
+  //  // Update dynamic state
+  //  if (update_state(state, t, &torq_info, comedi_info,config) != SUCCESS) {
+  //    PRINT_ERR_MSG("updating dynamic state failed");
+  //    err_flag |= RT_TASK_ERROR;
+  //    break;
+  //  }
+
+  //  // Update motor index array
+  //  if (update_ind(motor_ind,kine,i,state,config) != SUCCESS) {
+  //    PRINT_ERR_MSG("updating motor indices failed");
+  //    err_flag |= RT_TASK_ERROR;
+  //    break;
+  //  }
+  //  // Update motor positions
+  //  if (update_motor(motor_ind, comedi_info, config) != SUCCESS) {
+  //    PRINT_ERR_MSG("updating motor positions failed");
+  //    err_flag |= RT_TASK_ERROR;
+  //    break;
+  //  }
+  //  
+  //  // Update data
+  //  if (update_data(data,i,t,state,torq_info) != SUCCESS) {
+  //    PRINT_ERR_MSG("updating data arrays failed");
+  //    err_flag |= RT_TASK_ERROR;
+  //    break;
+  //  }
+  //  
+  //  // Sleep for CLOCK_HI_NS and then set clock lines low
+  //  rt_sleep_until(nano2count(now_ns + (RTIME) CLOCK_HI_NS));
+  //  if (set_clks_lo(comedi_info, config) != SUCCESS) {
+  //    PRINT_ERR_MSG("setting dio clks failed");
+  //    err_flag |= RT_TASK_ERROR;
+  //    break;
+  //  }
+  //
+    // Check if end has been set to 1 by SIGINT handler
+    if (end == 1) {
+      fflush_printf("\nSIGINT - exiting real-time");
+      err_flag |= RT_TASK_SIGINT;
+      break;
+    }
+    
+    // Update information if global variable status 
+    update_status(i,t,state,torq_info,motor_ind,RT_RUNNING,0,RT_LOCK_NOWAIT);
+
+    // Sleep until next period
+    rt_sleep_until(nano2count(now_ns + config.dt));
+
+    // Update time
+    t += NS2S*((double)config.dt);
+  } // End for i
+
+  // Set status information to final values before exiting
+  update_status(kine.nrow-1,
+    	t,
+    	state,
+    	torq_info,
+    	motor_ind,
+    	RT_STOPPED,
+    	err_flag,
+    	RT_LOCK_WAIT);
+
+  // Leave realtime
+  rt_make_soft_real_time();
+  munlockall();
+  fflush_printf("\nleaving hard real-time\n");
+
+  // Clean up
+  if (rt_cleanup(RT_CLEANUP_ALL, comedi_info, rt_task)!=SUCCESS) {
+    PRINT_ERR_MSG("rt_cleanup failed");
+  }
+  
+  end = 1;
+
+  return 0;
+}
 // -------------------------------------------------------------------
 // Function: init_status_vals
 //

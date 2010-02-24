@@ -66,6 +66,7 @@ typedef struct {
     array_t *setpt;
     config_t *config;
     array_t *kine;
+    array_t *u;
     data_t *data;
 } yawff_ctlr_args_t;
 
@@ -452,7 +453,14 @@ static void *yawff_thread(void *args)
 // Return: SUCCESS or FAIL
 //
 // -------------------------------------------------------------------
-int yawff_w_ctlr(array_t setpt, config_t config, array_t kine, data_t data, int end_pos[])
+int yawff_w_ctlr(
+        array_t setpt, 
+        config_t config, 
+        array_t kine, 
+        array_t u, 
+        data_t data, 
+        int end_pos[]
+        )
 {
   RT_TASK *yawff_task;
   int rt_thread;
@@ -474,7 +482,7 @@ int yawff_w_ctlr(array_t setpt, config_t config, array_t kine, data_t data, int 
 
   // Check inputs
   fflush_printf("checking input args\n");
-  if (check_yawff_w_ctlr_input(setpt,config,kine, data) != SUCCESS) {
+  if (check_yawff_w_ctlr_input(setpt,config,kine,u,data) != SUCCESS) {
     PRINT_ERR_MSG("bad input data");
     return FAIL;
   }
@@ -514,6 +522,7 @@ int yawff_w_ctlr(array_t setpt, config_t config, array_t kine, data_t data, int 
   thread_args.setpt = &setpt;
   thread_args.config = &config;
   thread_args.kine = &kine;
+  thread_args.u = &u;
   thread_args.data = &data;
   
   // Start motor thread
@@ -612,6 +621,7 @@ static void *yawff_ctlr_thread(void *args)
   comedi_info_t comedi_info;
   array_t setpt;
   array_t kine;
+  array_t u;
   config_t config;
   data_t data;
   torq_info_t torq_info;
@@ -621,12 +631,14 @@ static void *yawff_ctlr_thread(void *args)
   double t;
   int err_flag = 0;
   int i;
+  float temp;
 
   // Unpack arguments passed to thread
   thread_args = (yawff_ctlr_args_t *) args;
   setpt = *(thread_args -> setpt);
   config = *(thread_args -> config);
   kine = *(thread_args -> kine);
+  u = *(thread_args -> u);
   data = *(thread_args -> data);
 
   // Initialize comedi device
@@ -677,7 +689,7 @@ static void *yawff_ctlr_thread(void *args)
   rt_task_use_fpu(rt_task,1); // Enable use of floating point math
   
   // Go to hard real-time
-  runtime = ((float) config.dt)*((float) kine.nrow)*NS2S;
+  runtime = ((float) config.dt)*((float) setpt.nrow)*NS2S;
   fflush_printf("starting hard real-time, T = %1.3f(s)\n", runtime);
   mlockall(MCL_CURRENT|MCL_FUTURE);
   rt_make_hard_real_time();
@@ -687,12 +699,18 @@ static void *yawff_ctlr_thread(void *args)
 
     now_ns = rt_get_time_ns();
     
-  //  // Update dynamic state
-  //  if (update_state(state, t, &torq_info, comedi_info,config) != SUCCESS) {
-  //    PRINT_ERR_MSG("updating dynamic state failed");
-  //    err_flag |= RT_TASK_ERROR;
-  //    break;
-  //  }
+    // Update dynamic state
+    if (update_state(state, t, &torq_info, comedi_info,config) != SUCCESS) {
+      PRINT_ERR_MSG("updating dynamic state failed");
+      err_flag |= RT_TASK_ERROR;
+      break;
+    }
+
+    // Update controller
+    temp = 1.0;
+    set_array_val(u,i,0,&temp);
+    
+    // Get kinematics based on controller
 
   //  // Update motor index array
   //  if (update_ind(motor_ind,kine,i,state,config) != SUCCESS) {
@@ -700,13 +718,13 @@ static void *yawff_ctlr_thread(void *args)
   //    err_flag |= RT_TASK_ERROR;
   //    break;
   //  }
-  //  // Update motor positions
-  //  if (update_motor(motor_ind, comedi_info, config) != SUCCESS) {
-  //    PRINT_ERR_MSG("updating motor positions failed");
-  //    err_flag |= RT_TASK_ERROR;
-  //    break;
-  //  }
-  //  
+    // Update motor positions
+    if (update_motor(motor_ind, comedi_info, config) != SUCCESS) {
+      PRINT_ERR_MSG("updating motor positions failed");
+      err_flag |= RT_TASK_ERROR;
+      break;
+    }
+    
   //  // Update data
   //  if (update_data(data,i,t,state,torq_info) != SUCCESS) {
   //    PRINT_ERR_MSG("updating data arrays failed");
@@ -714,14 +732,14 @@ static void *yawff_ctlr_thread(void *args)
   //    break;
   //  }
   //  
-  //  // Sleep for CLOCK_HI_NS and then set clock lines low
-  //  rt_sleep_until(nano2count(now_ns + (RTIME) CLOCK_HI_NS));
-  //  if (set_clks_lo(comedi_info, config) != SUCCESS) {
-  //    PRINT_ERR_MSG("setting dio clks failed");
-  //    err_flag |= RT_TASK_ERROR;
-  //    break;
-  //  }
-  //
+    // Sleep for CLOCK_HI_NS and then set clock lines low
+    rt_sleep_until(nano2count(now_ns + (RTIME) CLOCK_HI_NS));
+    if (set_clks_lo(comedi_info, config) != SUCCESS) {
+      PRINT_ERR_MSG("setting dio clks failed");
+      err_flag |= RT_TASK_ERROR;
+      break;
+    }
+  
     // Check if end has been set to 1 by SIGINT handler
     if (end == 1) {
       fflush_printf("\nSIGINT - exiting real-time");

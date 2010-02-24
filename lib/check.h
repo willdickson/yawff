@@ -43,6 +43,7 @@ extern int check_yawff_w_ctlr_input(
                  array_t setpt, 
 			     config_t config, 
                  array_t kine,
+                 array_t u,
 			     data_t data);
 
 // Check system configuration structure
@@ -74,5 +75,8 @@ extern int check_data_compat(array_t kine, data_t data);
 
 //Check that setpt and kinematics structures are compatible
 extern int check_setpt_compat(array_t kine, array_t setpt);
+
+// Check that u and kinematics structures are compatible
+extern int check_u_compat(array_t kine, array_t u);
 
 #endif // INC_CHECK_H_

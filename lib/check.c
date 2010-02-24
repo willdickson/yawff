@@ -120,7 +120,12 @@ int check_yawff_input(array_t kine, config_t config, data_t data)
 // Return: SUCCESS or FAIL
 //
 // ------------------------------------------------------------------
-int check_yawff_w_ctlr_input(array_t setpt, config_t config, array_t kine, data_t data)
+int check_yawff_w_ctlr_input(
+        array_t setpt, 
+        config_t config, 
+        array_t kine, 
+        array_t u, 
+        data_t data)
 {
   int rtn_flag = SUCCESS;
 
@@ -164,6 +169,12 @@ int check_yawff_w_ctlr_input(array_t setpt, config_t config, array_t kine, data_
   if (check_setpt_compat(kine,setpt)!=SUCCESS) {
     PRINT_ERR_MSG("setpt and kinematics incompatible");
     rtn_flag = FAIL;
+  }
+
+  // Check u compatibility
+  if (check_u_compat(kine,u)!=SUCCESS) {
+      PRINT_ERR_MSG("u and kinematics incompatible");
+      rtn_flag = FAIL;
   }
 
   return rtn_flag;
@@ -664,3 +675,24 @@ int check_setpt_compat(array_t kine, array_t setpt)
   return flag;
 }
 
+// -------------------------------------------------------------
+// Function: check_u_compat
+//
+// Purpose: check that kinematics and u arrays are compatible.
+//
+// Arguments:
+//   kine   = kinematics array
+//   u      = setpt array 
+//
+// Return: SUCCESS or FAIL
+//
+// -------------------------------------------------------------
+extern int check_u_compat(array_t kine, array_t u)
+{
+    int flag = SUCCESS;
+    if ((kine.nrow != u.nrow)) {
+        PRINT_ERR_MSG("u array incompatible with kinematics array");
+        flag = FAIL;
+    }
+    return flag;
+}

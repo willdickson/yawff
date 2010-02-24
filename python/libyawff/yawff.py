@@ -193,6 +193,7 @@ def yawff_ctlr_c_wrapper(setpt, config):
     vel = scipy.zeros((n,1), dtype = scipy.dtype('float32'))
     torq = scipy.zeros((n,2), dtype = scipy.dtype('float32'))
     kine = scipy.zeros((n, config['num_motor']), scipy.dtype('int'))
+    u = scipy.zeros((n,1), dtype =scipy.dtype('float32'))
 
     # Create c data structure
     data_struct = data_t()
@@ -201,18 +202,19 @@ def yawff_ctlr_c_wrapper(setpt, config):
     data_struct.vel = get_c_array_struct(vel)
     data_struct.torq = get_c_array_struct(torq)
     kine_struct = get_c_array_struct(kine)
+    u_struct = get_c_array_struct(u)
 
     # Create array for ending positions
     end_pos = (ctypes.c_int*config['num_motor'])()
 
     # Call C library yawff function
-    ret_val = lib.yawff_w_ctlr(setpt_struct, config_struct, kine_struct, data_struct, end_pos)
+    ret_val = lib.yawff_w_ctlr(setpt_struct, config_struct, kine_struct, u_struct, data_struct, end_pos)
     if ret_val == FAIL:
         raise RuntimeError, "lib.yawff_w_ctlr call failed"
 
     end_pos = scipy.array(end_pos)
 
-    return t, pos, vel, torq, kine, end_pos
+    return t, pos, vel, torq, kine, u, end_pos
 
 
 def yawff_c_wrapper(kine, config):

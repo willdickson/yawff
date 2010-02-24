@@ -84,6 +84,29 @@
 
 typedef void (*sighandler_t)(int);
 
+// Structure for numpy array
+typedef struct {
+  void *data;
+  int nrow;
+  int ncol; 
+  int s0; 
+  int s1;
+  int type;
+} array_t;
+
+// Structure for motor calibration data
+typedef struct {
+    array_t deg_data;
+    array_t ind_data;
+} motor_cal_t;
+
+// Structure for controller configuraiton
+typedef struct {
+    int ctlr_type;
+    float pgain;
+    float dgain;
+} ctlr_config_t;
+
 // Structure for configuration
 typedef struct {
   char *dev_name;          // Comedi device name  
@@ -111,16 +134,6 @@ typedef struct {
   float startup_t;         // Startup window in which torque is set to zero
   int ff_flag;             // Sets force-feedback on or off
 } config_t;
-
-// Structure for numpy array
-typedef struct {
-  void *data;
-  int nrow;
-  int ncol; 
-  int s0; 
-  int s1;
-  int type;
-} array_t;
 
 // Structure for dynamic state
 typedef struct {
@@ -164,6 +177,7 @@ extern int yawff_w_ctlr(
         array_t setpt,
         config_t config, 
         array_t kine, 
+        array_t u, 
         data_t data, 
         int end_pos[]
         ); 
@@ -259,6 +273,15 @@ extern int update_data(
 extern int set_clks_lo(
         comedi_info_t comedi_info, 
 		config_t config
+        );
+
+// Update feedback controller
+extern int update_ctlr(
+        int i,
+        state_t *state,
+        array_t setpt,
+        array_t u,
+        config_t config
         );
 
 // Reassign sigint signal handler

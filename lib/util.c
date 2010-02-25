@@ -462,6 +462,16 @@ void print_config(config_t config)
   else {
       printf("unknown\n");
   }
+  printf("  ctlr_flag:           ");
+  if (config.ctlr_flag == CTLR_ON) {
+      printf("CTLR_ON\n");
+  }
+  else if (config.ctlr_flag == CTLR_OFF) {
+      printf("CTLR_OFF\n");
+  }
+  else {
+      printf("unknown\n");
+  }
 
   printf(" ------------------------------------------------\n");
   printf("\n");
@@ -512,3 +522,12 @@ int define_success(void) {return SUCCESS;};
 int define_fail(void) {return FAIL;};
 int define_ff_on(void) {return FF_ON;};
 int define_ff_off(void) {return FF_OFF;};
+int define_ctlr_on(void) {return CTLR_ON;};
+int define_ctlr_off(void) {return CTLR_OFF;};
+int stroke_0_id(void) {return STROKE_0_ID;};
+int stroke_1_id(void) {return STROKE_1_ID;};
+int rotation_0_id(void) {return ROTATION_0_ID;};
+int rotation_1_id(void) {return ROTATION_1_ID;};
+int deviation_0_id(void) {return DEVIATION_0_ID;};
+int deviation_1_id(void) {return DEVIATION_1_ID;};
+int yaw_id(void) {return YAW_ID;};

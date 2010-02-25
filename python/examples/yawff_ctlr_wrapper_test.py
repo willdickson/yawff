@@ -10,13 +10,13 @@ N=10000
 # Read in data from motor map
 mapfile = 'yawff_motor_maps.conf'
 motor_maps = libmove_motor.read_motor_maps(mapfile)
+print motor_maps
 clk_pins, dir_pins = libmove_motor.get_clkdir_pins(motor_maps)
 yaw_num = motor_maps['yaw']['number']
 yaw_ind2deg = motor_maps['yaw']['deg_per_ind']
 motor_num_list = libmove_motor.get_motor_num_list(motor_maps)
 num_motor = len(motor_num_list)
 kine_map = tuple([i for i in motor_num_list if i != yaw_num]) 
-print kine_map
 
 config = {
     'dev_name'          : '/dev/comedi0',

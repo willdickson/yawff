@@ -64,6 +64,8 @@
 #define MIN_YAW (DEG2RAD*(-10000.0)) // Maximum allowed yaw position
 #define FF_ON 0                    // Force-feedback on
 #define FF_OFF 1                   // Force-feedback off
+#define CTLR_ON 0                  // Controller on
+#define CTLR_OFF 1                 // Controller off
 
 #define INTEG_EULER 0      // Const for integration by Euler method 
 #define INTEG_RKUTTA 1     // Const for integration by Runge-Kutta
@@ -81,6 +83,17 @@
 
 #define RT_TASK_ERROR 2   // Mask used to detect if an error occured in the realtime thread
 #define RT_TASK_SIGINT 4  // Mask used to detect if an sigint stopped the realtime thread
+
+// Motor identifiers - specifies what motor does.
+enum MOTOR_IDS {
+    STROKE_0_ID,
+    STROKE_1_ID,
+    ROTATION_0_ID,
+    ROTATION_1_ID,
+    DEVIATION_0_ID,
+    DEVIATION_1_ID,
+    YAW_ID
+};
 
 typedef void (*sighandler_t)(int);
 
@@ -105,7 +118,7 @@ typedef struct {
     int ctlr_type;
     float pgain;
     float dgain;
-} ctlr_config_t;
+} ctlr_param_t;
 
 // Structure for configuration
 typedef struct {
@@ -117,6 +130,7 @@ typedef struct {
   int dio_clk[MAX_MOTOR];  // DIO clock pins
   int dio_dir[MAX_MOTOR];  // DIO direction pins
   int kine_map[MAX_MOTOR]; // Map from kinematics to motors
+  int motor_id_map[MAX_MOTOR]; // Map from kinematics to motor identifier 
   int dio_disable;         // Yaw motor disable pin 
   unsigned int yaw_ain;    // Analog input channel for yaw torque
   float yaw_ain_zero_dt;   // Sampling interval for zeroing ain 
@@ -133,6 +147,9 @@ typedef struct {
   int integ_type;          // Integrator type
   float startup_t;         // Startup window in which torque is set to zero
   int ff_flag;             // Sets force-feedback on or off
+  int ctlr_flag;           // Flag for presence of controller
+  ctlr_param_t ctlr_param; // Controller parameters
+  motor_cal_t motor_cal[MAX_MOTOR];   // Motor calibration data
 } config_t;
 
 // Structure for dynamic state

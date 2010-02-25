@@ -101,6 +101,26 @@ SUCCESS = lib.define_success()
 FAIL = lib.define_fail()
 FF_ON = lib.define_ff_on()
 FF_OFF = lib.define_ff_off()
+CTLR_ON = lib.define_ctlr_on()
+CTLR_OFF = lib.define_ctlr_off()
+STROKE_0_ID = lib.stroke_0_id()
+STROKE_1_ID = lib.stroke_1_id()
+ROTATION_0_ID = lib.rotation_0_id()
+ROTATION_1_ID = lib.rotation_1_id()
+DEVIATION_0_ID = lib.deviation_0_id()
+DEVIATION_1_ID = lib.deviation_1_id()
+YAW_ID = lib.yaw_id()
+
+# Dictionary relating motor names to motor identifiers
+motor_id_dict = {
+    'stroke_0'    : STROKE_0_ID,
+    'stroke_1'    : STROKE_1_ID,
+    'rotation_0'  : ROTATION_0_ID,
+    'rotation_1'  : ROTATION_1_ID,
+    'deviation_0' : DEVIATION_0_ID,
+    'deviation_1' : DEVIATION_1_ID,
+    'yaw'         : YAW_ID,
+}
 
 # Structures
 class array_t(ctypes.Structure):
@@ -113,6 +133,21 @@ class array_t(ctypes.Structure):
         ('type', ctypes.c_int), 
         ]
 
+
+class motor_cal_t(ctypes.Structure):
+    _fields_ = [
+        ('deg_data', array_t),
+        ('ind_data', array_t),
+    ]
+
+class ctlr_param_t(ctypes.Structure):
+    _fields_ = [
+        ('ctlr_type', ctypes.c_int),
+        ('pgain', ctypes.c_float),
+        ('dgain', ctypes.c_float),
+    ]
+
+
 class config_t(ctypes.Structure):
     _fields_ = [
         ('dev_name', ctypes.c_char_p),
@@ -123,6 +158,7 @@ class config_t(ctypes.Structure):
         ('dio_clk', MAX_MOTOR*ctypes.c_int),
         ('dio_dir', MAX_MOTOR*ctypes.c_int),
         ('kine_map', MAX_MOTOR*ctypes.c_int),
+        ('motor_id_map', MAX_MOTOR*ctypes.c_int),
         ('dio_disable', ctypes.c_int),
         ('yaw_ain', ctypes.c_uint),
         ('yaw_ain_zero_dt', ctypes.c_float),
@@ -139,7 +175,11 @@ class config_t(ctypes.Structure):
         ('integ_type', ctypes.c_int),
         ('startup_t', ctypes.c_float),
         ('ff_flag', ctypes.c_int),
+        ('ctlr_flag', ctypes.c_int),
+        ('ctlr_param', ctlr_param_t),
+        ('motor_cal', MAX_MOTOR*motor_cal_t),
         ]
+
 
 class data_t(ctypes.Structure):
     _fields_ = [

@@ -102,6 +102,15 @@ extern int define_success(void);
 extern int define_fail(void);
 extern int define_ff_on(void);
 extern int define_ff_off(void);
+extern int define_ctlr_on(void);
+extern int define_ctlr_off(void);
+extern int stroke_0_id(void);
+extern int stroke_1_id(void);
+extern int rotation_0_id(void);
+extern int rotation_1_id(void);
+extern int deviation_0_id(void);
+extern int deviation_1_id(void);
+extern int yaw_id(void);
 #endif // INC_UTIL_H_
 
 

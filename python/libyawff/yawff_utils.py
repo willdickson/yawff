@@ -105,6 +105,7 @@ class Yawff:
         self.t = None
         self.pause_t = DFLT_PAUSE_T
 
+
     def create_config_dict(self):
         """
         Create configuration dictionary which is passed to yawff_c_wrapper

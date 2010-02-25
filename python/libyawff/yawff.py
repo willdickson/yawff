@@ -133,7 +133,6 @@ class array_t(ctypes.Structure):
         ('type', ctypes.c_int), 
         ]
 
-
 class motor_cal_t(ctypes.Structure):
     _fields_ = [
         ('deg_data', array_t),
@@ -146,7 +145,6 @@ class ctlr_param_t(ctypes.Structure):
         ('pgain', ctypes.c_float),
         ('dgain', ctypes.c_float),
     ]
-
 
 class config_t(ctypes.Structure):
     _fields_ = [

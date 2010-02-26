@@ -66,6 +66,7 @@
 #define FF_OFF 1                   // Force-feedback off
 #define CTLR_ON 0                  // Controller on
 #define CTLR_OFF 1                 // Controller off
+#define MAX_NAME_LEN 100    
 
 #define INTEG_EULER 0      // Const for integration by Euler method 
 #define INTEG_RKUTTA 1     // Const for integration by Runge-Kutta
@@ -84,6 +85,12 @@
 #define RT_TASK_ERROR 2   // Mask used to detect if an error occured in the realtime thread
 #define RT_TASK_SIGINT 4  // Mask used to detect if an sigint stopped the realtime thread
 
+#define CTLR_TYPE_VEL 0   // Specifies velocity controller
+#define CTLR_TYPE_POS 1   // Specifies position controller
+
+#define MOTOR_CALTYPE_TBL 0  // Lookup table motor calibration
+#define MOTOR_CALTYPE_MUL 1  // Multiplicative motor calibration
+
 // Motor identifiers - specifies what motor does.
 enum MOTOR_IDS {
     STROKE_0_ID,
@@ -93,6 +100,16 @@ enum MOTOR_IDS {
     DEVIATION_0_ID,
     DEVIATION_1_ID,
     YAW_ID
+};
+
+static const char MOTORID_2_NAME[MAX_MOTOR][MAX_NAME_LEN] = {
+    "stroke_0",
+    "stroke_1",
+    "rotation_0",
+    "rotation_1",
+    "deviation_0",
+    "deviation_1",
+    "yaw"
 };
 
 typedef void (*sighandler_t)(int);
@@ -109,13 +126,15 @@ typedef struct {
 
 // Structure for motor calibration data
 typedef struct {
+    int type;
+    float deg_per_ind;
     array_t deg_data;
     array_t ind_data;
 } motor_cal_t;
 
 // Structure for controller configuraiton
 typedef struct {
-    int ctlr_type;
+    int type;
     float pgain;
     float dgain;
 } ctlr_param_t;

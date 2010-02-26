@@ -473,6 +473,29 @@ void print_config(config_t config)
       printf("unknown\n");
   }
 
+  if (config.ctlr_flag == CTLR_ON) {
+
+      printf("  ctlr_type:           ");
+      if (config.ctlr_param.type == CTLR_TYPE_VEL) {
+          printf("CTLR_TYPE_VEL\n");
+      }
+      else if (config.ctlr_param.type == CTLR_TYPE_POS) {
+          printf("CTLR_TYPE_POS\n");
+      }
+      else {
+          printf("unknown\n");
+      }
+
+      printf("  ctlr_pgian:          %1.2f\n", config.ctlr_param.pgain);
+      printf("  ctlr_dgian:          %1.2f\n", config.ctlr_param.dgain);
+
+      for (i=0; i<config.num_motor;i++) {
+          printf("  motor_id[%d]:         ",i); 
+          printf("%s\n", MOTORID_2_NAME[config.motor_id_map[i]]);
+      }
+
+  }
+
   printf(" ------------------------------------------------\n");
   printf("\n");
   
@@ -524,6 +547,11 @@ int define_ff_on(void) {return FF_ON;};
 int define_ff_off(void) {return FF_OFF;};
 int define_ctlr_on(void) {return CTLR_ON;};
 int define_ctlr_off(void) {return CTLR_OFF;};
+int define_ctlr_type_vel(void) {return CTLR_TYPE_VEL;};
+int define_ctlr_type_pos(void) {return CTLR_TYPE_POS;};
+int define_motor_caltype_tbl(void) {return MOTOR_CALTYPE_TBL;};
+int define_motor_caltype_mul(void) {return MOTOR_CALTYPE_MUL;};
+
 int stroke_0_id(void) {return STROKE_0_ID;};
 int stroke_1_id(void) {return STROKE_1_ID;};
 int rotation_0_id(void) {return ROTATION_0_ID;};

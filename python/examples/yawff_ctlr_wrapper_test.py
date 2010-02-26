@@ -16,13 +16,10 @@ yaw_ind2deg = motor_maps['yaw']['deg_per_ind']
 motor_num_list = libmove_motor.get_motor_num_list(motor_maps)
 num_motor = len(motor_num_list)
 kine_map = tuple([i for i in motor_num_list if i != yaw_num]) 
+motor_name_map = libmove_motor.get_num2name_map(motor_maps)
 
-num2name = {}
-for k in motor_maps:
-    num2name[motor_maps[k]['number']] = k
-
-for k, v in num2name.iteritems():
-    print k,v 
+for k, v in motor_maps.iteritems():
+    print k, v
 
 config = {
     'dev_name'          : '/dev/comedi0',
@@ -33,6 +30,7 @@ config = {
     'dio_clk'           : clk_pins,
     'dio_dir'           : dir_pins,
     'kine_map'          : kine_map,
+    'motor_name_map'    : motor_name_map,
     'dio_disable'       : 23,
     'yaw_ain'           : 0,
     'yaw_ain_zero_dt'   : 0.01,
@@ -49,6 +47,10 @@ config = {
     'integ_type'        : libyawff.INTEG_RKUTTA,
     'startup_t'         : 0.0,
     'ff_flag'           : libyawff.FF_ON,
+    'ctlr_flag'         : libyawff.CTLR_ON,
+    'ctlr_type'         : libyawff.CTLR_TYPE_VEL,
+    'ctlr_pgain'        : 1.0,
+    'ctlr_dgain'        : 2.0,
 }
 
 print 

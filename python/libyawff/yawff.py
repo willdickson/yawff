@@ -81,6 +81,24 @@ def create_config_struct(config):
     config_struct.integ_type = int(config['integ_type'])
     config_struct.startup_t = float(config['startup_t'])
     config_struct.ff_flag = int(config['ff_flag'])
+
+    # Handle new configuration stuff when feedback controller is present.
+    if config.has_key('ctlr_flag'):
+        config_struct.ctlr_flag = int(config['ctlr_flag'])
+
+        # Setup motor id map - this is more complicated than needed
+        extended_map = list(config['kine_map']) + [config['yaw_motor']]
+        extended_map.sort()
+        id_tuple =  tuple([motor_id_dict[config['motor_name_map'][n]] for n in extended_map])
+        config_struct.motor_id_map = id_tuple
+
+        config_struct.ctlr_param.type = int(config['ctlr_type'])
+        config_struct.ctlr_param.pgain = float(config['ctlr_pgain'])
+        config_struct.ctlr_param.dgain = float(config['ctlr_dgain'])
+
+    else:
+        config_struct.ctlr_flag = CTLR_OFF 
+
     return config_struct
 
 # Constants 
@@ -103,6 +121,11 @@ FF_ON = lib.define_ff_on()
 FF_OFF = lib.define_ff_off()
 CTLR_ON = lib.define_ctlr_on()
 CTLR_OFF = lib.define_ctlr_off()
+CTLR_TYPE_VEL = lib.define_ctlr_type_vel()
+CTLR_TYPE_POS = lib.define_ctlr_type_pos()
+MOTOR_CALTYPE_TBL = lib.define_motor_caltype_tbl()
+MOTOR_CALTYPE_MUL = lib.define_motor_caltype_mul()
+
 STROKE_0_ID = lib.stroke_0_id()
 STROKE_1_ID = lib.stroke_1_id()
 ROTATION_0_ID = lib.rotation_0_id()
@@ -135,13 +158,15 @@ class array_t(ctypes.Structure):
 
 class motor_cal_t(ctypes.Structure):
     _fields_ = [
+        ('type', ctypes.c_int),
+        ('deg_per_ind', ctypes.c_float),
         ('deg_data', array_t),
         ('ind_data', array_t),
     ]
 
 class ctlr_param_t(ctypes.Structure):
     _fields_ = [
-        ('ctlr_type', ctypes.c_int),
+        ('type', ctypes.c_int),
         ('pgain', ctypes.c_float),
         ('dgain', ctypes.c_float),
     ]

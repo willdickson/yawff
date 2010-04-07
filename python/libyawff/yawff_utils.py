@@ -655,6 +655,7 @@ def read_comedi_conf(comedi_conf_file, comedi_conf_dir=DFLT_COMEDI_CONF_DIR):
     comedi_conf['dio_disable'] = int(comedi_conf['dio_disable'])
     return comedi_conf
     
+
 # Wing kinematics functions ------------------------------------------------------
 
 def get_stroke_angle(t, f, amp, u, k, phase=0.5*PI):

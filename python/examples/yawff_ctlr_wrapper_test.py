@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-import libmove_motor
+#!/usr/bin/env python 
+import libmove_motor 
 import scipy 
 import pylab
 import libyawff
@@ -17,9 +17,8 @@ motor_num_list = libmove_motor.get_motor_num_list(motor_maps)
 num_motor = len(motor_num_list)
 kine_map = tuple([i for i in motor_num_list if i != yaw_num]) 
 motor_name_map = libmove_motor.get_num2name_map(motor_maps)
+motor_cal = libmove_motor.get_motor_cal(motor_maps)
 
-for k, v in motor_maps.iteritems():
-    print k, v
 
 config = {
     'dev_name'          : '/dev/comedi0',
@@ -51,13 +50,14 @@ config = {
     'ctlr_type'         : libyawff.CTLR_TYPE_VEL,
     'ctlr_pgain'        : 1.0,
     'ctlr_dgain'        : 2.0,
+    'motor_cal'         : motor_cal,
 }
 
-print 
-print 'config'
-print '-'*60
-for k,v in config.iteritems():
-    print k,v 
+#print 
+#print 'config'
+#print '-'*60
+#for k,v in config.iteritems():
+#    print k,v 
 
 setpt = scipy.zeros((N,1))
 

@@ -96,6 +96,17 @@ def create_config_struct(config):
         config_struct.ctlr_param.pgain = float(config['ctlr_pgain'])
         config_struct.ctlr_param.dgain = float(config['ctlr_dgain'])
 
+        # Get motor calibration data
+        for i,cal in enumerate(config['motor_cal']):
+            if cal['type'] == 'table':
+                config_struct.motor_cal[i].type = MOTOR_CALTYPE_TBL
+                deg_data = scipy.reshape(cal['deg_data'], (cal['deg_data'].shape[0],1))
+                ind_data = scipy.reshape(cal['ind_data'], (cal['ind_data'].shape[0],1))
+                config_struct.motor_cal[i].deg_data = get_c_array_struct(deg_data)
+                config_struct.motor_cal[i].ind_data = get_c_array_struct(ind_data)
+            elif cal['type'] == 'mult':
+                config_struct.motor_cal[i].type = MOTOR_CALTYPE_MUL
+                config_struct.motor_cal[i].deg_per_ind = float(cal['deg_per_ind'])
     else:
         config_struct.ctlr_flag = CTLR_OFF 
 

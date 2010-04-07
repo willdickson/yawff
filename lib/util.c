@@ -310,6 +310,231 @@ int set_array_val(array_t array, int row, int col, void *val)
   }
   return rtn_val;
 }
+// -----------------------------------------------------
+// Function: print_array
+//
+// Purpose: prints array values
+// -----------------------------------------------------
+void print_array(array_t array)
+{
+  int i,j;
+  int ival;
+  float fval;
+  double dval;
+
+  printf("size: (%d,%d)\n", array.nrow,array.ncol);
+  printf("type: ");
+  switch(array.type) {
+    case INT_ARRAY:
+      printf("int\n");
+      break;
+    case FLT_ARRAY:
+      printf("float\n");
+      break;
+    case DBL_ARRAY:
+      printf("double\n");
+      break;
+    default:
+      break;
+  }
+
+  for (i=0; i<array.nrow; i++) {
+    for (j=0; j<array.ncol; j++) {
+
+      switch(array.type) {
+
+        case INT_ARRAY:
+          get_array_val(array,i,j,&ival);
+          printf("%d, ",ival);
+          break;
+
+        case FLT_ARRAY:
+          get_array_val(array,i,j,&fval);
+          printf("%f, ",fval);
+          break;
+
+        case DBL_ARRAY:
+          get_array_val(array,i,j,&dval);
+          printf("%f, ",dval);
+          break;
+
+        default:
+          PRINT_ERR_MSG("unknown array type");
+          break;
+
+      }
+    }
+    printf("\n");
+  }
+  return;
+}
+
+// ----------------------------------------------------
+// Function: apply_motor_cal
+//
+// Purpose: apply motor calibration to convert degrees
+// to motor indices
+// ----------------------------------------------------
+int apply_motor_cal(
+    motor_cal_t motor_cal, 
+    double val_deg, 
+    int *val_ind
+    )
+{
+  int rtn_val = SUCCESS;
+  double val_ind_dbl = 0.0;
+
+  switch(motor_cal.type) {
+
+    case MOTOR_CALTYPE_TBL:
+      interp(motor_cal.deg_data, motor_cal.ind_data, val_deg, &val_ind_dbl); 
+      break;
+
+    case MOTOR_CALTYPE_MUL:
+      val_ind_dbl = val_deg/motor_cal.deg_per_ind;
+      break;
+
+    default:
+      PRINT_ERR_MSG("unknown calibration type");
+      rtn_val = FAIL;
+      break;
+  }
+
+  // Convert index value to an integer
+  *val_ind = (int) floor(val_ind_dbl + 0.5);
+  
+  return rtn_val;
+}
+
+// ----------------------------------------------------
+// Function: interp
+//
+// Purpose: interpolate value using x and y array data
+// Note, data arrays must be Nx1 arrays of doubles. It
+// if also assumed that the x_data arrays are sorted and
+// that the values are unique. 
+//
+// Note, the assumptions should be checked in the check
+// config routine as it will be too costly to do it in 
+// the realtime loop. 
+//
+// Inputs:
+//   x_data = array of x data
+//   y_data = array of y data
+//   x_val  = x_val at which to interpolate
+//
+// Outputs:
+//   y_val  = pointer to y_val which is the result of
+//             interpolating x_data and y_data at x_val
+//
+// -----------------------------------------------------
+int interp(
+    array_t x_data, 
+    array_t y_data, 
+    double x_val, 
+    double *y_val
+    )
+{
+  int i;
+  int size; 
+  int rtn_check;
+  double max_x_val;
+  double min_x_val;
+  double x_next;
+  double y_next;
+  double x_lower;
+  double y_lower;
+  double x_upper;
+  double y_upper;
+  double a;
+  double b;
+
+  // Check array shapes
+  if (x_data.ncol != 1) {
+    PRINT_ERR_MSG("x_data.ncol != 1");
+    return FAIL;
+  }
+  if (y_data.ncol != 1) {
+    PRINT_ERR_MSG("y_data.ncol != 1");
+    return FAIL;
+  }
+  if (x_data.nrow != y_data.nrow) {
+    PRINT_ERR_MSG("x_data.nrow != y_data.nrow");
+    return FAIL;
+  }
+  size = x_data.nrow;
+
+  // Check range
+  rtn_check = get_array_val(x_data, 0, 0, &min_x_val);
+  if (rtn_check == FAIL) {
+    PRINT_ERR_MSG("get_array_val failed");
+    return FAIL;
+  }
+  rtn_check = get_array_val(x_data, size-1, 0, &max_x_val);
+  if (rtn_check == FAIL) {
+    PRINT_ERR_MSG("get_array_val failed");
+    return FAIL;
+  }
+  if (x_val < min_x_val) {
+    PRINT_ERR_MSG("x_val < min value in x_data");
+    return FAIL; 
+  }
+  if (x_val > max_x_val) {
+    PRINT_ERR_MSG("x_val > max value in x_data");
+    return FAIL;
+  }
+
+  // Find largest value in x data (x_lower) which is less than or equal 
+  // to x_val and the smallest value in x data (x_upper) which is greater 
+  // than x_val. Also, get the corresponding y values (y_lower, y_upper).
+  
+  // Initialize x_lower and y_lower
+  x_lower = min_x_val;
+  rtn_check = get_array_val(y_data, 0, 0, &y_lower);
+  if (rtn_check == FAIL) {
+    PRINT_ERR_MSG("get_array_val failed");
+    return FAIL;
+  }
+
+  // Initialize x_upper and y_upper
+  x_upper = x_lower;
+  y_upper = y_lower;
+
+  // Loop over x_data
+  for (i=0; i<size; i++) {
+    rtn_check = get_array_val(x_data, i, 0, &x_next);
+    if (rtn_check == FAIL) {
+      PRINT_ERR_MSG("get_array_val failed");
+      return FAIL; 
+    }
+    rtn_check = get_array_val(y_data, i, 0, &y_next);
+    if (rtn_check == FAIL) {
+      PRINT_ERR_MSG("get_array_val failed");
+      return FAIL; 
+    }
+
+    if (x_next <= x_val) {
+      x_lower = x_next;
+      y_lower = y_next;
+    }
+    else {
+      x_upper = x_next;
+      y_upper = y_next;
+      break;
+    }
+  }
+
+  // Get interpolated value
+  if ((x_upper - x_lower) == 0.0) {
+    PRINT_ERR_MSG("divide by zero, x_lower == x_upper");
+    return FAIL;
+  }
+  a = (y_upper - y_lower)/(x_upper - x_lower);
+  b = y_lower - a*x_lower; 
+  *y_val = a*x_val + b;
+
+  return SUCCESS; // Temporary
+}
 
 // -----------------------------------------------------
 // Function: init_array
@@ -475,26 +700,32 @@ void print_config(config_t config)
 
   if (config.ctlr_flag == CTLR_ON) {
 
-      printf("  ctlr_type:           ");
-      if (config.ctlr_param.type == CTLR_TYPE_VEL) {
-          printf("CTLR_TYPE_VEL\n");
+    printf("  ctlr_type:           ");
+    if (config.ctlr_param.type == CTLR_TYPE_VEL) {
+        printf("CTLR_TYPE_VEL\n");
+    }
+    else if (config.ctlr_param.type == CTLR_TYPE_POS) {
+        printf("CTLR_TYPE_POS\n");
+    }
+    else {
+        printf("unknown\n");
+    }
+    
+    printf("  ctlr_pgian:          %1.2f\n", config.ctlr_param.pgain);
+    printf("  ctlr_dgian:          %1.2f\n", config.ctlr_param.dgain);
+    
+    for (i=0; i<config.num_motor;i++) {
+      printf("  motor[%d]\n", i);
+      printf("   id:                 %s\n",MOTORID_2_NAME[config.motor_id_map[i]]); 
+      if (config.motor_cal[i].type == MOTOR_CALTYPE_TBL) {
+        printf("   cal type:           table\n");
+      } 
+      else if (config.motor_cal[i].type == MOTOR_CALTYPE_MUL) {
+        printf("   cal type:           multiplication\n");
       }
-      else if (config.ctlr_param.type == CTLR_TYPE_POS) {
-          printf("CTLR_TYPE_POS\n");
-      }
-      else {
-          printf("unknown\n");
-      }
-
-      printf("  ctlr_pgian:          %1.2f\n", config.ctlr_param.pgain);
-      printf("  ctlr_dgian:          %1.2f\n", config.ctlr_param.dgain);
-
-      for (i=0; i<config.num_motor;i++) {
-          printf("  motor_id[%d]:         ",i); 
-          printf("%s\n", MOTORID_2_NAME[config.motor_id_map[i]]);
-      }
-
+    }
   }
+
 
   printf(" ------------------------------------------------\n");
   printf("\n");

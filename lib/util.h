@@ -33,18 +33,21 @@
 #ifndef INC_UTIL_H_
 #define INC_UTIL_H_
 
+#include <math.h>
 #include "yawff.h"
 
 #define PRINT_ERR_MSG(ERR_MSG) (print_err_msg(__FILE__,__LINE__,__FUNCTION__,ERR_MSG))
 
 // Integrator - integrate yaw dynamic state one time step
-extern int integrator(state_t state_curr, 
-		      state_t *state_next, 
-		      float force, 
-		      float mass, 
-		      float damping, 
-		      float dt, 
-		      int method);
+extern int integrator(
+    state_t state_curr, 
+		state_t *state_next, 
+		float force, 
+		float mass, 
+		float damping, 
+		float dt, 
+		int method
+    );
 
 // First order lowpass filter
 extern float lowpass_filt1(float x,float y_old, float f_cut, float dt);
@@ -53,34 +56,60 @@ extern float lowpass_filt1(float x,float y_old, float f_cut, float dt);
 float highpass_filt1(float dx,  float y_old, float f_cut, float dt);
 
 // Initialize array structure memory
-extern int init_array(array_t *array, 
-		      int nrow, 
-		      int ncol, 
-		      int type);
+extern int init_array(
+    array_t *array, 
+		int nrow, 
+		int ncol, 
+		int type
+    );
 
 // Free array structure memory
 extern void free_array(array_t *array);
 
 // Get array value at given row and column indices
-extern int get_array_val(array_t array, 
-			 int row, 
-			 int col, 
-			 void *val);
+extern int get_array_val(
+    array_t array, 
+		int row, 
+		int col, 
+		void *val
+    );
 
 // Set array value at given row and column indices
-extern int set_array_val(array_t array, 
-			 int row, 
-			 int col, 
-			 void *val);
+extern int set_array_val(
+    array_t array, 
+		int row, 
+		int col, 
+		void *val
+    );
+
+// Print array 
+extern void print_array(array_t array);
+
+// Apply motor calibration
+extern int apply_motor_cal(
+    motor_cal_t motor_cal, 
+    double val_deg, 
+    int *val_ind
+    ); 
+
+// Interpolate arrays
+extern int interp(
+    array_t x_data, 
+    array_t y_data, 
+    double x_val, 
+    double *y_val
+    );
 
 // Print system configuration structure
 extern void print_config(config_t config);
 
 // Print formated error message
-extern void print_err_msg(const char *file, 
-			  int line, 
-			  const char *func, 
-			  char *err_msg);
+extern void print_err_msg(
+    const char *file, 
+    int line, 
+    const char *func, 
+    char *err_msg
+    );
 
 // Print and then fflush buffer
 extern void fflush_printf(const char *format, ...);

@@ -394,6 +394,10 @@ void test_check_config(void)
   config_test = config;
   config_test.dt = INTEG_UNKNOWN;
   CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);   
+
+
+  // Free memory allocated for config
+
 }
 
 // -------------------------------------------------------------

@@ -133,9 +133,7 @@ int check_yawff_w_ctlr_input(
         array_t u, 
         data_t data)
 {
-  int i;
   int rtn_flag = SUCCESS;
-  char err_msg[ERR_SZ];
 
   // Check configuration
   if (check_config(config) != SUCCESS) {
@@ -185,15 +183,6 @@ int check_yawff_w_ctlr_input(
       rtn_flag = FAIL;
   }
 
-  // Check motor calibrations
-  for (i=0; i<config.num_motor; i++) {
-    if (check_motor_cal(config.motor_cal[i]) != SUCCESS) {
-      snprintf(err_msg,ERR_SZ,"motor[%d] calibration invalid",i);
-      PRINT_ERR_MSG(err_msg);
-      rtn_flag = FAIL;
-    }
-  }
-
   return rtn_flag;
 }
 
@@ -236,7 +225,10 @@ int check_config(config_t config)
 // ----------------------------------------------------------------
 int check_ranges(config_t config)
 {
+  int i;
+  int test;
   int flag = SUCCESS;
+  char err_msg[ERR_SZ];
 
   // Check number of motors
   if ((config.num_motor <= 0) || (config.num_motor>MAX_MOTOR)) {
@@ -268,7 +260,7 @@ int check_ranges(config_t config)
       flag = FAIL;
   }
 
-  // Check that number of zeroing samples 
+  // Check that number of zeroing samples is greater than zero
   if (config.yaw_ain_zero_num == 0) {
       PRINT_ERR_MSG("yaw_ain_zero_dt == 0");
       flag = FAIL;
@@ -334,6 +326,46 @@ int check_ranges(config_t config)
       flag = FAIL;
   }
 
+  // Check ctlr_flag
+  test = FALSE;
+  if (config.ctlr_flag == CTLR_ON) {
+    test = TRUE;
+  }
+  if (config.ctlr_flag == CTLR_OFF){
+    test = TRUE;
+  }
+  if (test == FALSE) {
+    PRINT_ERR_MSG("unknown ctlr_flag value");
+    flag = FAIL;
+  }
+
+  // Tests specific to case where ctlr_flag is true
+  if (config.ctlr_flag == CTLR_ON) {
+
+    // Check the controller type
+    test = FALSE;
+    if (config.ctlr_param.type == CTLR_TYPE_VEL) {
+      test = TRUE;
+    }
+    if (config.ctlr_param.type == CTLR_TYPE_POS) {
+      test = TRUE;
+    }
+    if (test == FALSE) {
+      PRINT_ERR_MSG("unknown controller type");
+      flag = FAIL;
+    }
+
+    // Check motor calibrations
+    for (i=0; i<config.num_motor; i++) {
+      if (check_motor_cal(config.motor_cal[i]) != SUCCESS) {
+        snprintf(err_msg,ERR_SZ,"motor[%d] calibration invalid",i);
+        PRINT_ERR_MSG(err_msg);
+        flag = FAIL;
+      }
+    }
+
+  } // end if (config.ctlr_flag) 
+
   return flag;
 }
 
@@ -357,7 +389,7 @@ int check_clkdir(config_t config)
 
   // Check clk and dir configuration
   for (i=0; i<config.num_motor; i++) {   
-    // Check range
+    // Check range 
     if ((config.dio_clk[i] < 0) || (config.dio_clk[i] > MAX_DIO)) {
       snprintf(err_msg, ERR_SZ, "clk[%d] out of range", i);
       PRINT_ERR_MSG(err_msg);
@@ -388,26 +420,26 @@ int check_clkdir(config_t config)
     }
     if (i<config.num_motor) {
       for (j=i+1; j<config.num_motor; j++) {
-	if (config.dio_clk[i] == config.dio_clk[j]) {
-	  snprintf(err_msg, ERR_SZ, "clk/dir dio not unique, clk[%d] = clk[%d]", i,j);
-	  PRINT_ERR_MSG(err_msg);
-	  flag = FAIL;
-	}
-	if (config.dio_clk[i] == config.dio_dir[j]) {
-	  snprintf(err_msg, ERR_SZ, "clk/dir dio clk[%d] = dir[%d]", i,j);
-	  PRINT_ERR_MSG(err_msg);
-	  flag = FAIL;
-	}
-	if (config.dio_dir[i] == config.dio_clk[j]) {
-	  snprintf(err_msg, ERR_SZ, "clk/dir dio, dir[%d] = clk[%d]", i,j);
-	  PRINT_ERR_MSG(err_msg);
-	  flag = FAIL;
-	}
-	if (config.dio_dir[i] == config.dio_dir[j]) {
-	  snprintf(err_msg, ERR_SZ, "clk/dir dio, dir[%d] = dir[%d]", i,j);
-	  PRINT_ERR_MSG(err_msg);
-	  flag = FAIL;
-	}
+        if (config.dio_clk[i] == config.dio_clk[j]) {
+	        snprintf(err_msg, ERR_SZ, "clk/dir dio not unique, clk[%d] = clk[%d]", i,j);
+	        PRINT_ERR_MSG(err_msg);
+	        flag = FAIL;
+	      }
+	      if (config.dio_clk[i] == config.dio_dir[j]) {
+	        snprintf(err_msg, ERR_SZ, "clk/dir dio clk[%d] = dir[%d]", i,j);
+	        PRINT_ERR_MSG(err_msg);
+	        flag = FAIL;
+	      }
+	      if (config.dio_dir[i] == config.dio_clk[j]) {
+	        snprintf(err_msg, ERR_SZ, "clk/dir dio, dir[%d] = clk[%d]", i,j);
+	        PRINT_ERR_MSG(err_msg);
+	        flag = FAIL;
+	      }
+	      if (config.dio_dir[i] == config.dio_dir[j]) {
+	        snprintf(err_msg, ERR_SZ, "clk/dir dio, dir[%d] = dir[%d]", i,j);
+	        PRINT_ERR_MSG(err_msg);
+	        flag = FAIL;
+	      }
       } 
     } 
   } 

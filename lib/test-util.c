@@ -74,6 +74,27 @@ void init_test_config(config_t *config)
   config -> dt = DT_NS;
   config -> integ_type = INTEG_RKUTTA;
   config -> ff_flag = FF_OFF;
+
+  config -> ctlr_flag = CTLR_OFF; 
+  (config -> ctlr_param).type = CTLR_TYPE_VEL;
+  (config -> ctlr_param).pgain = 1.0;
+  (config -> ctlr_param).dgain = 1.0;
+  for (i=0; i<config->num_motor; i++) {
+    if (i < (config->num_motor)/2) {
+      (config -> motor_cal)[i].type = MOTOR_CALTYPE_TBL;  
+
+      // ------------------------------------------------------
+      // Allocate lookup tables
+      //
+      // Also need to add free somewhere before program closes
+      // ------------------------------------------------------
+    }
+    else {
+      (config -> motor_cal)[i].type = MOTOR_CALTYPE_MUL;
+      (config -> motor_cal)[i].deg_per_ind = 5.0;
+    }
+  }
+
   return;
 }
 

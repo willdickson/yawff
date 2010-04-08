@@ -86,6 +86,9 @@
 // Initialize system configuration for testing
 extern void init_test_config(config_t *config);
 
+// Free test configuration memory
+extern void free_test_config(config_t *config);
+
 // Initialize kinematics array for testing
 extern int init_test_kine(array_t *kine, config_t config);
 

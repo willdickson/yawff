@@ -37,6 +37,9 @@
    free_array         = frees array object
    set_array_val      = sets array element value
    get_array_val      = gets array  element value
+   print_array        = prints array values
+   apply_motor_cal    = applies motor calibration
+   interp             = array interpolation
    lowpass_filt1      = firat order lowpass filter
    print_config       = prints configuration structure
    print_err_msg      = prints error messages
@@ -341,6 +344,8 @@ void print_array(array_t array)
   for (i=0; i<array.nrow; i++) {
     for (j=0; j<array.ncol; j++) {
 
+      printf("i: %d, ", i);
+
       switch(array.type) {
 
         case INT_ARRAY:
@@ -382,12 +387,17 @@ int apply_motor_cal(
     )
 {
   int rtn_val = SUCCESS;
+  int rtn_check;
   double val_ind_dbl = 0.0;
 
   switch(motor_cal.type) {
 
     case MOTOR_CALTYPE_TBL:
-      interp(motor_cal.deg_data, motor_cal.ind_data, val_deg, &val_ind_dbl); 
+      rtn_check = interp(motor_cal.deg_data, motor_cal.ind_data, val_deg, &val_ind_dbl); 
+      if (rtn_check == FAIL) {
+        PRINT_ERR_MSG("interp failed");
+        rtn_val = FAIL;
+      }
       break;
 
     case MOTOR_CALTYPE_MUL:
@@ -501,7 +511,7 @@ int interp(
   y_upper = y_lower;
 
   // Loop over x_data
-  for (i=0; i<size; i++) {
+  for (i=1; i<size; i++) {
     rtn_check = get_array_val(x_data, i, 0, &x_next);
     if (rtn_check == FAIL) {
       PRINT_ERR_MSG("get_array_val failed");

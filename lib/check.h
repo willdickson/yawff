@@ -79,4 +79,7 @@ extern int check_setpt_compat(array_t kine, array_t setpt);
 // Check that u and kinematics structures are compatible
 extern int check_u_compat(array_t kine, array_t u);
 
+// Check motor calibrations
+extern int check_motor_cal(motor_cal_t motor_cal);
+
 #endif // INC_CHECK_H_

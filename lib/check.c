@@ -32,7 +32,8 @@
 
   Functions:
 
-   check_yawff_inputs = check inputs to yawff function
+   check_yawff_input = check inputs to yawff function
+   check_yawff_w_ctlr_input = check inputs to yawff_w_ctlr function
    check_config       = checks if configuration structure is valid
    check_ranges       = checks if ranges in configuration structure
                         are valid
@@ -48,6 +49,11 @@
                         valid
    check_data_compat  = check that structur of data arrays and 
                         kinematics array are compatible
+   check_setpt_compat = check that kinematics and setpt arrays are 
+                        compatible
+   check_u_compat     = check that kinematics and u arrays are compatible
+   check_motor_cal    = check that motor calibration satisfies the
+                        correct assumptions
  
   Author: Will Dickson
 ---------------------------------------------------------------------- */
@@ -127,7 +133,9 @@ int check_yawff_w_ctlr_input(
         array_t u, 
         data_t data)
 {
+  int i;
   int rtn_flag = SUCCESS;
+  char err_msg[ERR_SZ];
 
   // Check configuration
   if (check_config(config) != SUCCESS) {
@@ -175,6 +183,15 @@ int check_yawff_w_ctlr_input(
   if (check_u_compat(kine,u)!=SUCCESS) {
       PRINT_ERR_MSG("u and kinematics incompatible");
       rtn_flag = FAIL;
+  }
+
+  // Check motor calibrations
+  for (i=0; i<config.num_motor; i++) {
+    if (check_motor_cal(config.motor_cal[i]) != SUCCESS) {
+      snprintf(err_msg,ERR_SZ,"motor[%d] calibration invalid",i);
+      PRINT_ERR_MSG(err_msg);
+      rtn_flag = FAIL;
+    }
   }
 
   return rtn_flag;
@@ -696,3 +713,98 @@ extern int check_u_compat(array_t kine, array_t u)
     }
     return flag;
 }
+
+
+// ------------------------------------------------------------
+// Function: check_motor_cal
+//
+// Purpose: check the motor calibration satisfies the required
+// assumptions. Specifically ...
+//
+// -------------------------------------------------------------
+int check_motor_cal(motor_cal_t motor_cal)
+{
+  int i;
+  int size;
+  int flag = SUCCESS; 
+  double deg0;
+  double deg1;
+
+  // Specific checks based on calibration type
+  switch(motor_cal.type) {
+
+    case MOTOR_CALTYPE_TBL:
+
+      // --------------------------------------------
+      // Checks specific to lookup table calibrations
+      // --------------------------------------------
+
+      // Test that deg_data and ind_data have the correct shape
+      if (motor_cal.deg_data.ncol != 1) {
+        PRINT_ERR_MSG("bad motor calibration,  deg_data.ncol != 1");
+        flag = FAIL;
+      }
+      if (motor_cal.ind_data.ncol != 1) {
+        PRINT_ERR_MSG("bad motor calibration, ind_data.ncol != 1");
+        flag = FAIL;
+      }
+
+      // Test that deg_data and ind_data are the same size
+      if (motor_cal.deg_data.nrow != motor_cal.ind_data.nrow) {
+        PRINT_ERR_MSG("bad motor calibration, deg_data.nrow != ind_data.nrow");
+        flag = FAIL;
+      }
+      size = motor_cal.deg_data.nrow;
+
+      // Test for unique ascending values in deg_data array
+      for (i=1; i<size; i++) {
+
+        // Read ith value from deg data array
+        if (get_array_val(motor_cal.deg_data,i,0,&deg1) != SUCCESS) {
+          PRINT_ERR_MSG("get_array_val failed");
+          flag = FAIL;
+          break;
+        }
+        // Read i-1th value from deg data array
+        if (get_array_val(motor_cal.deg_data,i-1,0,&deg0) != SUCCESS) {
+          PRINT_ERR_MSG("get_array_val failed");
+          flag = FAIL;
+          break;
+        }
+
+        if (deg1 < deg0) {
+          PRINT_ERR_MSG("bad motor calibration, deg_data not increasing");
+          flag = FAIL;
+          break;
+        }
+        else if (deg1 == deg0) {
+          PRINT_ERR_MSG("bad motor calibration, deg_data not unique");
+          flag = FAIL;
+          break;
+        }
+      }
+      break;
+
+    case MOTOR_CALTYPE_MUL:
+
+      // ---------------------------------------------------
+      // Checks specific to multiplicative type calibrations
+      // ---------------------------------------------------
+
+      if (motor_cal.deg_per_ind == 0.0) {
+        PRINT_ERR_MSG("degrees per index == 0.0");
+        flag = FAIL;
+      }
+      break;
+
+    default:
+      PRINT_ERR_MSG("unknown calibration type");
+      flag = FAIL;
+      break;
+
+  } // End switch(motor_cal.type)
+
+
+  return flag;
+}
+

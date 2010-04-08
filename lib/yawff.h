@@ -43,6 +43,8 @@
 #include <rtai_comedi.h>
 #include <signal.h>
 
+#define TRUE 1
+#define FALSE 0
 #define SUCCESS 0
 #define FAIL -1
 #define DIO_HI 1

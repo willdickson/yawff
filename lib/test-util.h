@@ -62,10 +62,6 @@
 #define KINE_PERIOD 5 // seconds
 #define KINE_AMP 200  // indices
 
-// Boolean values
-#define TRUE 1
-#define FALSE 0
-
 // Filter test parameters
 #define NUM_CYCLE  50
 #define TEST_CYCLE_MIN  20

@@ -83,8 +83,20 @@
 #define VEL_INIT 50.0
 #define INTEG_TOL 1.0e-6
 
+// Controller test paramters
+#define PGAIN 1.0
+#define DGAIN 1.0
+
+// Lookup table test parameters
+#define LOOKUP_TBL_NROW 50
+#define LOOKUP_TBL_NCOL 1
+#define MIN_DEG_DATA -90.0
+#define MAX_DEG_DATA  90.0
+#define MIN_IND_DATA  -1000.0
+#define MAX_IND_DATA  1000.0
+
 // Initialize system configuration for testing
-extern void init_test_config(config_t *config);
+extern int init_test_config(config_t *config);
 
 // Free test configuration memory
 extern void free_test_config(config_t *config);

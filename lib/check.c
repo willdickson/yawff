@@ -482,11 +482,11 @@ int check_kine_map(config_t config)
     // Check uniqness w/ self
     if (i < (config.num_motor-2)) {
       for (j=i+1; j<(config.num_motor-1); j++) {
-	if (config.kine_map[i] == config.kine_map[j]) {
-	  snprintf(err_msg, ERR_SZ, "kinematicss map not unique, kine_map[%d] = kine_map[%d]",i,j);
-	  PRINT_ERR_MSG(err_msg);
-	  flag = FAIL;
-	}
+	      if (config.kine_map[i] == config.kine_map[j]) {
+	       snprintf(err_msg, ERR_SZ, "kinematicss map not unique, kine_map[%d] = kine_map[%d]",i,j);
+	       PRINT_ERR_MSG(err_msg);
+	       flag = FAIL;
+	      }
       } 
     } 
   } 

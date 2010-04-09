@@ -305,7 +305,7 @@ void test_check_config(void)
   config_t config;
   config_t config_test;
 
-  init_test_config(&config);
+  CU_ASSERT(init_test_config(&config)==SUCCESS);
 
   // Test for pass on good config
   CU_ASSERT(check_config(config)==SUCCESS);
@@ -395,8 +395,37 @@ void test_check_config(void)
   config_test.dt = INTEG_UNKNOWN;
   CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);   
 
+  // Lookup table tests
+  config.ctlr_flag = CTLR_ON;
+  {
+    int i,j;
+    double old_val;
+    double new_val;
+
+    for (i=0; i<config.num_motor; i++) {
+      if (config.motor_cal[i].type == MOTOR_CALTYPE_TBL) {
+
+        for (j=0; j<config.motor_cal[i].deg_data.nrow-1; j++) {
+          new_val = MAX_DEG_DATA;
+          get_array_val(config.motor_cal[i].deg_data,j,0,&old_val);
+          set_array_val(config.motor_cal[i].deg_data,j,0,&new_val);
+          CU_ASSERT_FALSE(check_config(config)==SUCCESS);
+          set_array_val(config.motor_cal[i].deg_data,j,0,&old_val);
+          CU_ASSERT(check_config(config)==SUCCESS);
+
+          get_array_val(config.motor_cal[i].deg_data,j,0,&old_val);
+          get_array_val(config.motor_cal[i].deg_data,j+1,0,&new_val);
+          set_array_val(config.motor_cal[i].deg_data,j,0,&new_val);
+          CU_ASSERT_FALSE(check_config(config)==SUCCESS);
+          set_array_val(config.motor_cal[i].deg_data,j,0,&old_val);
+          CU_ASSERT(check_config(config)==SUCCESS);
+        }
+      }
+    }
+  }
 
   // Free memory allocated for config
+  free_test_config(&config); 
 
 }
 

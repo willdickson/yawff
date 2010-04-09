@@ -40,12 +40,16 @@
 // Purpose: Initialize system configuration
 //
 // -----------------------------------------------------------------
-void init_test_config(config_t *config)
+int init_test_config(config_t *config)
 {
-  int i;
+  int i,j;
   int dio_clk[] = DIO_CLK;
   int dio_dir[] = DIO_DIR;
   int kine_map[] = KINE_MAP;
+  int flag = SUCCESS;
+  int rtn_check;
+  double deg_val;
+  double ind_val;
 
   config -> dev_name = DEV_NAME;
   config -> ain_subdev = AIN_SUBDEV;
@@ -77,22 +81,72 @@ void init_test_config(config_t *config)
 
   config -> ctlr_flag = CTLR_OFF; 
   (config -> ctlr_param).type = CTLR_TYPE_VEL;
-  (config -> ctlr_param).pgain = 1.0;
-  (config -> ctlr_param).dgain = 1.0;
+  (config -> ctlr_param).pgain = PGAIN;
+  (config -> ctlr_param).dgain = DGAIN;
+
   for (i=0; i<config->num_motor; i++) {
+
     if (i < (config->num_motor)/2) {
       (config -> motor_cal)[i].type = MOTOR_CALTYPE_TBL;  
+      // Initialize degree data array 
+      rtn_check = init_array(
+          &((config->motor_cal)[i].deg_data), 
+          LOOKUP_TBL_NROW, 
+          LOOKUP_TBL_NCOL, 
+          DBL_ARRAY
+          );
+      if (rtn_check == FAIL) {
+        flag = FAIL; 
+      }
+      // Initialize index data array 
+      rtn_check = init_array(
+          &((config->motor_cal)[i].ind_data), 
+          LOOKUP_TBL_NROW, 
+          LOOKUP_TBL_NCOL, 
+          DBL_ARRAY
+          );
+      if (rtn_check == FAIL) {
+        flag = FAIL;
+      }
 
-      // ------------------------------------------------------
-      // Allocate lookup tables
-      //
-      // Also need to add free somewhere before program closes
-      // ------------------------------------------------------
+      // Set values for lookup table arrays
+      for (j=0; j<LOOKUP_TBL_NROW; j++) {
+
+        // Set degree values from  MIN_DEG_DATA to MAX_DEG_DATA
+        deg_val = ((MAX_DEG_DATA-MIN_DEG_DATA)/(LOOKUP_TBL_NROW-1))*j;
+        deg_val += MIN_DEG_DATA;
+
+        // Set index values from MAX_IND_DATA to MIN_IND_DATA
+        ind_val = ((MAX_IND_DATA-MIN_IND_DATA)/(LOOKUP_TBL_NROW-1))*j;
+        ind_val += MIN_IND_DATA;
+
+        set_array_val((config->motor_cal)[i].deg_data, j, 0, &deg_val);
+        set_array_val((config->motor_cal)[i].ind_data, j, 0, &deg_val);
+      }
+      
     }
     else {
       (config -> motor_cal)[i].type = MOTOR_CALTYPE_MUL;
       (config -> motor_cal)[i].deg_per_ind = 5.0;
     }
+  }
+
+  return flag;
+}
+
+// ---------------------------------------------------------------
+// Function: free_test_config
+//
+// Purpose: frees memory allocated for test configuration
+//
+// ----------------------------------------------------------------
+void free_test_config(config_t *config)
+{
+  int i;
+
+  for (i=0; i<(config->num_motor)/2; i++) {
+    free_array(&((config->motor_cal[i]).deg_data));
+    free_array(&((config->motor_cal[i]).ind_data));
   }
 
   return;
@@ -120,8 +174,8 @@ int init_test_kine(array_t *kine, config_t config)
     for (j=0; j<kine->ncol; j++) {
       pos = i;
       if(set_array_val(*kine,i,j,&pos)==FAIL) { 
-	PRINT_ERR_MSG("error writing kinematic position");
-	flag = FAIL;
+        PRINT_ERR_MSG("error writing kinematic position");
+        flag = FAIL;
       }
     }
   }

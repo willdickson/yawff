@@ -553,7 +553,7 @@ int interp(
   b = y_lower - a*x_lower; 
   *y_val = a*x_val + b;
 
-  return SUCCESS; // Temporary
+  return SUCCESS; 
 }
 
 // -----------------------------------------------------
@@ -577,7 +577,7 @@ int init_array(array_t *array, int nrow, int ncol, int type)
     return FAIL;
   }
   
-  // Determine size based om type
+  // Determine size based on type
   switch(type){
     
   case INT_ARRAY:

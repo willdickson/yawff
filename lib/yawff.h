@@ -92,6 +92,7 @@
 
 #define MOTOR_CALTYPE_TBL 0  // Lookup table motor calibration
 #define MOTOR_CALTYPE_MUL 1  // Multiplicative motor calibration
+#define MOTOR_CALTYPE_UNKNOWN 2 // Unknown motor calibration type
 
 // Motor identifiers - specifies what motor does.
 enum MOTOR_IDS {

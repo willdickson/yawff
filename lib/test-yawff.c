@@ -86,6 +86,7 @@ int main(int argc, char *argv[])
     {"lowpass_filt1", test_lowpass_filt1},
     {"integrator",    test_integrator},
     {"interp",        test_interp},
+    {"apply_motor_cal", test_apply_motor_cal},
     CU_TEST_INFO_NULL,
   }; 
   CU_SuiteInfo suites[] = {
@@ -842,8 +843,6 @@ void test_integrator(void)
   return;
 }
 
-
-
 // -----------------------------------------------------------------
 // Function: test_interp
 //
@@ -873,7 +872,7 @@ void test_interp(void)
   }
 
   // Interpolate data and check return values
-  for (i=1; i<nrow/2; i++) {
+  for (i=1; i<nrow; i++) {
     x_val = 0.5*i;
     CU_ASSERT(interp(x_data, y_data, x_val, &y_val)==SUCCESS);
     CU_ASSERT(y_val == 1.0*i);
@@ -930,8 +929,67 @@ void test_interp(void)
   }
   x_val = 0.5;
   CU_ASSERT_FALSE(interp(x_data, y_data, x_val, &y_val)==SUCCESS);
+
+  // Clean up
   free_array(&x_data);
   free_array(&y_data);
 
   return; 
+}
+
+// -----------------------------------------------------------------
+// Function: test_apply_motor_cal
+//
+// Purpose: Unit test for interp function. 
+// 
+// -----------------------------------------------------------------
+void test_apply_motor_cal(void)
+{
+  int i;
+  int nrow = 10;
+  int ind;
+  double deg;
+  double ind_dbl;
+  motor_cal_t motor_cal;
+
+  // Test multiplication type motor calibration
+  motor_cal.type = MOTOR_CALTYPE_MUL;
+  motor_cal.deg_per_ind = 1.0/10.0;
+  deg = 1.0;
+  CU_ASSERT(apply_motor_cal(motor_cal,deg,&ind)==SUCCESS);
+  CU_ASSERT(ind == 10);
+
+  // Test w/ unknown calibration type
+  motor_cal.type = MOTOR_CALTYPE_UNKNOWN;
+  CU_ASSERT_FALSE(apply_motor_cal(motor_cal,deg,&ind)==SUCCESS);
+
+  // Test with lookup table type motor calibration
+  motor_cal.type = MOTOR_CALTYPE_TBL;
+  CU_ASSERT(init_array(&motor_cal.deg_data,nrow,1,DBL_ARRAY)==SUCCESS);
+  CU_ASSERT(init_array(&motor_cal.ind_data,nrow,1,DBL_ARRAY)==SUCCESS);
+  for (i=0; i<nrow; i++) {
+    deg = 1.0*i;
+    ind_dbl = 2.0*i;
+    CU_ASSERT(set_array_val(motor_cal.deg_data,i,0,&deg)==SUCCESS);
+    CU_ASSERT(set_array_val(motor_cal.ind_data,i,0,&ind_dbl)==SUCCESS);
+  }
+  for (i=0; i<nrow; i++) {
+    deg = 0.5*i;
+    CU_ASSERT(apply_motor_cal(motor_cal,deg,&ind)==SUCCESS);
+    CU_ASSERT(ind==i);
+  }
+
+  // Try out of range
+  CU_ASSERT(get_array_val(motor_cal.deg_data,motor_cal.deg_data.nrow-1,0,&deg)==SUCCESS);
+  deg += 10.0;
+  CU_ASSERT_FALSE(apply_motor_cal(motor_cal,deg,&ind)==SUCCESS);
+
+  CU_ASSERT(get_array_val(motor_cal.deg_data,0,0,&deg)==SUCCESS);
+  deg -= 10.0;
+  CU_ASSERT_FALSE(apply_motor_cal(motor_cal,deg,&ind)==SUCCESS);
+
+  // Clean up
+  free_array(&motor_cal.deg_data);
+  free_array(&motor_cal.ind_data);
+  return;
 }

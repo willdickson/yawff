@@ -480,16 +480,6 @@ int yawff_w_ctlr(
   printf("                  Starting yawff \\w controller \n");
   printf("=======================================================\n");
 
-  //// TEMPORARY DEBUGGING ////////////////////////////////////////////// 
-  //{
-  //  double temp;
-  //  temp = 100.0;
-  //  set_array_val(config.motor_cal[0].deg_data,0,0,&temp); 
-  //  temp = 99.0;
-  //  set_array_val(config.motor_cal[0].deg_data,1,0,&temp); 
-  //}
-  //////////////////////////////////////////////////////////////////////
-
   // Check inputs
   fflush_printf("checking input args\n");
   if (check_yawff_w_ctlr_input(setpt,config,kine,u,data) != SUCCESS) {
@@ -497,28 +487,6 @@ int yawff_w_ctlr(
     return FAIL;
   }
   print_config(config);
-
-  //// TEMPORARY DEBUGGING //////////////////////////////////////////////
-  //{
-  //  int j;
-  //  int ind=0.0;
-  //  int rtn_check;
-  //  double deg=0.0;
-  //  for (j=0; j<config.num_motor; j++) {
-  //    printf("motor[%d]\n",j);
-  //    for (i=0; i<5; i++) {
-  //      deg = 20*(double) i; 
-  //      rtn_check = apply_motor_cal(config.motor_cal[j], deg, &ind);
-  //      printf("rtn_check = %d\n", rtn_check);
-  //      printf("deg = %f\n", deg);
-  //      printf("ind = %d\n", ind);
-  //    }
-  //  }
-  //  return rtn_flag;
-  //}
-  ///////////////////////////////////////////////////////////////////////
-
-
 
   // Setup SIGINT handler
   fflush_printf("reassigning SIGINT handler\n");

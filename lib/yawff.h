@@ -94,6 +94,9 @@
 #define MOTOR_CALTYPE_MUL 1  // Multiplicative motor calibration
 #define MOTOR_CALTYPE_UNKNOWN 2 // Unknown motor calibration type
 
+#define KINE_MAX_AMPLITUDE 180.0 // Maximum allowed wing kinematics amplitude
+#define KINE_MIN_PERIOD 4.0      // Minimum allowed wind kinematics period
+
 // Motor identifiers - specifies what motor does.
 enum MOTOR_IDS {
     STROKE_0_ID,
@@ -137,10 +140,16 @@ typedef struct {
 
 // Structure for controller configuraiton
 typedef struct {
-    int type;
-    float pgain;
-    float dgain;
+  int type;
+  float pgain;
+  float dgain;
 } ctlr_param_t;
+
+// Wing kinematics parameter stucture
+typedef struct {
+  float amplitude;
+  float period;
+} kine_param_t;
 
 // Structure for configuration
 typedef struct {
@@ -171,6 +180,7 @@ typedef struct {
   int ff_flag;             // Sets force-feedback on or off
   int ctlr_flag;           // Flag for presence of controller
   ctlr_param_t ctlr_param; // Controller parameters
+  kine_param_t kine_param; // Wing kinematics data
   motor_cal_t motor_cal[MAX_MOTOR];   // Motor calibration data
 } config_t;
 

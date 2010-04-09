@@ -131,6 +131,9 @@ int init_test_config(config_t *config)
     }
   }
 
+  config -> kine_param.amplitude = KINE_AMPLITUDE;
+  config -> kine_param.period = KINE_PERIOD;
+
   return flag;
 }
 

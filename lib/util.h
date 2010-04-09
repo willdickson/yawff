@@ -114,6 +114,7 @@ extern void print_err_msg(
 // Print and then fflush buffer
 extern void fflush_printf(const char *format, ...);
 
+
 // Function wich return constants for Python ctypes wrapper
 extern int define_max_motor(void);
 extern int define_max_dt(void);

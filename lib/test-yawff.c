@@ -400,6 +400,16 @@ void test_check_config(void)
   config_test.dt = INTEG_UNKNOWN;
   CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);   
 
+  // Wing kinematics parameter tests
+  config_test = config;
+  config_test.ctlr_flag = CTLR_ON;
+  config_test.kine_param.amplitude = KINE_MAX_AMPLITUDE + 10.0;
+  CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
+  config_test = config;
+  config_test.ctlr_flag = CTLR_ON;
+  config_test.kine_param.period = KINE_MIN_PERIOD/2.0;
+  CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
+  
   // Lookup table tests
   config.ctlr_flag = CTLR_ON;
   {

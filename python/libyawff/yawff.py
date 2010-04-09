@@ -96,6 +96,9 @@ def create_config_struct(config):
         config_struct.ctlr_param.pgain = float(config['ctlr_pgain'])
         config_struct.ctlr_param.dgain = float(config['ctlr_dgain'])
 
+        config_struct.kine_param.amplitude = float(config['kine_amplitude'])
+        config_struct.kine_param.period = float(config['kine_period'])
+
         # Get motor calibration data
         for i,cal in enumerate(config['motor_cal']):
             if cal['type'] == 'table':
@@ -182,6 +185,13 @@ class ctlr_param_t(ctypes.Structure):
         ('dgain', ctypes.c_float),
     ]
 
+class kine_param_t(ctypes.Structure):
+    _fields_ = [
+        ('amplitude',ctypes.c_float),
+        ('period', ctypes.c_float),
+    ]
+
+
 class config_t(ctypes.Structure):
     _fields_ = [
         ('dev_name', ctypes.c_char_p),
@@ -211,6 +221,7 @@ class config_t(ctypes.Structure):
         ('ff_flag', ctypes.c_int),
         ('ctlr_flag', ctypes.c_int),
         ('ctlr_param', ctlr_param_t),
+        ('kine_param', kine_param_t),
         ('motor_cal', MAX_MOTOR*motor_cal_t),
         ]
 

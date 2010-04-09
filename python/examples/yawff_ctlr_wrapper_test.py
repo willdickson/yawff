@@ -50,6 +50,8 @@ config = {
     'ctlr_type'         : libyawff.CTLR_TYPE_VEL,
     'ctlr_pgain'        : 1.0,
     'ctlr_dgain'        : 2.0,
+    'kine_amplitude'    : 140.0,
+    'kine_period'       : 6.0,
     'motor_cal'         : motor_cal,
 }
 

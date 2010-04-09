@@ -59,8 +59,8 @@
 // Kinematics test parameters
 #define KINE_NROW 50000
 #define KINE_NCOL NUM_MOTOR
-#define KINE_PERIOD 5 // seconds
-#define KINE_AMP 200  // indices
+#define KINE_AMPLITUDE 140.0
+#define KINE_PERIOD 6.0
 
 // Filter test parameters
 #define NUM_CYCLE  50
@@ -94,6 +94,7 @@
 #define MAX_DEG_DATA  90.0
 #define MIN_IND_DATA  -1000.0
 #define MAX_IND_DATA  1000.0
+
 
 // Initialize system configuration for testing
 extern int init_test_config(config_t *config);

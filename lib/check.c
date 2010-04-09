@@ -355,6 +355,16 @@ int check_ranges(config_t config)
       flag = FAIL;
     }
 
+    // Check kinemaitcs parameters
+    if (config.kine_param.amplitude > KINE_MAX_AMPLITUDE) {
+      PRINT_ERR_MSG("kinematics amplitude too large");
+      flag = FAIL;
+    }
+    if (config.kine_param.period < KINE_MIN_PERIOD) {
+      PRINT_ERR_MSG("kinematics period too small");
+      flag = FAIL;
+    }
+
     // Check motor calibrations
     for (i=0; i<config.num_motor; i++) {
       if (check_motor_cal(config.motor_cal[i]) != SUCCESS) {

@@ -459,6 +459,16 @@ int interp(
   double a;
   double b;
 
+  // Check array types
+  if (x_data.type != DBL_ARRAY) {
+    PRINT_ERR_MSG("x_data array must be of type DBL_ARRAY");
+    return FAIL;
+  } 
+  if (y_data.type != DBL_ARRAY) {
+    PRINT_ERR_MSG("y_data array must be of type DBL_ARRAY");
+    return FAIL;
+  } 
+
   // Check array shapes
   if (x_data.ncol != 1) {
     PRINT_ERR_MSG("x_data.ncol != 1");

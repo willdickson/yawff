@@ -56,6 +56,9 @@ void test_check_yawff_input(void);
 void test_lowpass_filt1(void);
 void test_integrator(void);
 
+void test_interp(void);
+void test_apply_motor_cal(void);
+
 //----- --------------------------------------------------------------
 // Function: main
 //
@@ -82,6 +85,7 @@ int main(int argc, char *argv[])
   CU_TestInfo yawff_test_array[] = {
     {"lowpass_filt1", test_lowpass_filt1},
     {"integrator",    test_integrator},
+    {"interp",        test_interp},
     CU_TEST_INFO_NULL,
   }; 
   CU_SuiteInfo suites[] = {
@@ -519,8 +523,10 @@ void test_check_kine_compat(void)
   // Kinematics and config which shouldn't be compatible
   config.num_motor = KINE_NCOL+2;
   CU_ASSERT_FALSE(check_kine_compat(config,kine)==SUCCESS);
+  config.num_motor = KINE_NCOL;
 
   free_array(&kine);
+  free_test_config(&config);
 
   return;
 }
@@ -612,6 +618,7 @@ void test_check_data_compat(void)
   // Clean up
   free_test_data(&data);
   free_test_kine(&kine);
+  free_test_config(&config);
 
   return;
 }
@@ -666,6 +673,7 @@ void test_check_yawff_input(void)
   // Clean up
   free_test_data(&data);
   free_test_kine(&kine);
+  free_test_config(&config);
 
   return;
 }
@@ -836,3 +844,94 @@ void test_integrator(void)
 
 
 
+// -----------------------------------------------------------------
+// Function: test_interp
+//
+// Purpose: Unit test for interp function. 
+// 
+// -----------------------------------------------------------------
+void test_interp(void) 
+{
+  int i;
+  int nrow = 100;
+  int ncol = 1;
+  double x_val;
+  double y_val;
+  array_t x_data;
+  array_t y_data;
+  
+  // Initialize arrays and set data
+  CU_ASSERT(init_array(&x_data, nrow, ncol, DBL_ARRAY)==SUCCESS);
+  CU_ASSERT(init_array(&y_data, nrow, ncol, DBL_ARRAY)==SUCCESS);
+
+  for (i=0; i<nrow; i++) {
+    x_val = (double) i;
+    y_val = (double) 2*i;
+
+    CU_ASSERT(set_array_val(x_data, i, 0, &x_val)==SUCCESS);
+    CU_ASSERT(set_array_val(y_data, i, 0, &y_val)==SUCCESS);
+  }
+
+  // Interpolate data and check return values
+  for (i=1; i<nrow/2; i++) {
+    x_val = 0.5*i;
+    CU_ASSERT(interp(x_data, y_data, x_val, &y_val)==SUCCESS);
+    CU_ASSERT(y_val == 1.0*i);
+  }
+
+  // Try to interpolate with x_val less than min x_data 
+  CU_ASSERT(get_array_val(x_data, 0, 0, &x_val) == SUCCESS);
+  x_val += -1.0;
+  CU_ASSERT_FALSE(interp(x_data, y_data, x_val, &y_val)==SUCCESS);
+  // Try to interpolate with x_val greater than max x_data
+  CU_ASSERT(get_array_val(x_data, x_data.nrow-1, 0, &x_val) == SUCCESS);
+  x_val += 1.0;
+  CU_ASSERT_FALSE(interp(x_data, y_data, x_val, &y_val)==SUCCESS);
+
+  free_array(&x_data);
+  free_array(&y_data);
+
+  // Try array with incorrect x_data shape
+  CU_ASSERT(init_array(&x_data, nrow, ncol+1, DBL_ARRAY)==SUCCESS);
+  CU_ASSERT(init_array(&y_data, nrow, ncol, DBL_ARRAY)==SUCCESS);
+  for (i=0; i<nrow; i++) {
+    x_val = (double) i;
+    y_val = (double) 2*i;
+    CU_ASSERT(set_array_val(x_data, i, 0, &x_val)==SUCCESS);
+    CU_ASSERT(set_array_val(y_data, i, 0, &y_val)==SUCCESS);
+  }
+  x_val = 0.5;
+  CU_ASSERT_FALSE(interp(x_data, y_data, x_val, &y_val)==SUCCESS);
+  free_array(&x_data);
+  free_array(&y_data);
+
+  // Try array with incorrect y_data shape
+  CU_ASSERT(init_array(&x_data, nrow, ncol, DBL_ARRAY)==SUCCESS);
+  CU_ASSERT(init_array(&y_data, nrow, ncol+1, DBL_ARRAY)==SUCCESS);
+  for (i=0; i<nrow; i++) {
+    x_val = (double) i;
+    y_val = (double) 2*i;
+    CU_ASSERT(set_array_val(x_data, i, 0, &x_val)==SUCCESS);
+    CU_ASSERT(set_array_val(y_data, i, 0, &y_val)==SUCCESS);
+  }
+  x_val = 0.5;
+  CU_ASSERT_FALSE(interp(x_data, y_data, x_val, &y_val)==SUCCESS);
+  free_array(&x_data);
+  free_array(&y_data);
+
+  // Try arrays of unequal length
+  CU_ASSERT(init_array(&x_data, nrow+1, ncol, DBL_ARRAY)==SUCCESS);
+  CU_ASSERT(init_array(&y_data, nrow, ncol, DBL_ARRAY)==SUCCESS);
+  for (i=0; i<nrow; i++) {
+    x_val = (double) i;
+    y_val = (double) 2*i;
+    CU_ASSERT(set_array_val(x_data, i, 0, &x_val)==SUCCESS);
+    CU_ASSERT(set_array_val(y_data, i, 0, &y_val)==SUCCESS);
+  }
+  x_val = 0.5;
+  CU_ASSERT_FALSE(interp(x_data, y_data, x_val, &y_val)==SUCCESS);
+  free_array(&x_data);
+  free_array(&y_data);
+
+  return; 
+}

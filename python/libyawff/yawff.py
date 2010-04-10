@@ -96,8 +96,11 @@ def create_config_struct(config):
         config_struct.ctlr_param.pgain = float(config['ctlr_pgain'])
         config_struct.ctlr_param.dgain = float(config['ctlr_dgain'])
 
-        config_struct.kine_param.amplitude = float(config['kine_amplitude'])
         config_struct.kine_param.period = float(config['kine_period'])
+        config_struct.kine_param.stroke_amp = float(config['stroke_amp'])
+        config_struct.kine_param.rotation_amp = float(config['rotation_amp'])
+        config_struct.kine_param.stroke_k = float(config['stroke_k'])
+        config_struct.kine_param.rotation_k = float(config['rotation_k'])
 
         # Get motor calibration data
         for i,cal in enumerate(config['motor_cal']):
@@ -187,8 +190,11 @@ class ctlr_param_t(ctypes.Structure):
 
 class kine_param_t(ctypes.Structure):
     _fields_ = [
-        ('amplitude',ctypes.c_float),
         ('period', ctypes.c_float),
+        ('stroke_amp', ctypes.c_float),
+        ('rotation_amp', ctypes.c_float),
+        ('stroke_k', ctypes.c_float),
+        ('rotation_k', ctypes.c_float),
     ]
 
 

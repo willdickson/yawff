@@ -356,11 +356,27 @@ int check_ranges(config_t config)
     }
 
     // Check kinemaitcs parameters
-    if (config.kine_param.amplitude > KINE_MAX_AMPLITUDE) {
-      PRINT_ERR_MSG("kinematics amplitude too large");
+    if (fabsf(config.kine_param.stroke_amp) > KINE_MAX_STROKE_AMP) {
+      PRINT_ERR_MSG("kinematics stroke amplitude too large");
       flag = FAIL;
     }
-    if (config.kine_param.period < KINE_MIN_PERIOD) {
+    if (fabsf(config.kine_param.rotation_amp) > KINE_MAX_ROTATION_AMP) {
+      PRINT_ERR_MSG("kinematics rotation  amplitude too large");
+      flag = FAIL;
+    }
+    if (config.kine_param.stroke_k < KINE_MIN_STROKE_K) {
+      PRINT_ERR_MSG("kinematics stroke shape parameter too small");
+      flag = FAIL;
+    }
+    if (config.kine_param.stroke_k > KINE_MAX_STROKE_K) {
+      PRINT_ERR_MSG("kinematics stroke shape parameter too large");
+      flag = FAIL;
+    }
+    if (config.kine_param.rotation_k < KINE_MIN_ROTATION_K) {
+      PRINT_ERR_MSG("kinematics stroke shape parameter too small");
+      flag = FAIL;
+    }
+    if (fabsf(config.kine_param.period < KINE_MIN_PERIOD)) {
       PRINT_ERR_MSG("kinematics period too small");
       flag = FAIL;
     }

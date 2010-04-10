@@ -94,8 +94,12 @@
 #define MOTOR_CALTYPE_MUL 1  // Multiplicative motor calibration
 #define MOTOR_CALTYPE_UNKNOWN 2 // Unknown motor calibration type
 
-#define KINE_MAX_AMPLITUDE 180.0 // Maximum allowed wing kinematics amplitude
-#define KINE_MIN_PERIOD 4.0      // Minimum allowed wind kinematics period
+#define KINE_MAX_STROKE_AMP 90.0    // Maximum allowed wing stroke amplitude
+#define KINE_MAX_ROTATION_AMP 90.0  // Maximum allowed wing rotation amplitude
+#define KINE_MIN_PERIOD 4.0         // Minimum allowed wind kinematics period
+#define KINE_MIN_STROKE_K 0.0001    // Minimum allowed stroke shape parameter
+#define KINE_MAX_STROKE_K 1.0       // Maximum allowed stroke shape parameter
+#define KINE_MIN_ROTATION_K 0.0001  // Minimum allowed rotation shape parameter
 
 // Motor identifiers - specifies what motor does.
 enum MOTOR_IDS {
@@ -147,8 +151,11 @@ typedef struct {
 
 // Wing kinematics parameter stucture
 typedef struct {
-  float amplitude;
   float period;
+  float stroke_amp;
+  float rotation_amp;
+  float stroke_k;
+  float rotation_k;
 } kine_param_t;
 
 // Structure for configuration
@@ -214,6 +221,12 @@ typedef struct {
   float highpass;   // Intermediate highpass filtered torque
 } torq_info_t;
 
+// Angle data structure 
+typedef struct {
+  int type;
+  double value;
+} angle_t;
+
 // Yaw force-feedback function 
 extern int yawff( 
     array_t kine, 
@@ -222,6 +235,7 @@ extern int yawff(
     int end_pos[]
     ); 
 
+// Yaw force-feedback + controller function
 extern int yawff_w_ctlr( 
     array_t setpt,
     config_t config, 

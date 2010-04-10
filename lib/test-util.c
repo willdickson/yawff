@@ -131,8 +131,12 @@ int init_test_config(config_t *config)
     }
   }
 
-  config -> kine_param.amplitude = KINE_AMPLITUDE;
   config -> kine_param.period = KINE_PERIOD;
+  config -> kine_param.stroke_amp = KINE_STROKE_AMP;
+  config -> kine_param.stroke_k = KINE_STROKE_K;
+  config -> kine_param.rotation_amp = KINE_ROTATION_AMP;
+  config -> kine_param.rotation_k = KINE_ROTATION_K;
+
 
   return flag;
 }

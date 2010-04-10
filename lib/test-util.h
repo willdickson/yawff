@@ -59,8 +59,11 @@
 // Kinematics test parameters
 #define KINE_NROW 50000
 #define KINE_NCOL NUM_MOTOR
-#define KINE_AMPLITUDE 140.0
 #define KINE_PERIOD 6.0
+#define KINE_STROKE_AMP 70.0
+#define KINE_ROTATION_AMP 45.0
+#define KINE_STROKE_K 0.01
+#define KINE_ROTATION_K 1.5
 
 // Filter test parameters
 #define NUM_CYCLE  50

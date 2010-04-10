@@ -733,8 +733,11 @@ void print_config(config_t config)
     
     printf("  ctlr_pgian:          %1.2f\n", config.ctlr_param.pgain);
     printf("  ctlr_dgian:          %1.2f\n", config.ctlr_param.dgain);
-    printf("  kine_amplitude:      %1.2f\n", config.kine_param.amplitude);
-    printf("  kine_period:         %1.2f\n", config.kine_param.period);
+    printf("  stroke amp:          %1.2f\n", config.kine_param.stroke_amp);
+    printf("  rotation amp:        %1.2f\n", config.kine_param.rotation_amp);
+    printf("  stroke_k:            %1.2f\n", config.kine_param.stroke_k);
+    printf("  rotation_k:          %1.4f\n", config.kine_param.rotation_k); 
+    printf("  wing beat period:    %1.2f\n", config.kine_param.period);
     
     for (i=0; i<config.num_motor;i++) {
       printf("  motor[%d]\n", i);
@@ -779,14 +782,6 @@ void fflush_printf(const char *format, ...)
   fflush(stdout);
   return;
 }
-
-
-// -----------------------------------------------------------------
-// Function: 
-// 
-// 
-// -----------------------------------------------------------------
-
 
 // Simple functions for getting constants to python ctypes interface
 int define_max_motor(void) {return MAX_MOTOR;};

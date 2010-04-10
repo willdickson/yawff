@@ -403,7 +403,7 @@ void test_check_config(void)
   // Wing kinematics parameter tests
   config_test = config;
   config_test.ctlr_flag = CTLR_ON;
-  config_test.kine_param.amplitude = KINE_MAX_AMPLITUDE + 10.0;
+  config_test.kine_param.stroke_amp = KINE_MAX_STROKE_AMP + 10.0;
   CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
   config_test = config;
   config_test.ctlr_flag = CTLR_ON;

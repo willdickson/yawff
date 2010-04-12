@@ -84,35 +84,40 @@ def create_config_struct(config):
 
     # Handle new configuration stuff when feedback controller is present.
     if config.has_key('ctlr_flag'):
+        
         config_struct.ctlr_flag = int(config['ctlr_flag'])
 
-        # Setup motor id map - this is more complicated than needed
-        extended_map = list(config['kine_map']) + [config['yaw_motor']]
-        extended_map.sort()
-        id_tuple =  tuple([motor_id_dict[config['motor_name_map'][n]] for n in extended_map])
-        config_struct.motor_id_map = id_tuple
+        if config_struct.ctlr_flag != CTLR_OFF: 
 
-        config_struct.ctlr_param.type = int(config['ctlr_type'])
-        config_struct.ctlr_param.pgain = float(config['ctlr_pgain'])
-        config_struct.ctlr_param.dgain = float(config['ctlr_dgain'])
+            # Setup motor id map - this is more complicated than needed
+            extended_map = list(config['kine_map']) + [config['yaw_motor']]
+            extended_map.sort()
+            id_tuple =  tuple([motor_id_dict[config['motor_name_map'][n]] for n in extended_map])
+            config_struct.motor_id_map = id_tuple
 
-        config_struct.kine_param.period = float(config['kine_period'])
-        config_struct.kine_param.stroke_amp = float(config['stroke_amp'])
-        config_struct.kine_param.rotation_amp = float(config['rotation_amp'])
-        config_struct.kine_param.stroke_k = float(config['stroke_k'])
-        config_struct.kine_param.rotation_k = float(config['rotation_k'])
+            config_struct.ctlr_param.type = int(config['ctlr_type'])
+            config_struct.ctlr_param.pgain = float(config['ctlr_pgain'])
+            config_struct.ctlr_param.dgain = float(config['ctlr_dgain'])
 
-        # Get motor calibration data
-        for i,cal in enumerate(config['motor_cal']):
-            if cal['type'] == 'table':
-                config_struct.motor_cal[i].type = MOTOR_CALTYPE_TBL
-                deg_data = scipy.reshape(cal['deg_data'], (cal['deg_data'].shape[0],1))
-                ind_data = scipy.reshape(cal['ind_data'], (cal['ind_data'].shape[0],1))
-                config_struct.motor_cal[i].deg_data = get_c_array_struct(deg_data)
-                config_struct.motor_cal[i].ind_data = get_c_array_struct(ind_data)
-            elif cal['type'] == 'mult':
-                config_struct.motor_cal[i].type = MOTOR_CALTYPE_MUL
-                config_struct.motor_cal[i].deg_per_ind = float(cal['deg_per_ind'])
+            config_struct.kine_param.type = int(kine_type_id_dict[config['kine_type']])
+            config_struct.kine_param.period = float(config['kine_period'])
+            config_struct.kine_param.stroke_amp = float(config['stroke_amp'])
+            config_struct.kine_param.rotation_amp = float(config['rotation_amp'])
+            config_struct.kine_param.stroke_k = float(config['stroke_k'])
+            config_struct.kine_param.rotation_k = float(config['rotation_k'])
+
+            # Get motor calibration data
+            for i,cal in enumerate(config['motor_cal']):
+                if cal['type'] == 'table':
+                    config_struct.motor_cal[i].type = MOTOR_CALTYPE_TBL
+                    deg_data = scipy.reshape(cal['deg_data'], (cal['deg_data'].shape[0],1))
+                    ind_data = scipy.reshape(cal['ind_data'], (cal['ind_data'].shape[0],1))
+                    config_struct.motor_cal[i].deg_data = get_c_array_struct(deg_data)
+                    config_struct.motor_cal[i].ind_data = get_c_array_struct(ind_data)
+                elif cal['type'] == 'mult':
+                    config_struct.motor_cal[i].type = MOTOR_CALTYPE_MUL
+                    config_struct.motor_cal[i].deg_per_ind = float(cal['deg_per_ind'])
+
     else:
         config_struct.ctlr_flag = CTLR_OFF 
 
@@ -143,6 +148,7 @@ CTLR_TYPE_POS = lib.define_ctlr_type_pos()
 MOTOR_CALTYPE_TBL = lib.define_motor_caltype_tbl()
 MOTOR_CALTYPE_MUL = lib.define_motor_caltype_mul()
 
+# Motor ids
 STROKE_0_ID = lib.stroke_0_id()
 STROKE_1_ID = lib.stroke_1_id()
 ROTATION_0_ID = lib.rotation_0_id()
@@ -150,6 +156,10 @@ ROTATION_1_ID = lib.rotation_1_id()
 DEVIATION_0_ID = lib.deviation_0_id()
 DEVIATION_1_ID = lib.deviation_1_id()
 YAW_ID = lib.yaw_id()
+
+# Kinematics type ids
+DIFF_AOA_ID = lib.diff_aoa_id()
+DIFF_DEV_ID = lib.diff_dev_id()
 
 # Dictionary relating motor names to motor identifiers
 motor_id_dict = {
@@ -160,6 +170,11 @@ motor_id_dict = {
     'deviation_0' : DEVIATION_0_ID,
     'deviation_1' : DEVIATION_1_ID,
     'yaw'         : YAW_ID,
+}
+
+kine_type_id_dict = {
+    'diff_aoa' : DIFF_AOA_ID,
+    'diff_dev' : DIFF_DEV_ID,
 }
 
 # Structures
@@ -190,6 +205,7 @@ class ctlr_param_t(ctypes.Structure):
 
 class kine_param_t(ctypes.Structure):
     _fields_ = [
+        ('type', ctypes.c_int),
         ('period', ctypes.c_float),
         ('stroke_amp', ctypes.c_float),
         ('rotation_amp', ctypes.c_float),

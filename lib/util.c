@@ -738,6 +738,7 @@ void print_config(config_t config)
     printf("  stroke_k:            %1.2f\n", config.kine_param.stroke_k);
     printf("  rotation_k:          %1.4f\n", config.kine_param.rotation_k); 
     printf("  wing beat period:    %1.2f\n", config.kine_param.period);
+    printf("  kine type:           %s\n", KINE_TYPE_ID_2_NAME[config.kine_param.type]); 
     
     for (i=0; i<config.num_motor;i++) {
       printf("  motor[%d]\n", i);
@@ -814,3 +815,6 @@ int rotation_1_id(void) {return ROTATION_1_ID;};
 int deviation_0_id(void) {return DEVIATION_0_ID;};
 int deviation_1_id(void) {return DEVIATION_1_ID;};
 int yaw_id(void) {return YAW_ID;};
+
+int diff_aoa_id(void) {return DIFF_AOA_ID;};
+int diff_dev_id(void) {return DIFF_DEV_ID;};

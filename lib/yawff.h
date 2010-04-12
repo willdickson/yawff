@@ -50,6 +50,7 @@
 #define DIO_HI 1
 #define DIO_LO 0
 #define MAX_MOTOR 10
+#define NUM_MOTOR_W_CTLR_ON 7
 #define MAX_DIO 23
 #define MAX_AIN 15
 #define ERR_SZ 200
@@ -100,27 +101,39 @@
 #define KINE_MIN_STROKE_K 0.0001    // Minimum allowed stroke shape parameter
 #define KINE_MAX_STROKE_K 1.0       // Maximum allowed stroke shape parameter
 #define KINE_MIN_ROTATION_K 0.0001  // Minimum allowed rotation shape parameter
+#define NUM_KINE_TYPE 2
 
 // Motor identifiers - specifies what motor does.
 enum MOTOR_IDS {
-    STROKE_0_ID,
-    STROKE_1_ID,
-    ROTATION_0_ID,
-    ROTATION_1_ID,
-    DEVIATION_0_ID,
-    DEVIATION_1_ID,
-    YAW_ID
+  STROKE_0_ID,
+  STROKE_1_ID,
+  ROTATION_0_ID,
+  ROTATION_1_ID,
+  DEVIATION_0_ID,
+  DEVIATION_1_ID,
+  YAW_ID
 };
 
 static const char MOTORID_2_NAME[MAX_MOTOR][MAX_NAME_LEN] = {
-    "stroke_0",
-    "stroke_1",
-    "rotation_0",
-    "rotation_1",
-    "deviation_0",
-    "deviation_1",
-    "yaw"
+  "stroke_0",
+  "stroke_1",
+  "rotation_0",
+  "rotation_1",
+  "deviation_0",
+  "deviation_1",
+  "yaw"
 };
+
+// Wing kinematics types
+enum KINE_TYPE_IDS {
+  DIFF_AOA_ID,
+  DIFF_DEV_ID,
+};
+
+static const char KINE_TYPE_ID_2_NAME[NUM_KINE_TYPE][MAX_NAME_LEN] = {
+ "diff aoa", 
+ "diff dev",
+}; 
 
 typedef void (*sighandler_t)(int);
 
@@ -151,6 +164,7 @@ typedef struct {
 
 // Wing kinematics parameter stucture
 typedef struct {
+  int type;
   float period;
   float stroke_amp;
   float rotation_amp;
@@ -220,12 +234,6 @@ typedef struct {
   float raw;        // Last raw torque measurement (Nm) 
   float highpass;   // Intermediate highpass filtered torque
 } torq_info_t;
-
-// Angle data structure 
-typedef struct {
-  int type;
-  double value;
-} angle_t;
 
 // Yaw force-feedback function 
 extern int yawff( 
@@ -314,6 +322,14 @@ extern int update_ind(
 		int kine_ind, 
 		state_t *state, 
 		config_t config
+    );
+
+// Get motor indices for differential angle of attack kinematics 
+extern int update_ind_w_ctlr(
+    int motor_ind[][2], 
+    double t, 
+    state_t *state,
+    config_t config
     );
 
 // Update motor positions - move the motors

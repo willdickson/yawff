@@ -131,6 +131,7 @@ int init_test_config(config_t *config)
     }
   }
 
+  config -> kine_param.type = DIFF_AOA_ID;
   config -> kine_param.period = KINE_PERIOD;
   config -> kine_param.stroke_amp = KINE_STROKE_AMP;
   config -> kine_param.stroke_k = KINE_STROKE_K;

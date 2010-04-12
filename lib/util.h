@@ -146,6 +146,9 @@ extern int rotation_1_id(void);
 extern int deviation_0_id(void);
 extern int deviation_1_id(void);
 extern int yaw_id(void);
+
+extern int diff_aoa_id(void);
+extern int diff_dev_id(void);
 #endif // INC_UTIL_H_
 
 

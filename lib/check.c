@@ -342,6 +342,19 @@ int check_ranges(config_t config)
   // Tests specific to case where ctlr_flag is true
   if (config.ctlr_flag == CTLR_ON) {
 
+    // Check number of motors
+    if (config.num_motor != NUM_MOTOR_W_CTLR_ON) {
+      snprintf(
+          err_msg,
+          ERR_SZ,
+          "number of motors, %d, incorrect, must be equal to %d which ctlr_flag = CTLR_ON",
+          config.num_motor, 
+          NUM_MOTOR_W_CTLR_ON
+          );
+      PRINT_ERR_MSG(err_msg);
+      flag = FAIL;
+    }
+
     // Check the controller type
     test = FALSE;
     if (config.ctlr_param.type == CTLR_TYPE_VEL) {
@@ -355,6 +368,18 @@ int check_ranges(config_t config)
       flag = FAIL;
     }
 
+    // Check kinematics type
+    test = FALSE;
+    for (i=0; i<NUM_KINE_TYPE; i++) {
+      if (config.kine_param.type == i) {
+        test = TRUE;
+      }
+    }
+    if (test == FALSE) {
+      PRINT_ERR_MSG("unknown kinematics type"); 
+      flag = FAIL;
+    }
+    
     // Check kinemaitcs parameters
     if (fabsf(config.kine_param.stroke_amp) > KINE_MAX_STROKE_AMP) {
       PRINT_ERR_MSG("kinematics stroke amplitude too large");

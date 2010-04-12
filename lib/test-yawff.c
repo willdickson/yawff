@@ -400,6 +400,16 @@ void test_check_config(void)
   config_test.dt = INTEG_UNKNOWN;
   CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);   
 
+  // Wing kinematics type tests
+  config_test = config;
+  config_test.ctlr_flag = CTLR_ON;
+  config_test.kine_param.type = NUM_KINE_TYPE+1;
+  CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
+  config_test = config;
+  config_test.ctlr_flag = CTLR_ON;
+  config_test.kine_param.type = -1;
+  CU_ASSERT_FALSE(check_config(config_test)==SUCCESS);
+
   // Wing kinematics parameter tests
   config_test = config;
   config_test.ctlr_flag = CTLR_ON;

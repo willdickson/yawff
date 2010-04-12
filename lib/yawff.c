@@ -1108,6 +1108,27 @@ int update_ind(int motor_ind[][2],
   return SUCCESS;
 }
 
+
+// ---------------------------------------------------------------------
+// Function: update_ind_w_ctlr
+//
+// Purpose: Updates array of motor indices based on the controller output
+// and the  
+//
+// Return: SUCCESS or FAIL
+//
+// ---------------------------------------------------------------------
+int update_ind_w_ctlr(
+    int motor_ind[][2], 
+    double t, 
+    state_t *state,
+    config_t config
+    )
+{
+
+  return SUCCESS;
+}
+
 // ---------------------------------------------------------------------
 // Function: init_ind
 //

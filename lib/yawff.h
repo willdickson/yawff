@@ -256,51 +256,51 @@ extern int yawff_w_ctlr(
 // Cleanup fucntion for realtime thread 
 extern int rt_cleanup(
     int level, 
-		comedi_info_t comedi_info, 
-		RT_TASK *rt_task
+    comedi_info_t comedi_info, 
+    RT_TASK *rt_task
     );
 
 // Initialize comedi device based on configuration
 extern int init_comedi(
     comedi_info_t *comedi_info, 
-		config_t config
+    config_t config
     );
 
 // Get zero value for yaw torque analog input channel
 extern int get_ain_zero(
     comedi_info_t comedi_info,  
     config_t config, 
-	  float *ain_zero,
+    float *ain_zero,
     float *ain_std
      );
 
 // Get zero value for yaw torque 
 extern int get_torq_zero(
     comedi_info_t comedi_info, 
-	  config_t config, 
-	  float *torq_zero,
+    config_t config, 
+    float *torq_zero,
     float *torq_std
     );
 
 // Read yaw torque sensor analog inout
 extern int get_ain(
     comedi_info_t comedi_info, 
-		config_t config, 
-		float *ain
+    config_t config, 
+    float *ain
     );
 
 // Read torque from yaw torque sensor
 extern int get_torq(
     comedi_info_t comedi_info, 
-		config_t config, 
-		float *torq
+    config_t config, 
+    float *torq
     );
 
 // Convert analog input value to voltage
 extern int ain_to_phys(
     lsampl_t data, 
-		comedi_info_t comedi_info, 
-		float *volts
+    comedi_info_t comedi_info, 
+    float *volts
     );
 
 // Update yaw dynamics state vector one timestep
@@ -318,10 +318,10 @@ extern void init_ind(int motor_ind[][2], config_t config);
 // Update motor indices one timestep
 extern int update_ind(
     int motor_ind[][2], 
-		array_t kine, 
-		int kine_ind, 
-		state_t *state, 
-		config_t config
+    array_t kine, 
+    int kine_ind, 
+    state_t *state, 
+    config_t config
     );
 
 // Get motor indices for differential angle of attack kinematics 
@@ -335,23 +335,23 @@ extern int update_ind_w_ctlr(
 // Update motor positions - move the motors
 extern int update_motor(
     int motor_ind[][2], 
-		comedi_info_t comedi_info, 
-		config_t config
+    comedi_info_t comedi_info, 
+    config_t config
     );
 
 // Update data (t,pos,vel,torq) and index ind 
 extern int update_data(
     data_t data, 
-		int ind, 
-		double t, 
-		state_t *state, 
-		torq_info_t torq_info
+    int ind, 
+    double t, 
+    state_t *state, 
+    torq_info_t torq_info
     ); 
 
 // Set clock dio lines to DIO_LO
 extern int set_clks_lo(
     comedi_info_t comedi_info, 
-		config_t config
+    config_t config
     );
 
 // Update feedback controller

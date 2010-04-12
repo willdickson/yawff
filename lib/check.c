@@ -472,25 +472,25 @@ int check_clkdir(config_t config)
     if (i<config.num_motor) {
       for (j=i+1; j<config.num_motor; j++) {
         if (config.dio_clk[i] == config.dio_clk[j]) {
-	        snprintf(err_msg, ERR_SZ, "clk/dir dio not unique, clk[%d] = clk[%d]", i,j);
-	        PRINT_ERR_MSG(err_msg);
-	        flag = FAIL;
-	      }
-	      if (config.dio_clk[i] == config.dio_dir[j]) {
-	        snprintf(err_msg, ERR_SZ, "clk/dir dio clk[%d] = dir[%d]", i,j);
-	        PRINT_ERR_MSG(err_msg);
-	        flag = FAIL;
-	      }
-	      if (config.dio_dir[i] == config.dio_clk[j]) {
-	        snprintf(err_msg, ERR_SZ, "clk/dir dio, dir[%d] = clk[%d]", i,j);
-	        PRINT_ERR_MSG(err_msg);
-	        flag = FAIL;
-	      }
-	      if (config.dio_dir[i] == config.dio_dir[j]) {
-	        snprintf(err_msg, ERR_SZ, "clk/dir dio, dir[%d] = dir[%d]", i,j);
-	        PRINT_ERR_MSG(err_msg);
-	        flag = FAIL;
-	      }
+          snprintf(err_msg, ERR_SZ, "clk/dir dio not unique, clk[%d] = clk[%d]", i,j);
+          PRINT_ERR_MSG(err_msg);
+          flag = FAIL;
+        }
+        if (config.dio_clk[i] == config.dio_dir[j]) {
+          snprintf(err_msg, ERR_SZ, "clk/dir dio clk[%d] = dir[%d]", i,j);
+          PRINT_ERR_MSG(err_msg);
+          flag = FAIL;
+        }
+        if (config.dio_dir[i] == config.dio_clk[j]) {
+          snprintf(err_msg, ERR_SZ, "clk/dir dio, dir[%d] = clk[%d]", i,j);
+          PRINT_ERR_MSG(err_msg);
+          flag = FAIL;
+        }
+        if (config.dio_dir[i] == config.dio_dir[j]) {
+          snprintf(err_msg, ERR_SZ, "clk/dir dio, dir[%d] = dir[%d]", i,j);
+          PRINT_ERR_MSG(err_msg);
+          flag = FAIL;
+        }
       } 
     } 
   } 
@@ -533,11 +533,11 @@ int check_kine_map(config_t config)
     // Check uniqness w/ self
     if (i < (config.num_motor-2)) {
       for (j=i+1; j<(config.num_motor-1); j++) {
-	      if (config.kine_map[i] == config.kine_map[j]) {
-	       snprintf(err_msg, ERR_SZ, "kinematicss map not unique, kine_map[%d] = kine_map[%d]",i,j);
-	       PRINT_ERR_MSG(err_msg);
-	       flag = FAIL;
-	      }
+        if (config.kine_map[i] == config.kine_map[j]) {
+         snprintf(err_msg, ERR_SZ, "kinematicss map not unique, kine_map[%d] = kine_map[%d]",i,j);
+         PRINT_ERR_MSG(err_msg);
+         flag = FAIL;
+        }
       } 
     } 
   } 
@@ -572,7 +572,7 @@ int check_kine(array_t kine)
       err_flag = get_array_val(kine,i,j,&p0);
       err_flag = get_array_val(kine,i+1,j,&p1);
       if (abs(p1-p0) > 1) {
-	flag = FAIL;
+        flag = FAIL;
       }
     }
   }

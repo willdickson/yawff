@@ -56,11 +56,11 @@
 
 // Function prototypes
 state_t dynamics_func(
-		   state_t state_in, 
-		   float force, 
-		   float mass, 
-		   float damping
-		   );
+    state_t state_in, 
+    float force, 
+    float mass, 
+    float damping
+    );
 
 // ----------------------------------------------------------------
 // Function: integrator
@@ -83,14 +83,14 @@ state_t dynamics_func(
 // 
 // ----------------------------------------------------------------
 int integrator(
-	       state_t  state_curr,
-	       state_t *state_next,
-	       float force, 
-	       float mass, 
-	       float damping, 
-	       float dt, 
-	       int method
-	       )
+    state_t  state_curr,
+    state_t *state_next,
+    float force, 
+    float mass, 
+    float damping, 
+    float dt, 
+    int method
+    )
 {
   state_t x;
   state_t k0,k1,k2,k3;

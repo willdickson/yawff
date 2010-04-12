@@ -41,12 +41,12 @@
 // Integrator - integrate yaw dynamic state one time step
 extern int integrator(
     state_t state_curr, 
-		state_t *state_next, 
-		float force, 
-		float mass, 
-		float damping, 
-		float dt, 
-		int method
+    state_t *state_next, 
+    float force, 
+    float mass, 
+    float damping, 
+    float dt, 
+    int method
     );
 
 // First order lowpass filter
@@ -58,9 +58,9 @@ float highpass_filt1(float dx,  float y_old, float f_cut, float dt);
 // Initialize array structure memory
 extern int init_array(
     array_t *array, 
-		int nrow, 
-		int ncol, 
-		int type
+    int nrow, 
+    int ncol, 
+    int type
     );
 
 // Free array structure memory
@@ -69,17 +69,17 @@ extern void free_array(array_t *array);
 // Get array value at given row and column indices
 extern int get_array_val(
     array_t array, 
-		int row, 
-		int col, 
-		void *val
+    int row, 
+    int col, 
+    void *val
     );
 
 // Set array value at given row and column indices
 extern int set_array_val(
     array_t array, 
-		int row, 
-		int col, 
-		void *val
+    int row, 
+    int col, 
+    void *val
     );
 
 // Print array 

@@ -35,16 +35,18 @@
 #include "yawff.h"
 
 // Check input arguments for yawff function
-extern int check_yawff_input(array_t kine, 
-			     config_t config, 
-			     data_t data);
+extern int check_yawff_input(
+    array_t kine, 
+    config_t config, 
+    data_t data
+    );
 
 extern int check_yawff_w_ctlr_input( 
-                 array_t setpt, 
-			     config_t config, 
-                 array_t kine,
-                 array_t u,
-			     data_t data);
+    array_t setpt, 
+    config_t config, 
+    array_t kine,
+    array_t u,
+    data_t data);
 
 // Check system configuration structure
 extern int check_config(config_t config);

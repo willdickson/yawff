@@ -96,13 +96,13 @@ void sigint_func(int sig);
 void init_status_vals(status_t *status);
 void read_status(status_t *status_copy);
 void update_status(int i, 
-		   float t, 
-		   state_t *state, 
-		   torq_info_t torq_info,
-		   int motor_ind[MAX_MOTOR][2],
-		   int running,
-		   int err_msg,
-		   int wait_flag);
+       float t, 
+       state_t *state, 
+       torq_info_t torq_info,
+       int motor_ind[MAX_MOTOR][2],
+       int running,
+       int err_msg,
+       int wait_flag);
 
 // Global variables and constants
 volatile static int end = 0;
@@ -207,11 +207,11 @@ int yawff(array_t kine, config_t config, data_t data, int end_pos[])
       fflush_printf("                                                             ");
       fflush_printf("\r");
       fflush_printf("%3.0f\%, t: %3.2f, pos: %3.2f, vel: %3.2f, torq: %3.5f",
-		    100.0*(float)status.ind/(float)kine.nrow, 
-		    status_copy.t,
-		    status_copy.pos*RAD2DEG,
-		    status_copy.vel*RAD2DEG,
-		    status_copy.torq);
+          100.0*(float)status.ind/(float)kine.nrow, 
+          status_copy.t,
+          status_copy.pos*RAD2DEG,
+          status_copy.vel*RAD2DEG,
+          status_copy.torq);
       fflush_printf("\r");
     }
     nanosleep(&sleep_ts,NULL);
@@ -410,14 +410,16 @@ static void *yawff_thread(void *args)
   } // End for i
 
   // Set status information to final values before exiting
-  update_status(kine.nrow-1,
-		t,
-		state,
-		torq_info,
-		motor_ind,
-		RT_STOPPED,
-		err_flag,
-		RT_LOCK_WAIT);
+  update_status(
+      kine.nrow-1,
+      t,
+      state,
+      torq_info,
+      motor_ind,
+      RT_STOPPED,
+      err_flag,
+      RT_LOCK_WAIT
+      );
 
   // Leave realtime
   rt_make_soft_real_time();
@@ -542,12 +544,14 @@ int yawff_w_ctlr(
     if (status_copy.running) {
       fflush_printf("                                                             ");
       fflush_printf("\r");
-      fflush_printf("%3.0f\%, t: %3.2f, pos: %3.2f, vel: %3.2f, torq: %3.5f",
-    	    100.0*(float)status.ind/(float)kine.nrow, 
-    	    status_copy.t,
-    	    status_copy.pos*RAD2DEG,
-    	    status_copy.vel*RAD2DEG,
-    	    status_copy.torq);
+      fflush_printf(
+          "%3.0f\%, t: %3.2f, pos: %3.2f, vel: %3.2f, torq: %3.5f",
+          100.0*(float)status.ind/(float)kine.nrow, 
+          status_copy.t,
+          status_copy.pos*RAD2DEG,
+          status_copy.vel*RAD2DEG,
+          status_copy.torq
+          );
       fflush_printf("\r");
     }
     nanosleep(&sleep_ts,NULL);
@@ -758,14 +762,16 @@ static void *yawff_ctlr_thread(void *args)
   } // End for i
 
   // Set status information to final values before exiting
-  update_status(kine.nrow-1,
-    	t,
-    	state,
-    	torq_info,
-    	motor_ind,
-    	RT_STOPPED,
-    	err_flag,
-    	RT_LOCK_WAIT);
+  update_status(
+      kine.nrow-1,
+      t,
+      state,
+      torq_info,
+      motor_ind,
+      RT_STOPPED,
+      err_flag,
+      RT_LOCK_WAIT
+      );
 
   // Leave realtime
   rt_make_soft_real_time();
@@ -846,14 +852,16 @@ void read_status(status_t *status_copy)
 // Return: void
 //
 // ---------------------------------------------------------------------
-void update_status(int i, 
-		   float t, 
-		   state_t *state, 
-		   torq_info_t torq_info,
-		   int motor_ind[MAX_MOTOR][2],
-		   int running,
-		   int err_flag,
-		   int wait_flag)
+void update_status(
+    int i, 
+    float t, 
+    state_t *state, 
+    torq_info_t torq_info,
+    int motor_ind[MAX_MOTOR][2],
+    int running,
+    int err_flag,
+    int wait_flag
+    )
 {
   int j;
   int have_lock;
@@ -911,11 +919,13 @@ void update_status(int i,
 // return: SUCCESS or FAIL
 //
 // --------------------------------------------------------------------- 
-int update_data(data_t data, 
-		 int ind, 
-		 double t,
-		 state_t *state, 
-		 torq_info_t torq_info)
+int update_data(
+    data_t data, 
+    int ind, 
+    double t,
+    state_t *state, 
+    torq_info_t torq_info
+    )
 {
   if (set_array_val(data.t,ind,0,&t) != SUCCESS) {
     PRINT_ERR_MSG("setting time array value failed");
@@ -959,10 +969,12 @@ int set_clks_lo(comedi_info_t comedi_info, config_t config)
   int i;
 
   for (i=0; i<config.num_motor; i++) {
-    rval = comedi_dio_write(comedi_info.device,
-			    config.dio_subdev,
-			    config.dio_clk[i],
-			    DIO_LO);
+    rval = comedi_dio_write(
+        comedi_info.device,
+        config.dio_subdev,
+        config.dio_clk[i],
+        DIO_LO
+        );
     if (rval != 1) {
       PRINT_ERR_MSG("comedi_dio_write failed");
       return FAIL;
@@ -987,9 +999,11 @@ int set_clks_lo(comedi_info_t comedi_info, config_t config)
 // Return: SUCCESS or FAIL
 //
 // ---------------------------------------------------------------------
-int update_motor(int motor_ind[][2], 
-		 comedi_info_t comedi_info, 
-		 config_t config)
+int update_motor(
+    int motor_ind[][2], 
+    comedi_info_t comedi_info, 
+    config_t config
+    )
 {
   int i;
   int dpos;
@@ -1002,10 +1016,12 @@ int update_motor(int motor_ind[][2],
     
     // Set direction DIO
     dir_val = dpos >= 1 ? DIO_HI : DIO_LO;
-    rval = comedi_dio_write(comedi_info.device,
-			    config.dio_subdev,
-			    config.dio_dir[i],
-			    dir_val);
+    rval = comedi_dio_write(
+        comedi_info.device,
+        config.dio_subdev,
+        config.dio_dir[i],
+        dir_val
+        );
     if (rval!=1) {
       PRINT_ERR_MSG("comedi write dio dir failed");
       return FAIL;
@@ -1013,15 +1029,15 @@ int update_motor(int motor_ind[][2],
 
     // Set clock DIO
     if (abs(dpos) > 0) {
-      rval = comedi_dio_write(comedi_info.device,
-			      config.dio_subdev,
-			      config.dio_clk[i],
-			      DIO_HI);
-      
-    if (rval != 1) {
+      rval = comedi_dio_write(
+          comedi_info.device,
+          config.dio_subdev,
+          config.dio_clk[i],
+          DIO_HI
+          );
+      if (rval != 1) {
         PRINT_ERR_MSG("conedi write dio clk failed");
-	return FAIL;
-	
+        return FAIL;
       }
     }
   } // End for i
@@ -1048,11 +1064,13 @@ int update_motor(int motor_ind[][2],
 // Return: SUCCESS or FAIL
 //
 // ---------------------------------------------------------------------
-int update_ind(int motor_ind[][2],
-	       array_t kine, 
-	       int kine_ind,
-	       state_t *state, 
-	       config_t config)
+int update_ind(
+    int motor_ind[][2],
+    array_t kine, 
+    int kine_ind,
+    state_t *state, 
+    config_t config
+    )
 {
   int i;
   int ind;
@@ -1174,12 +1192,12 @@ void init_ind(int motor_ind[][2], config_t config)
 //
 // ---------------------------------------------------------------------- 
 int update_state(
-        state_t *state, 
-        double t,
-		torq_info_t *torq_info,
-		comedi_info_t comedi_info, 
-		config_t config
-        )
+    state_t *state, 
+    double t,
+    torq_info_t *torq_info,
+    comedi_info_t comedi_info, 
+    config_t config
+    )
 {
   float dt;
   float torq_raw;
@@ -1231,10 +1249,12 @@ int update_state(
 
   // Check if torque is greater than torque limit and if so disable motor
   if (fabsf(torq_filt) > config.yaw_torq_lim) {
-    rval = comedi_dio_config(comedi_info.device, 
-			     config.dio_subdev, 
-			     config.dio_disable,
-			     COMEDI_OUTPUT);
+    rval = comedi_dio_config(
+        comedi_info.device, 
+        config.dio_subdev, 
+        config.dio_disable,
+        COMEDI_OUTPUT
+        );
     if (rval != 1) {
       PRINT_ERR_MSG("unable to disable yaw motor");
     }
@@ -1249,13 +1269,15 @@ int update_state(
     state[0] = state[1];
     
     // Integrate one time step
-    rval = integrator(state[1],
-      	    &state[1],
-      	    torq_filt,
-      	    config.yaw_inertia, 
-      	    config.yaw_damping, 
-      	    dt,
-      	    config.integ_type);
+    rval = integrator(
+        state[1],
+        &state[1],
+        torq_filt,
+        config.yaw_inertia, 
+        config.yaw_damping, 
+        dt,
+        config.integ_type
+        );
     if (rval != SUCCESS ) {
       PRINT_ERR_MSG("integrator failed");
       return FAIL;
@@ -1384,12 +1406,14 @@ int get_ain(comedi_info_t comedi_info, config_t config, float *ain)
   lsampl_t ain_lsampl; 
 
   // Read value from daq card
-  rval = comedi_data_read(comedi_info.device,
-			  config.ain_subdev,
-			  config.yaw_ain,
-			  AIN_RANGE,
-			  AIN_AREF,
-			  &ain_lsampl);
+  rval = comedi_data_read(
+      comedi_info.device,
+      config.ain_subdev,
+      config.yaw_ain,
+      AIN_RANGE,
+      AIN_AREF,
+      &ain_lsampl
+      );
   if (rval!=1) {
     PRINT_ERR_MSG("comedi_data_read failed");
     return FAIL;
@@ -1461,20 +1485,24 @@ int init_comedi(comedi_info_t *comedi_info, config_t config)
   fflush_printf("configuring dio lines\n");
   for (i=0; i<config.num_motor; i++) {    
     // Set clock lines to output
-    rval = comedi_dio_config(comedi_info->device, 
-			     config.dio_subdev, 
-			     config.dio_clk[i],
-			     COMEDI_OUTPUT);
+    rval = comedi_dio_config(
+        comedi_info->device, 
+        config.dio_subdev, 
+        config.dio_clk[i],
+        COMEDI_OUTPUT
+        );
     if (rval != 1 ) {
       snprintf(err_msg, ERR_SZ, "unable to configure dio_clk[%d]", i);
       PRINT_ERR_MSG( err_msg);
       ret_flag = FAIL;
     }
     // Set direction lines to output 
-    rval = comedi_dio_config(comedi_info->device, 
-			     config.dio_subdev, 
-			     config.dio_dir[i],
-			     COMEDI_OUTPUT);
+    rval = comedi_dio_config(
+        comedi_info->device, 
+        config.dio_subdev, 
+        config.dio_dir[i],
+        COMEDI_OUTPUT
+        );
     if (rval != 1) {
       snprintf(err_msg, ERR_SZ, "unable to configure dio_dir[%d]", i);
       PRINT_ERR_MSG(err_msg);
@@ -1482,10 +1510,12 @@ int init_comedi(comedi_info_t *comedi_info, config_t config)
     }
   } // End for i
   // Set dio disable line to output
-  rval = comedi_dio_config(comedi_info->device, 
-			   config.dio_subdev, 
-			   config.dio_disable,
-			   COMEDI_OUTPUT);
+  rval = comedi_dio_config(
+      comedi_info->device, 
+      config.dio_subdev, 
+      config.dio_disable,
+      COMEDI_OUTPUT
+      );
   if (rval != 1) {
     PRINT_ERR_MSG("unable to configure dio_disable");
     ret_flag = FAIL;
@@ -1495,20 +1525,24 @@ int init_comedi(comedi_info_t *comedi_info, config_t config)
   fflush_printf("setting dio lines to DIO_LO\n");
   for (i=0; i<config.num_motor; i++) {
     // Set clk dio line to zero
-    rval = comedi_dio_write(comedi_info->device,
-			    config.dio_subdev,
-			    config.dio_clk[i],
-			    DIO_LO);
+    rval = comedi_dio_write(
+        comedi_info->device,
+        config.dio_subdev,
+        config.dio_clk[i],
+        DIO_LO
+        );
     if (rval != 1) {
       snprintf(err_msg, ERR_SZ, "unable to set dio_clk[%d] to zero", i);
       PRINT_ERR_MSG(err_msg);
       ret_flag = FAIL;
     }
     // Set dir dio line to zero
-    rval = comedi_dio_write(comedi_info->device,
-			    config.dio_subdev,
-			    config.dio_dir[i],
-			    DIO_LO);
+    rval = comedi_dio_write(
+        comedi_info->device,
+        config.dio_subdev,
+        config.dio_dir[i],
+        DIO_LO
+        );
     if (rval != 1) {
       snprintf(err_msg, ERR_SZ, "unable to set dio_dir[%d] to zero", i);
       PRINT_ERR_MSG(err_msg);
@@ -1516,24 +1550,30 @@ int init_comedi(comedi_info_t *comedi_info, config_t config)
     } 
   } // End for i
   // Set dio_disable line to zero
-  rval = comedi_dio_write(comedi_info->device,
-			  config.dio_subdev,
-			  config.dio_disable,
-			  DIO_LO);
+  rval = comedi_dio_write(
+      comedi_info->device,
+      config.dio_subdev,
+      config.dio_disable,
+      DIO_LO
+      );
   if (rval != 1) {
     PRINT_ERR_MSG("unable to set dio_disable to zero");
     ret_flag = FAIL;
   }
 
   // Get max data and krange for conversion to physical units
-  comedi_info->maxdata = comedi_get_maxdata(comedi_info -> device, 
-					    config.ain_subdev, 
-					    config.yaw_ain);
-  rval = comedi_get_krange(comedi_info->device, 
-			   config.ain_subdev, 
-			   config.yaw_ain, 
-			   AIN_RANGE, 
-			   &(comedi_info->krange));
+  comedi_info->maxdata = comedi_get_maxdata(
+      comedi_info -> device, 
+      config.ain_subdev, 
+      config.yaw_ain
+      );
+  rval = comedi_get_krange(
+      comedi_info->device, 
+      config.ain_subdev, 
+      config.yaw_ain, 
+      AIN_RANGE, 
+      &(comedi_info->krange)
+      );
   if (rval < 0) {
     PRINT_ERR_MSG("unable to get krange");
     return FAIL;

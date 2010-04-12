@@ -197,12 +197,12 @@ float lowpass_filt1(float x,float y_old, float f_cut, float dt)
 // -----------------------------------------------------------------
 float highpass_filt1(float dx,  float y_old, float f_cut, float dt)
 {
-    float tc = 1.0/(2.0*M_PI*f_cut);
-    float y_new;
-    float alpha;
-    alpha = tc/(tc + dt);
-    y_new = alpha*y_old + alpha*dx;
-    return y_new;
+  float tc = 1.0/(2.0*M_PI*f_cut);
+  float y_new;
+  float alpha;
+  alpha = tc/(tc + dt);
+  y_new = alpha*y_old + alpha*dx;
+  return y_new;
 }
 
 // ----------------------------------------------------------------

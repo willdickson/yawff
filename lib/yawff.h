@@ -333,6 +333,15 @@ extern int get_ctlr_u(
     config_t config
     );
 
+// Update wing kinematics 
+extern int update_wing_kine(
+    int ind,
+    double t,
+    float u,
+    array_t kine,
+    config_t config
+    );
+
 // Update motor positions - move the motors
 extern int update_motor(
     int motor_ind[][2], 

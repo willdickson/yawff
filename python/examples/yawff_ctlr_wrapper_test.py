@@ -85,10 +85,13 @@ print 'u.shape', u.shape
 
 print u
 
-pylab.plot(tt,setpt,'r')
-pylab.plot(tt,dsetpt,'b')
-pylab.plot(t, (180.0/scipy.pi)*u, 'g')
+pylab.plot(t,kine[:,0])
 pylab.show()
+
+#pylab.plot(tt,setpt,'r')
+#pylab.plot(tt,dsetpt,'b')
+#pylab.plot(t, (180.0/scipy.pi)*u, 'g')
+#pylab.show()
 
 #pylab.subplot(311)
 #pylab.plot(t,pos)

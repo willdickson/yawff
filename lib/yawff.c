@@ -730,6 +730,11 @@ static void *yawff_ctlr_thread(void *args)
     }
     
     // Get wing kineamtics based on control value
+    if (update_wing_kine(i,t,curr_u,kine,config) != SUCCESS) {
+      PRINT_ERR_MSG("updating wing kinematics failed");
+      err_flag |= RT_TASK_ERROR;
+      break;
+    }
       
     // Update kinematics array
 
@@ -812,6 +817,16 @@ static void *yawff_ctlr_thread(void *args)
 // the set point, the yaw positoin or velocity (depending on controller
 // type), and the controller parameters (pgain and dgain).
 //
+// Arguments:
+//   ctlr_err (IO) = array of controller errors (IO)
+//                 cltr_err[0] = previous error
+//                 cltr_err[1] = current error
+//
+//   u (O) = pointer to storage location for current control signal 
+//   setpt (I) = current setpoint value
+//   config = configuration structure
+//    
+//
 // Return: SUCCESS or FAIL
 //
 // -------------------------------------------------------------------
@@ -850,6 +865,70 @@ extern int get_ctlr_u(
   
   // Compute control signal - simple PD controller 
   *u = config.ctlr_param.pgain*ctlr_err[1] + config.ctlr_param.dgain*deriv_ctlr_err;
+
+  return rtn_flag;
+}
+
+// -------------------------------------------------------------------
+// Function: update_wing_kine 
+//
+// Purpose: 
+//
+// Return: SUCCESS or FAIL
+//
+// -------------------------------------------------------------------
+int update_wing_kine(
+    int ind,
+    double t,
+    float u,
+    array_t kine,
+    config_t config
+    )
+{
+  int rtn_flag = SUCCESS;
+  int i;
+  float vals[MAX_MOTOR];
+  
+  // Compute stroke, rotation and deviation angles
+  switch(config.kine_param.type) {
+
+    case DIFF_AOA_ID:
+      // Dummy values need to set this to actual kinematics
+      vals[STROKE_0_ID] = sinf(2.0*M_PI*t);
+      vals[STROKE_1_ID] = sinf(2.0*M_PI*t);
+      vals[ROTATION_0_ID] = sinf(2.0*M_PI*t);
+      vals[ROTATION_1_ID] = sinf(2.0*M_PI*t);
+      vals[DEVIATION_0_ID] = sinf(2.0*M_PI*t);
+      vals[DEVIATION_1_ID] = sinf(2.0*M_PI*t);
+     break;
+
+    case DIFF_DEV_ID:
+      // Dummy values need to set this to actual kinematics
+      vals[STROKE_0_ID] = sinf(2.0*M_PI*t);
+      vals[STROKE_1_ID] = sinf(2.0*M_PI*t);
+      vals[ROTATION_0_ID] = sinf(2.0*M_PI*t);
+      vals[ROTATION_1_ID] = sinf(2.0*M_PI*t);
+      vals[DEVIATION_0_ID] = sinf(2.0*M_PI*t);
+      vals[DEVIATION_1_ID] = sinf(2.0*M_PI*t);
+     break; 
+
+    default:
+     PRINT_ERR_MSG("unknown kinematics type");
+     rtn_flag = FAIL;
+     break;
+
+  } 
+
+  // Set values in kinematics array
+  for (i=0; i< config.num_motor; i++) {
+    if (config.motor_cal[i].type == YAW_ID) {
+      continue;
+    }
+    if (set_array_val(kine,ind,i,&vals[config.motor_cal[i].type]) != SUCCESS) {
+      PRINT_ERR_MSG("setting kine array value failed");
+      rtn_flag = FAIL;
+    }
+  } 
 
   return rtn_flag;
 }

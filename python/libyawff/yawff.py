@@ -299,7 +299,8 @@ def yawff_ctlr_c_wrapper(setpt, config):
     pos = scipy.zeros((n,1), dtype = scipy.dtype('float32'))
     vel = scipy.zeros((n,1), dtype = scipy.dtype('float32'))
     torq = scipy.zeros((n,2), dtype = scipy.dtype('float32'))
-    kine = scipy.zeros((n, config['num_motor']), scipy.dtype('int'))
+    #kine = scipy.zeros((n, config['num_motor']), scipy.dtype('int'))
+    kine = scipy.zeros((n, config['num_motor']), scipy.dtype('float32'))
     u = scipy.zeros((n,1), dtype =scipy.dtype('float32'))
 
     # Create c data structure

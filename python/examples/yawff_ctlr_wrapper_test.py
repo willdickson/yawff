@@ -49,7 +49,7 @@ config = {
     'ctlr_flag'         : libyawff.CTLR_ON,
     'ctlr_type'         : libyawff.CTLR_TYPE_VEL,
     'ctlr_pgain'        : 1.0,
-    'ctlr_dgain'        : 2.0,
+    'ctlr_dgain'        : 0.2,
     'kine_type'         : 'diff_aoa',
     'kine_period'       : 6.0,
     'stroke_amp'        : 90.0,
@@ -65,7 +65,10 @@ config = {
 #for k,v in config.iteritems():
 #    print k,v 
 
-setpt = scipy.zeros((N,1))
+tt = config['dt']*scipy.arange(0,N)
+tt = tt.reshape((N,1))
+setpt = scipy.sin(2.0*scipy.pi*tt)
+dsetpt = 2.0*scipy.pi*scipy.cos(2.0*scipy.pi*tt)
 
 t, pos, vel, torq, kine, u, end_pos = libyawff.yawff_ctlr_c_wrapper(setpt, config)
 
@@ -81,6 +84,11 @@ print 'kine.shape', kine.shape
 print 'u.shape', u.shape
 
 print u
+
+pylab.plot(tt,setpt,'r')
+pylab.plot(tt,dsetpt,'b')
+pylab.plot(t, (180.0/scipy.pi)*u, 'g')
+pylab.show()
 
 #pylab.subplot(311)
 #pylab.plot(t,pos)

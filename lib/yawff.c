@@ -631,11 +631,13 @@ static void *yawff_ctlr_thread(void *args)
   torq_info_t torq_info;
   state_t state[2];            // state[0] = previous, state[1] = current 
   int motor_ind[MAX_MOTOR][2]; // Motor index position [i][0] previous, [i][1] current
-  float runtime;
-  double t;
   int err_flag = 0;
   int i;
-  float temp;
+  float runtime;
+  float curr_setpt;
+  float curr_u;
+  float ctlr_err[2] = {0.0,0.0};           // ctlr_err[0] = previous controller error, ctlr_err[1] = current controller error
+  double t;
 
   // Unpack arguments passed to thread
   thread_args = (yawff_ctlr_args_t *) args;
@@ -711,10 +713,25 @@ static void *yawff_ctlr_thread(void *args)
     }
 
     // Update controller
-    temp = 1.0;
-    set_array_val(u,i,0,&temp);
+    if (get_array_val(setpt,i,0,&curr_setpt) != SUCCESS) {
+      PRINT_ERR_MSG("getting setpt value failed");
+      err_flag |= RT_TASK_ERROR;
+      break;
+    }
+    if (get_ctlr_u(ctlr_err, &curr_u, curr_setpt, state, config) != SUCCESS) {
+      PRINT_ERR_MSG("getting control value failed");
+      err_flag |= RT_TASK_ERROR;
+      break;
+    } 
+    if (set_array_val(u,i,0,&curr_u) != SUCCESS) {
+      PRINT_ERR_MSG("setting u array value failed");
+      err_flag |= RT_TASK_ERROR;
+      break;
+    }
     
-    // Get kinematics based on controller
+    // Get wing kineamtics based on control value
+      
+    // Update kinematics array
 
   //  // Update motor index array
   //  if (update_ind(motor_ind,kine,i,state,config) != SUCCESS) {
@@ -729,13 +746,13 @@ static void *yawff_ctlr_thread(void *args)
       break;
     }
     
-  //  // Update data
-  //  if (update_data(data,i,t,state,torq_info) != SUCCESS) {
-  //    PRINT_ERR_MSG("updating data arrays failed");
-  //    err_flag |= RT_TASK_ERROR;
-  //    break;
-  //  }
-  //  
+    // Update data
+    if (update_data(data,i,t,state,torq_info) != SUCCESS) {
+      PRINT_ERR_MSG("updating data arrays failed");
+      err_flag |= RT_TASK_ERROR;
+      break;
+    }
+    
     // Sleep for CLOCK_HI_NS and then set clock lines low
     rt_sleep_until(nano2count(now_ns + (RTIME) CLOCK_HI_NS));
     if (set_clks_lo(comedi_info, config) != SUCCESS) {
@@ -787,6 +804,56 @@ static void *yawff_ctlr_thread(void *args)
 
   return 0;
 }
+
+// -------------------------------------------------------------------
+// Function: get_ctlr_u 
+//
+// Purpose: get control signal value based on the current value of
+// the set point, the yaw positoin or velocity (depending on controller
+// type), and the controller parameters (pgain and dgain).
+//
+// Return: SUCCESS or FAIL
+//
+// -------------------------------------------------------------------
+extern int get_ctlr_u(
+    float ctlr_err[],
+    float *u,
+    float setpt,  
+    state_t *state,
+    config_t config
+    )
+{
+  int rtn_flag = SUCCESS;
+  float deriv_ctlr_err;
+
+  // Get controller error based on controller type
+  ctlr_err[0] = ctlr_err[1];
+
+  switch(config.ctlr_param.type) { 
+
+    case CTLR_TYPE_VEL:
+      ctlr_err[1] = DEG2RAD*setpt - state[1].pos;
+      break;
+
+    case CTLR_TYPE_POS:
+      ctlr_err[1] = DEG2RAD*setpt - state[1].vel;
+      break;
+
+    default:
+      PRINT_ERR_MSG("unknown controller type");
+      rtn_flag = FAIL;
+      break; 
+  }
+
+  // Get time rate of change of control error
+  deriv_ctlr_err = (ctlr_err[1] - ctlr_err[0])/(NS2S*(double) config.dt);
+  
+  // Compute control signal - simple PD controller 
+  *u = config.ctlr_param.pgain*ctlr_err[1] + config.ctlr_param.dgain*deriv_ctlr_err;
+
+  return rtn_flag;
+}
+
 // -------------------------------------------------------------------
 // Function: init_status_vals
 //
@@ -1126,26 +1193,6 @@ int update_ind(
   return SUCCESS;
 }
 
-
-// ---------------------------------------------------------------------
-// Function: update_ind_w_ctlr
-//
-// Purpose: Updates array of motor indices based on the controller output
-// and the  
-//
-// Return: SUCCESS or FAIL
-//
-// ---------------------------------------------------------------------
-int update_ind_w_ctlr(
-    int motor_ind[][2], 
-    double t, 
-    state_t *state,
-    config_t config
-    )
-{
-
-  return SUCCESS;
-}
 
 // ---------------------------------------------------------------------
 // Function: init_ind

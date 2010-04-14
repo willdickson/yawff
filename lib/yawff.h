@@ -324,10 +324,11 @@ extern int update_ind(
     config_t config
     );
 
-// Get motor indices for differential angle of attack kinematics 
-extern int update_ind_w_ctlr(
-    int motor_ind[][2], 
-    double t, 
+// Get control value 
+extern int get_ctlr_u(
+    float ctlr_err[],
+    float *u,
+    float setpt,  
     state_t *state,
     config_t config
     );

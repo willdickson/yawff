@@ -736,12 +736,12 @@ static void *yawff_ctlr_thread(void *args)
       break;
     }
 
-  //  // Update motor index array
-  //  if (update_ind(motor_ind,kine,i,state,config) != SUCCESS) {
-  //    PRINT_ERR_MSG("updating motor indices failed");
-  //    err_flag |= RT_TASK_ERROR;
-  //    break;
-  //  }
+    // Update motor index array
+    if (update_ind(motor_ind,kine,i,state,config) != SUCCESS) {
+      PRINT_ERR_MSG("updating motor indices failed");
+      err_flag |= RT_TASK_ERROR;
+      break;
+    }
   
     // Update motor positions
     if (update_motor(motor_ind, comedi_info, config) != SUCCESS) {
@@ -903,6 +903,8 @@ int update_wing_kine(
 {
   int rtn_flag = SUCCESS;
   int i;
+  int motor_num;
+  int kine_num;
   float vals[MAX_MOTOR];
   float T;
   float str_amp;
@@ -959,14 +961,17 @@ int update_wing_kine(
   } 
 
   // Set values in kinematics array
+  kine_num = 0;
   for (i=0; i< config.num_motor; i++) {
     if (config.motor_id_map[i] == YAW_ID) {
       continue;
     }
-    if (set_array_val(kine,ind,i,&vals[config.motor_id_map[i]]) != SUCCESS) {
+    motor_num = config.kine_map[kine_num];
+    if (set_array_val(kine,ind,motor_num,&vals[config.motor_id_map[i]]) != SUCCESS) {
       PRINT_ERR_MSG("setting kine array value failed");
       rtn_flag = FAIL;
     }
+    kine_num += 1;
   } 
 
   return rtn_flag;
@@ -1261,6 +1266,8 @@ int update_ind(
   int ind;
   int kine_num;
   int motor_num; 
+  float ang;
+
   // Set current indices to previous indices 
   for (i=0; i<config.num_motor; i++) {
     motor_ind[i][0] = motor_ind[i][1];
@@ -1298,14 +1305,41 @@ int update_ind(
       }
     }
     else {
-      // This is a wing  motor get index from kine array
+
+      // This is a wing motor
       motor_num = config.kine_map[kine_num];
-      if (get_array_val(kine,kine_ind,motor_num,&ind) != SUCCESS) {
-          PRINT_ERR_MSG("problem accessing kine array");
+
+      switch(config.ctlr_flag) {
+
+        case CTLR_OFF:
+          // Get index from kine array
+          if (get_array_val(kine,kine_ind,motor_num,&ind) != SUCCESS) {
+              PRINT_ERR_MSG("problem accessing kine array");
+              return FAIL;
+          }
+          break;
+
+        case CTLR_ON:
+          // Get angle from kine array
+          if (get_array_val(kine,kine_ind,motor_num,&ang) != SUCCESS) {
+            PRINT_ERR_MSG("problem accessing kine array");
+            return FAIL;
+          }
+          // Convert angle to motor index
+          if (apply_motor_cal(config.motor_cal[i],ang,&ind) != SUCCESS) {
+            PRINT_ERR_MSG("problem converting angle to motor index");
+            return FAIL;
+          }
+          break;
+
+        default:
+          PRINT_ERR_MSG("unknown controller flag");
           return FAIL;
+          break;
       }
       kine_num += 1;
-    }
+    } 
+
     motor_ind[motor_num][1] = ind;
   }
   return SUCCESS;

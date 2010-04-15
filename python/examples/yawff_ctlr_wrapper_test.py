@@ -18,6 +18,9 @@ kine_map = tuple([i for i in motor_num_list if i != yaw_num])
 motor_name_map = libmove_motor.get_num2name_map(motor_maps)
 motor_cal = libmove_motor.get_motor_cal(motor_maps)
 
+#print kine_map
+#assert 1==0
+
 config = {
     'dev_name'          : '/dev/comedi0',
     'ain_subdev'        : 0,

@@ -634,8 +634,8 @@ static void *yawff_ctlr_thread(void *args)
   int err_flag = 0;
   int i;
   float runtime;
-  float curr_setpt;
-  float curr_u;
+  float curr_setpt = 0.0;
+  float curr_u = 0.0;
   float ctlr_err[2] = {0.0,0.0};           // ctlr_err[0] = previous controller error, ctlr_err[1] = current controller error
   double t;
 
@@ -718,7 +718,7 @@ static void *yawff_ctlr_thread(void *args)
       err_flag |= RT_TASK_ERROR;
       break;
     }
-    if (get_ctlr_u(ctlr_err, &curr_u, curr_setpt, state, config) != SUCCESS) {
+    if (get_ctlr_u(ctlr_err, &curr_u, i, curr_setpt, state, config) != SUCCESS) {
       PRINT_ERR_MSG("getting control value failed");
       err_flag |= RT_TASK_ERROR;
       break;
@@ -735,8 +735,6 @@ static void *yawff_ctlr_thread(void *args)
       err_flag |= RT_TASK_ERROR;
       break;
     }
-      
-    // Update kinematics array
 
   //  // Update motor index array
   //  if (update_ind(motor_ind,kine,i,state,config) != SUCCESS) {
@@ -744,6 +742,7 @@ static void *yawff_ctlr_thread(void *args)
   //    err_flag |= RT_TASK_ERROR;
   //    break;
   //  }
+  
     // Update motor positions
     if (update_motor(motor_ind, comedi_info, config) != SUCCESS) {
       PRINT_ERR_MSG("updating motor positions failed");
@@ -818,13 +817,13 @@ static void *yawff_ctlr_thread(void *args)
 // type), and the controller parameters (pgain and dgain).
 //
 // Arguments:
-//   ctlr_err (IO) = array of controller errors (IO)
-//                 cltr_err[0] = previous error
-//                 cltr_err[1] = current error
-//
-//   u (O) = pointer to storage location for current control signal 
-//   setpt (I) = current setpoint value
-//   config = configuration structure
+//   ctlr_err = (IO) array of controller errors 
+//              cltr_err[0] = previous error
+//              cltr_err[1] = current error
+//   u        = (O) pointer to storage location for current control signal 
+//   ind      = (I) current loop index w.r.t to setpt array 
+//   setpt    = (I) current setpoint value
+//   config   = (I) configuration structure
 //    
 //
 // Return: SUCCESS or FAIL
@@ -833,6 +832,7 @@ static void *yawff_ctlr_thread(void *args)
 extern int get_ctlr_u(
     float ctlr_err[],
     float *u,
+    int ind,
     float setpt,  
     state_t *state,
     config_t config
@@ -861,10 +861,18 @@ extern int get_ctlr_u(
   }
 
   // Get time rate of change of control error
-  deriv_ctlr_err = (ctlr_err[1] - ctlr_err[0])/(NS2S*(double) config.dt);
-  
+  if (ind != 0) {
+    deriv_ctlr_err = (ctlr_err[1] - ctlr_err[0])/(NS2S*(double) config.dt);
+  }
+  else {
+    // If it the first time through the loop set to zero to avoid
+    // discontinuities.
+    deriv_ctlr_err = 0.0;
+  }
+
   // Compute control signal - simple PD controller 
   *u = config.ctlr_param.pgain*ctlr_err[1] + config.ctlr_param.dgain*deriv_ctlr_err;
+  *u = *u*RAD2DEG;
 
   return rtn_flag;
 }
@@ -872,7 +880,15 @@ extern int get_ctlr_u(
 // -------------------------------------------------------------------
 // Function: update_wing_kine 
 //
-// Purpose: 
+// Purpose: updates wing kinematics based on current time, control
+// signal value, and the kinematics parameters.
+//
+// Arguments:
+//   ind    = current index, for update kinematics in array
+//   t      = current time in seconds
+//   u      = control signal value
+//   kine   = kinematics array
+//   config = configuration structure
 //
 // Return: SUCCESS or FAIL
 //
@@ -888,28 +904,51 @@ int update_wing_kine(
   int rtn_flag = SUCCESS;
   int i;
   float vals[MAX_MOTOR];
+  float T;
+  float str_amp;
+  float rot_amp;
+  float str_k;
+  float rot_k;
+  float u_clamped;
+
+  // Get kinematics parameters from configuration
+  T = config.kine_param.period;
+  str_amp = config.kine_param.stroke_amp;
+  rot_amp = config.kine_param.rotation_amp;
+  str_k = config.kine_param.stroke_k;
+  rot_k = config.kine_param.rotation_k;
   
   // Compute stroke, rotation and deviation angles
   switch(config.kine_param.type) {
 
     case DIFF_AOA_ID:
+
+      // Clamp control signal
+      u_clamped = u < (float) DIFF_AOA_MAX_U ? u : (float) DIFF_AOA_MAX_U;
+      u_clamped = u_clamped > -(float)DIFF_AOA_MAX_U ? u_clamped : -(float)DIFF_AOA_MAX_U;
+      
       // Dummy values need to set this to actual kinematics
-      vals[STROKE_0_ID] = sinf(2.0*M_PI*t);
-      vals[STROKE_1_ID] = sinf(2.0*M_PI*t);
-      vals[ROTATION_0_ID] = sinf(2.0*M_PI*t);
-      vals[ROTATION_1_ID] = sinf(2.0*M_PI*t);
-      vals[DEVIATION_0_ID] = sinf(2.0*M_PI*t);
-      vals[DEVIATION_1_ID] = sinf(2.0*M_PI*t);
+      vals[STROKE_0_ID] = (str_amp/asinf(str_k))*asinf(str_k*((float)cos(2.0*M_PI*t/(double)T)));
+      vals[STROKE_1_ID] = (str_amp/asinf(str_k))*asinf(str_k*((float)cos(2.0*M_PI*t/(double)T)));
+      vals[ROTATION_0_ID] = (rot_amp/tanhf(rot_k))*tanhf(rot_k*((float)sin(2.0*M_PI*t/(double)T))) - u_clamped;
+      vals[ROTATION_1_ID] = (rot_amp/tanhf(rot_k))*tanhf(rot_k*((float)sin(2.0*M_PI*t/(double)T))) + u_clamped;
+      vals[DEVIATION_0_ID] = 0.0;
+      vals[DEVIATION_1_ID] = 0.0;
      break;
 
     case DIFF_DEV_ID:
+
+      // Clamp control signal
+      u_clamped = u < DIFF_DEV_MAX_U ? u : DIFF_DEV_MAX_U;
+      u_clamped = u_clamped > -DIFF_DEV_MAX_U ? u : -DIFF_DEV_MAX_U;
+
       // Dummy values need to set this to actual kinematics
-      vals[STROKE_0_ID] = sinf(2.0*M_PI*t);
-      vals[STROKE_1_ID] = sinf(2.0*M_PI*t);
-      vals[ROTATION_0_ID] = sinf(2.0*M_PI*t);
-      vals[ROTATION_1_ID] = sinf(2.0*M_PI*t);
-      vals[DEVIATION_0_ID] = sinf(2.0*M_PI*t);
-      vals[DEVIATION_1_ID] = sinf(2.0*M_PI*t);
+      vals[STROKE_0_ID] = (str_amp/asinf(str_k))*asinf(str_k*cosf(2.0*M_PI*t/T));
+      vals[STROKE_1_ID] = (str_amp/asinf(str_k))*asinf(str_k*cosf(2.0*M_PI*t/T));
+      vals[ROTATION_0_ID] = (rot_amp/tanhf(rot_k))*tanhf(rot_k*sinf(2.0*M_PI*t/T));
+      vals[ROTATION_1_ID] = (rot_amp/tanhf(rot_k))*tanhf(rot_k*sinf(2.0*M_PI*t/T));
+      vals[DEVIATION_0_ID] = u_clamped;
+      vals[DEVIATION_1_ID] = -u_clamped; 
      break; 
 
     default:
@@ -921,10 +960,10 @@ int update_wing_kine(
 
   // Set values in kinematics array
   for (i=0; i< config.num_motor; i++) {
-    if (config.motor_cal[i].type == YAW_ID) {
+    if (config.motor_id_map[i] == YAW_ID) {
       continue;
     }
-    if (set_array_val(kine,ind,i,&vals[config.motor_cal[i].type]) != SUCCESS) {
+    if (set_array_val(kine,ind,i,&vals[config.motor_id_map[i]]) != SUCCESS) {
       PRINT_ERR_MSG("setting kine array value failed");
       rtn_flag = FAIL;
     }

@@ -5,7 +5,6 @@ import pylab
 import libyawff
 
 RAD2DEG = 180.0/scipy.pi
-N=10000
 
 # Read in data from motor map
 mapfile = 'yawff_motor_maps.conf'
@@ -18,7 +17,6 @@ num_motor = len(motor_num_list)
 kine_map = tuple([i for i in motor_num_list if i != yaw_num]) 
 motor_name_map = libmove_motor.get_num2name_map(motor_maps)
 motor_cal = libmove_motor.get_motor_cal(motor_maps)
-
 
 config = {
     'dev_name'          : '/dev/comedi0',
@@ -49,7 +47,7 @@ config = {
     'ctlr_flag'         : libyawff.CTLR_ON,
     'ctlr_type'         : libyawff.CTLR_TYPE_VEL,
     'ctlr_pgain'        : 1.0,
-    'ctlr_dgain'        : 0.2,
+    'ctlr_dgain'        : 0.3,
     'kine_type'         : 'diff_aoa',
     'kine_period'       : 6.0,
     'stroke_amp'        : 90.0,
@@ -59,16 +57,17 @@ config = {
     'motor_cal'         : motor_cal,
 }
 
-#print 
-#print 'config'
-#print '-'*60
-#for k,v in config.iteritems():
-#    print k,v 
+
+num_cycle = 1
+N = int(num_cycle*config['kine_period']/config['dt'])
+print 'N = %d'%(N,)
 
 tt = config['dt']*scipy.arange(0,N)
 tt = tt.reshape((N,1))
-setpt = scipy.sin(2.0*scipy.pi*tt)
-dsetpt = 2.0*scipy.pi*scipy.cos(2.0*scipy.pi*tt)
+setpt = 10.0*scipy.sin(2.0*scipy.pi*tt/(2.0*config['kine_period']))
+#setpt = 5.0*scipy.ones((N,1))
+
+#setpt = scipy.zeros((N,1))
 
 t, pos, vel, torq, kine, u, end_pos = libyawff.yawff_ctlr_c_wrapper(setpt, config)
 
@@ -83,9 +82,10 @@ print 'torq.shape', torq.shape
 print 'kine.shape', kine.shape
 print 'u.shape', u.shape
 
-print u
-
-pylab.plot(t,kine[:,0])
+for i in range(0,kine.shape[1]):
+    if config['motor_name_map'][i] in ('rotation_0', 'rotation_1'):
+        pylab.plot(t,kine[:,i])
+        print kine[:,i].max(), kine[:,i].min()
 pylab.show()
 
 #pylab.plot(tt,setpt,'r')

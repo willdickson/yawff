@@ -102,6 +102,8 @@
 #define KINE_MAX_STROKE_K 1.0       // Maximum allowed stroke shape parameter
 #define KINE_MIN_ROTATION_K 0.0001  // Minimum allowed rotation shape parameter
 #define NUM_KINE_TYPE 2
+#define DIFF_AOA_MAX_U 20 
+#define DIFF_DEV_MAX_U 15
 
 // Motor identifiers - specifies what motor does.
 enum MOTOR_IDS {
@@ -328,6 +330,7 @@ extern int update_ind(
 extern int get_ctlr_u(
     float ctlr_err[],
     float *u,
+    int ind,
     float setpt,  
     state_t *state,
     config_t config

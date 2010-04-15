@@ -57,7 +57,11 @@ DFLT_K_STROKE = 0.01
 DFLT_K_ROTATION = 1.5
 DFLT_ROTATION_OFFSET = 0.0 
 
-class Yawff:
+class Yawff_Base(object):
+
+    """
+    Base class for Yawff and Yawff_w_Ctlr classes
+    """
 
     def __init__(self, 
                  run_params, 
@@ -69,7 +73,7 @@ class Yawff:
                  move_accel=DFLT_MOVE_ACCEL,
                  move_dt=DFLT_MOVE_DT):
         """
-        Initialize Yawff class
+        Initialize Yawff_Base class
         """
         if motor_maps_file==None or sensor_cal_file==None or comedi_conf_file==None:
             dflts = read_defaults(defaults_file)
@@ -101,8 +105,6 @@ class Yawff:
         self.move_accel = move_accel
         self.move_dt = move_dt
         self.config_dict = self.create_config_dict()
-        self.kine_deg = None
-        self.t = None
         self.pause_t = DFLT_PAUSE_T
 
 
@@ -222,6 +224,112 @@ class Yawff:
             ramp_move = libmove_motor.convert2int(ramp_move)
             end_pos, ret_val = libmove_motor.outscan_kine(ramp_move,config,self.move_dt)
 
+    def num_motors(self):
+        """
+        Returns the number of motors
+        """
+        motor_num_list = libmove_motor.get_motor_num_list(self.motor_maps)
+        return len(motor_num_list)
+
+    def get_motor_num(self,name):
+        """
+        Returns motor number given the motor name
+        """
+        return self.motor_maps[name]['number']
+
+
+class Yawff_w_Ctlr(Yawff_Base):
+
+    """
+    Yawff force feedback device w/ velocity and position controller. Kinematics
+    are not prescribed, but rather are generated at runtime using the controller.
+    """
+
+    def __init__(self, 
+                 run_params, 
+                 motor_maps_file=None, 
+                 sensor_cal_file=None, 
+                 comedi_conf_file=None,
+                 defaults_file=DFLT_CONFIG_FILE,
+                 move_vmax=DFLT_MOVE_VMAX,
+                 move_accel=DFLT_MOVE_ACCEL,
+                 move_dt=DFLT_MOVE_DT):
+
+        # Call parent class initialization method
+        super(Yawff,self).__init__(
+            run_params,
+            motor_maps_file = motor_maps_file,
+            sensor_cal_file = sensor_cal_file,
+            comedi_conf_file = comedi_conf_file,
+            defaults_file = defaults_file,
+            move_vmax = move_vmax,
+            move_accel = move_accel,
+            move_dt = move_dt,
+        )
+
+        # Custom initialization
+        self.setpt = None
+
+    def run(self,setpt=None):
+        if setpt == None:
+            if self.setpt == None:
+                raise RuntimeError, 'no setpt to run'
+            else:
+                setpt = self.setpt
+
+        config = self.config_dict
+
+        # Move to starting position
+
+        # Sleep to wait for force transients to die down - can effect autozero
+
+        # Run force-feedback w/ controller function
+
+        # Convert positin and velocity from radians to degrees
+
+        # Extract filtered and raw torque data
+
+        # Return to zero position
+
+        # Reset all pwm signal to there default positions. This is a kludge to help
+        # w/ the fact that we seem to sometimes lose a bit of position in the pwm 
+        # signals. I am not sure what is causing this - hardware or software. 
+        # I will need to to some more tests after this next set of experiments.
+
+
+class Yawff(Yawff_Base):
+
+    """
+    Yawff force feedback device. In this version the kinematics are prescribed.
+    """
+
+    def __init__(self, 
+                 run_params, 
+                 motor_maps_file=None, 
+                 sensor_cal_file=None, 
+                 comedi_conf_file=None,
+                 defaults_file=DFLT_CONFIG_FILE,
+                 move_vmax=DFLT_MOVE_VMAX,
+                 move_accel=DFLT_MOVE_ACCEL,
+                 move_dt=DFLT_MOVE_DT):
+
+        # Call parent class initialization method
+        super(Yawff,self).__init__(
+            run_params,
+            motor_maps_file = motor_maps_file,
+            sensor_cal_file = sensor_cal_file,
+            comedi_conf_file = comedi_conf_file,
+            defaults_file = defaults_file,
+            move_vmax = move_vmax,
+            move_accel = move_accel,
+            move_dt = move_dt,
+        )
+
+        # Custom initialization
+        self.kine_deg = None
+        self.t = None
+
+
     def run(self, kine_deg=None):
         """
         Run yaw force-feedback function.
@@ -252,7 +360,7 @@ class Yawff:
         kine_ind = libmove_motor.deg2ind(kine_deg, self.motor_maps)
         t, pos, vel, torq, end_pos_ind = libyawff.yawff_c_wrapper(kine_ind, config)
         
-        # Convert from radians to degrees
+        # Convert positin and velocity from radians to degrees
         pos = RAD2DEG*pos
         vel = RAD2DEG*vel
 
@@ -278,18 +386,6 @@ class Yawff:
 
         return t, pos, vel, torq_flt, torq_raw
 
-    def num_motors(self):
-        """
-        Returns the number of motors
-        """
-        motor_num_list = libmove_motor.get_motor_num_list(self.motor_maps)
-        return len(motor_num_list)
-
-    def get_motor_num(self,name):
-        """
-        Returns motor number given the motor name
-        """
-        return self.motor_maps[name]['number']
 
     def set_zero_kine(self, T):
         config = self.config_dict

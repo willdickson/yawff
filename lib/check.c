@@ -90,6 +90,10 @@ int check_yawff_input(array_t kine, config_t config, data_t data)
     PRINT_ERR_MSG("kinematics invalid");
     rtn_flag = FAIL;
   }
+  if (kine.type != INT_ARRAY) {
+    PRINT_ERR_MSG("kinematics array must be of type INT_ARRAY");
+    rtn_flag = FAIL;
+  }
 
   // Check that kinematics configuration compatibility
   if (check_kine_compat(config,kine) != SUCCESS){
@@ -150,6 +154,10 @@ int check_yawff_w_ctlr_input(
   // Check kinematics - make sure is valid array
   if (check_array(kine) != SUCCESS) {
     PRINT_ERR_MSG("kinematics array invalid");
+    rtn_flag = FAIL;
+  }
+  if (kine.type != FLT_ARRAY) {
+    PRINT_ERR_MSG("kinematics array must be of type FLT_ARRAY");
     rtn_flag = FAIL;
   }
 

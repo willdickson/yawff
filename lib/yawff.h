@@ -379,5 +379,8 @@ extern int update_ctlr(
 // Reassign sigint signal handler
 extern sighandler_t reassign_sigint(sighandler_t sigint_func);
 
+// Get starting position for yawff_w_ctlr
+extern int get_start_pos(float setpt, array_t kine, config_t config);
+
 #endif // INC_YAWFF_H_
 

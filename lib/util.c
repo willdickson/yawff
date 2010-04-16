@@ -784,6 +784,7 @@ void fflush_printf(const char *format, ...)
   return;
 }
 
+
 // Simple functions for getting constants to python ctypes interface
 int define_max_motor(void) {return MAX_MOTOR;};
 int define_max_dt(void) {return MAX_DT_NS;};

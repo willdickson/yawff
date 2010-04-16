@@ -266,12 +266,19 @@ lib.yawff.argstype = [
 ]
 
 lib.yawff_w_ctlr.restype = ctypes.c_int
-lib.yawff.argstype = [
+lib.yawff_w_ctlr.argstype = [
     array_t, 
     config_t, 
     array_t,
     data_t,
     ctypes.c_void_p,
+]
+
+lib.get_start_pos.restype = ctypes.c_int
+lib.get_start_pos.argstype = [
+    ctypes.c_float,
+    array_t,
+    config_t,
 ]
 
 
@@ -333,7 +340,8 @@ def yawff_c_wrapper(kine, config):
     information regarding ongoing real-time task.
     
     Inputs:
-      kine    = Nx6 array of wing kinematics in indices
+      kine    = Nx7 array of wing kinematics in indices, one column is for 
+                yaw.
       config  = system configuration dictionary 
     """
 
@@ -371,4 +379,23 @@ def yawff_c_wrapper(kine, config):
     end_pos = scipy.array(end_pos)
 
     return t, pos, vel, torq, end_pos
+
+def get_start_pos(setpt,config):
+    """
+    Python wrapper for get_start_pos function. Returns starting position of
+    kinematics.
+    """
+
+    config_struct = create_config_struct(config)
+    kine = scipy.zeros((1,config['num_motor']), dtype=scipy.dtype('float32'))
+    kine_c_array = get_c_array_struct(kine)
+    setpt_c_float = ctypes.c_float(setpt)
+
+    ret_val = lib.get_start_pos(setpt_c_float,kine_c_array,config_struct)
+    if ret_val == FAIL:
+        raise RuntimeError, "lib.get_start_pos call failed"
+
+    return kine
+
+
     

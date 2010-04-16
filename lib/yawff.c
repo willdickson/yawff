@@ -1900,3 +1900,57 @@ void sigint_func(int sig) {
 
 
 
+// -----------------------------------------------------------------
+// Function: get_start_pos 
+//
+// Purpose: for use with yawff_w_ctlr, returns starting positoin for 
+// kinematics in degrees.
+//
+// -----------------------------------------------------------------
+int get_start_pos(float setpt, array_t kine, config_t config)
+{
+  int i;
+  int ind;
+  float u;
+  float ctlr_err[2] = {0.0, 0.0};
+  double t;
+  state_t state[2];
+
+  // Check configuration
+  if (check_config(config) != SUCCESS) {
+    PRINT_ERR_MSG("bad configuration");
+    return FAIL;
+  }
+
+  // Check kinematics - make sure is valid array
+  if (check_array(kine) != SUCCESS) {
+    PRINT_ERR_MSG("kinematics array invalid");
+    return FAIL;
+  }
+  if (kine.type != FLT_ARRAY) {
+    PRINT_ERR_MSG("kinematics array must be of type FLT_ARRAY");
+    return FAIL;
+  }
+
+  // Initialize dynamic state, time and  outscan index
+  for (i=0; i<2; i++) {
+    state[i].pos = 0.0;
+    state[i].vel = 0.0;
+  }  
+  t = 0.0;
+  ind = 0;
+
+  // Get controll singal u
+  if (get_ctlr_u(ctlr_err,&u,ind,setpt,state,config) != SUCCESS) {
+    PRINT_ERR_MSG("error computing controller u");
+    return FAIL;
+  }
+  
+  // Get wing kinematics
+  if (update_wing_kine(ind,t,u,kine,config) != SUCCESS) {
+    PRINT_ERR_MSG("error computing wing kinemactics starting position");
+    return FAIL;
+  }
+
+  return SUCCESS;
+}

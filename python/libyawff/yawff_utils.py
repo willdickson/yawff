@@ -71,7 +71,8 @@ class Yawff_Base(object):
                  defaults_file=DFLT_CONFIG_FILE,
                  move_vmax=DFLT_MOVE_VMAX,
                  move_accel=DFLT_MOVE_ACCEL,
-                 move_dt=DFLT_MOVE_DT):
+                 move_dt=DFLT_MOVE_DT,
+                 pause_t = None):
         """
         Initialize Yawff_Base class
         """
@@ -105,7 +106,11 @@ class Yawff_Base(object):
         self.move_accel = move_accel
         self.move_dt = move_dt
         self.config_dict = self.create_config_dict()
-        self.pause_t = DFLT_PAUSE_T
+
+        if pause_t == None:
+            self.pause_t = DFLT_PAUSE_T
+        else:
+            self.pause_t = pause_t
 
 
     def create_config_dict(self):
@@ -253,10 +258,11 @@ class Yawff_w_Ctlr(Yawff_Base):
                  defaults_file=DFLT_CONFIG_FILE,
                  move_vmax=DFLT_MOVE_VMAX,
                  move_accel=DFLT_MOVE_ACCEL,
-                 move_dt=DFLT_MOVE_DT):
+                 move_dt=DFLT_MOVE_DT,
+                 pause_t=None):
 
         # Call parent class initialization method
-        super(Yawff,self).__init__(
+        super(Yawff_w_Ctlr,self).__init__(
             run_params,
             motor_maps_file = motor_maps_file,
             sensor_cal_file = sensor_cal_file,
@@ -265,10 +271,15 @@ class Yawff_w_Ctlr(Yawff_Base):
             move_vmax = move_vmax,
             move_accel = move_accel,
             move_dt = move_dt,
+            pause_t = pause_t 
         )
 
         # Custom initialization
         self.setpt = None
+
+        # Add custom elements to configuration dictionary
+        self.config_dict['motor_name_map'] = libmove_motor.get_num2name_map(self.motor_maps)
+        self.config_dict['motor_cal'] = libmove_motor.get_motor_cal(self.motor_maps)
 
     def run(self,setpt=None):
         if setpt == None:
@@ -280,21 +291,59 @@ class Yawff_w_Ctlr(Yawff_Base):
         config = self.config_dict
 
         # Move to starting position
+        zero_indpos_deg = libmove_motor.get_zero_indpos_deg(self.motor_maps)
+        start_pos_deg = libyawff.get_start_pos(setpt[0,0],config)[0,:]
+        ramps_deg = libmove_motor.get_ramp_moves(zero_indpos_deg,
+                                                 start_pos_deg,
+                                                 self.move_vmax, 
+                                                 self.move_accel, 
+                                                 self.move_dt)
+        ramps_ind = libmove_motor.deg2ind(ramps_deg, self.motor_maps)
+        end_pos, ret_val = libmove_motor.outscan_kine(ramps_ind,config,self.move_dt)
 
         # Sleep to wait for force transients to die down - can effect autozero
+        print 'sleeping for %1.2f seconds'%(self.pause_t)
+        time.sleep(self.pause_t)
 
         # Run force-feedback w/ controller function
+        t, pos, vel, torq, kine, u, end_pos_ind = libyawff.yawff_ctlr_c_wrapper(setpt, config)
 
-        # Convert positin and velocity from radians to degrees
-
-        # Extract filtered and raw torque data
 
         # Return to zero position
+        end_pos_deg = libmove_motor.ind2deg(end_pos_ind,self.motor_maps)
+        ramps_deg = libmove_motor.get_ramp_moves(end_pos_deg,
+                                                 zero_indpos_deg,
+                                                 self.move_vmax, 
+                                                 self.move_accel, 
+                                                 self.move_dt)
+        ramps_ind = libmove_motor.deg2ind(ramps_deg, self.motor_maps)
+        end_pos, ret_val = libmove_motor.outscan_kine(ramps_ind,config,self.move_dt)
 
         # Reset all pwm signal to there default positions. This is a kludge to help
         # w/ the fact that we seem to sometimes lose a bit of position in the pwm 
         # signals. I am not sure what is causing this - hardware or software. 
         # I will need to to some more tests after this next set of experiments.
+        clkdirpwm.set_pwm_to_default(None)
+
+        # Convert positin and velocity from radians to degrees
+        pos = RAD2DEG*pos
+        vel = RAD2DEG*vel
+
+        # Extract filtered and raw torque data
+        torq_flt = torq[:,0]
+        torq_raw = torq[:,1]
+
+        # Create kinematics dictionary
+        kine_dict = {}
+        for i in range(0,config['num_motor']):
+            motor_name = config['motor_name_map'][i]
+            if motor_name == 'yaw':
+                continue
+            kine_num = config['kine_map'][i]
+            kine_dict[motor_name] = kine[:,i]
+
+
+        return t, pos, vel, torq_flt, torq_raw, kine_dict, u
 
 
 class Yawff(Yawff_Base):
@@ -311,7 +360,8 @@ class Yawff(Yawff_Base):
                  defaults_file=DFLT_CONFIG_FILE,
                  move_vmax=DFLT_MOVE_VMAX,
                  move_accel=DFLT_MOVE_ACCEL,
-                 move_dt=DFLT_MOVE_DT):
+                 move_dt=DFLT_MOVE_DT,
+                 pause_t=None):
 
         # Call parent class initialization method
         super(Yawff,self).__init__(
@@ -323,6 +373,7 @@ class Yawff(Yawff_Base):
             move_vmax = move_vmax,
             move_accel = move_accel,
             move_dt = move_dt,
+            pause_t = pause_t
         )
 
         # Custom initialization

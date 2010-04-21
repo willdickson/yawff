@@ -48,8 +48,8 @@ int init_test_config(config_t *config)
   int kine_map[] = KINE_MAP;
   int flag = SUCCESS;
   int rtn_check;
-  double deg_val;
-  double ind_val;
+  float deg_val;
+  float ind_val;
 
   config -> dev_name = DEV_NAME;
   config -> ain_subdev = AIN_SUBDEV;
@@ -93,7 +93,7 @@ int init_test_config(config_t *config)
           &((config->motor_cal)[i].deg_data), 
           LOOKUP_TBL_NROW, 
           LOOKUP_TBL_NCOL, 
-          DBL_ARRAY
+          FLT_ARRAY
           );
       if (rtn_check == FAIL) {
         flag = FAIL; 
@@ -103,7 +103,7 @@ int init_test_config(config_t *config)
           &((config->motor_cal)[i].ind_data), 
           LOOKUP_TBL_NROW, 
           LOOKUP_TBL_NCOL, 
-          DBL_ARRAY
+          FLT_ARRAY
           );
       if (rtn_check == FAIL) {
         flag = FAIL;

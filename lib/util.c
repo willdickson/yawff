@@ -243,11 +243,13 @@ int get_array_val(array_t array, int row, int col, void *val)
   case FLT_ARRAY:
     fptr = val;
     *fptr = *((float*)(array.data + row*s0 + col*s1));
+    //printf("get_array_val: FLT_ARRAY\n");
     break;
 
   case DBL_ARRAY:
     dptr = val;
     *dptr = *((double*)(array.data + row*s0 + col*s1));
+    //printf("get_array_val: DBL_ARRAY\n");
     break;
 
   default:
@@ -382,18 +384,18 @@ void print_array(array_t array)
 // ----------------------------------------------------
 int apply_motor_cal(
     motor_cal_t motor_cal, 
-    double val_deg, 
+    float val_deg, 
     int *val_ind
     )
 {
   int rtn_val = SUCCESS;
   int rtn_check;
-  double val_ind_dbl = 0.0;
+  float val_ind_flt = 0.0;
 
   switch(motor_cal.type) {
 
     case MOTOR_CALTYPE_TBL:
-      rtn_check = interp(motor_cal.deg_data, motor_cal.ind_data, val_deg, &val_ind_dbl); 
+      rtn_check = interp(motor_cal.deg_data, motor_cal.ind_data, val_deg, &val_ind_flt); 
       if (rtn_check == FAIL) {
         PRINT_ERR_MSG("interp failed");
         rtn_val = FAIL;
@@ -401,7 +403,7 @@ int apply_motor_cal(
       break;
 
     case MOTOR_CALTYPE_MUL:
-      val_ind_dbl = val_deg/motor_cal.deg_per_ind;
+      val_ind_flt = val_deg/motor_cal.deg_per_ind;
       break;
 
     default:
@@ -411,7 +413,7 @@ int apply_motor_cal(
   }
 
   // Convert index value to an integer
-  *val_ind = (int) floor(val_ind_dbl + 0.5);
+  *val_ind = (int) floor(val_ind_flt + 0.5);
   
   return rtn_val;
 }
@@ -441,31 +443,31 @@ int apply_motor_cal(
 int interp(
     array_t x_data, 
     array_t y_data, 
-    double x_val, 
-    double *y_val
+    float x_val, 
+    float *y_val
     )
 {
   int i;
   int size; 
   int rtn_check;
-  double max_x_val;
-  double min_x_val;
-  double x_next;
-  double y_next;
-  double x_lower;
-  double y_lower;
-  double x_upper;
-  double y_upper;
-  double a;
-  double b;
+  float max_x_val;
+  float min_x_val;
+  float x_next;
+  float y_next;
+  float x_lower;
+  float y_lower;
+  float x_upper;
+  float y_upper;
+  float a;
+  float b;
 
   // Check array types
-  if (x_data.type != DBL_ARRAY) {
-    PRINT_ERR_MSG("x_data array must be of type DBL_ARRAY");
+  if (x_data.type != FLT_ARRAY) {
+    PRINT_ERR_MSG("x_data array must be of type FLT_ARRAY");
     return FAIL;
   } 
-  if (y_data.type != DBL_ARRAY) {
-    PRINT_ERR_MSG("y_data array must be of type DBL_ARRAY");
+  if (y_data.type != FLT_ARRAY) {
+    PRINT_ERR_MSG("y_data array must be of type FLT_ARRAY");
     return FAIL;
   } 
 
@@ -754,6 +756,18 @@ void print_config(config_t config)
 
   printf(" ------------------------------------------------\n");
   printf("\n");
+
+  //// DEBUG /////////////////////////////////////////
+  //for (i=0; i< config.num_motor; i++) {
+  //    printf("motor[%d]\n",i);
+  //    if (config.motor_cal[i].type == MOTOR_CALTYPE_TBL) {
+  //        printf("degree data:\n");
+  //        print_array(config.motor_cal[i].deg_data);
+  //        printf("index  data:\n");
+  //        print_array(config.motor_cal[i].ind_data);
+  //    }
+  //}
+  //////////////////////////////////////////////////////
   
   return;
 }

@@ -58,6 +58,9 @@ config = {
 }
 
 
+libyawff.print_config(config)
+
+assert 0==1
 
 num_cycle = 1
 N = int(num_cycle*config['kine_period']/config['dt'])

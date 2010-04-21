@@ -424,8 +424,8 @@ void test_check_config(void)
   config.ctlr_flag = CTLR_ON;
   {
     int i,j;
-    double old_val;
-    double new_val;
+    float old_val;
+    float new_val;
 
     for (i=0; i<config.num_motor; i++) {
       if (config.motor_cal[i].type == MOTOR_CALTYPE_TBL) {
@@ -874,18 +874,18 @@ void test_interp(void)
   int i;
   int nrow = 100;
   int ncol = 1;
-  double x_val;
-  double y_val;
+  float x_val;
+  float y_val;
   array_t x_data;
   array_t y_data;
   
   // Initialize arrays and set data
-  CU_ASSERT(init_array(&x_data, nrow, ncol, DBL_ARRAY)==SUCCESS);
-  CU_ASSERT(init_array(&y_data, nrow, ncol, DBL_ARRAY)==SUCCESS);
+  CU_ASSERT(init_array(&x_data, nrow, ncol, FLT_ARRAY)==SUCCESS);
+  CU_ASSERT(init_array(&y_data, nrow, ncol, FLT_ARRAY)==SUCCESS);
 
   for (i=0; i<nrow; i++) {
-    x_val = (double) i;
-    y_val = (double) 2*i;
+    x_val = (float) i;
+    y_val = (float) 2*i;
 
     CU_ASSERT(set_array_val(x_data, i, 0, &x_val)==SUCCESS);
     CU_ASSERT(set_array_val(y_data, i, 0, &y_val)==SUCCESS);
@@ -914,8 +914,8 @@ void test_interp(void)
   CU_ASSERT(init_array(&x_data, nrow, ncol+1, DBL_ARRAY)==SUCCESS);
   CU_ASSERT(init_array(&y_data, nrow, ncol, DBL_ARRAY)==SUCCESS);
   for (i=0; i<nrow; i++) {
-    x_val = (double) i;
-    y_val = (double) 2*i;
+    x_val = (float) i;
+    y_val = (float) 2*i;
     CU_ASSERT(set_array_val(x_data, i, 0, &x_val)==SUCCESS);
     CU_ASSERT(set_array_val(y_data, i, 0, &y_val)==SUCCESS);
   }
@@ -928,8 +928,8 @@ void test_interp(void)
   CU_ASSERT(init_array(&x_data, nrow, ncol, DBL_ARRAY)==SUCCESS);
   CU_ASSERT(init_array(&y_data, nrow, ncol+1, DBL_ARRAY)==SUCCESS);
   for (i=0; i<nrow; i++) {
-    x_val = (double) i;
-    y_val = (double) 2*i;
+    x_val = (float) i;
+    y_val = (float) 2*i;
     CU_ASSERT(set_array_val(x_data, i, 0, &x_val)==SUCCESS);
     CU_ASSERT(set_array_val(y_data, i, 0, &y_val)==SUCCESS);
   }
@@ -942,8 +942,8 @@ void test_interp(void)
   CU_ASSERT(init_array(&x_data, nrow+1, ncol, DBL_ARRAY)==SUCCESS);
   CU_ASSERT(init_array(&y_data, nrow, ncol, DBL_ARRAY)==SUCCESS);
   for (i=0; i<nrow; i++) {
-    x_val = (double) i;
-    y_val = (double) 2*i;
+    x_val = (float) i;
+    y_val = (float) 2*i;
     CU_ASSERT(set_array_val(x_data, i, 0, &x_val)==SUCCESS);
     CU_ASSERT(set_array_val(y_data, i, 0, &y_val)==SUCCESS);
   }
@@ -968,8 +968,8 @@ void test_apply_motor_cal(void)
   int i;
   int nrow = 10;
   int ind;
-  double deg;
-  double ind_dbl;
+  float deg;
+  float ind_flt;
   motor_cal_t motor_cal;
 
   // Test multiplication type motor calibration
@@ -985,13 +985,13 @@ void test_apply_motor_cal(void)
 
   // Test with lookup table type motor calibration
   motor_cal.type = MOTOR_CALTYPE_TBL;
-  CU_ASSERT(init_array(&motor_cal.deg_data,nrow,1,DBL_ARRAY)==SUCCESS);
-  CU_ASSERT(init_array(&motor_cal.ind_data,nrow,1,DBL_ARRAY)==SUCCESS);
+  CU_ASSERT(init_array(&motor_cal.deg_data,nrow,1,FLT_ARRAY)==SUCCESS);
+  CU_ASSERT(init_array(&motor_cal.ind_data,nrow,1,FLT_ARRAY)==SUCCESS);
   for (i=0; i<nrow; i++) {
     deg = 1.0*i;
-    ind_dbl = 2.0*i;
+    ind_flt = 2.0*i;
     CU_ASSERT(set_array_val(motor_cal.deg_data,i,0,&deg)==SUCCESS);
-    CU_ASSERT(set_array_val(motor_cal.ind_data,i,0,&ind_dbl)==SUCCESS);
+    CU_ASSERT(set_array_val(motor_cal.ind_data,i,0,&ind_flt)==SUCCESS);
   }
   for (i=0; i<nrow; i++) {
     deg = 0.5*i;

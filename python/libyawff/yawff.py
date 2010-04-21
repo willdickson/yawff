@@ -110,10 +110,8 @@ def create_config_struct(config):
             for i,cal in enumerate(config['motor_cal']):
                 if cal['type'] == 'table':
                     config_struct.motor_cal[i].type = MOTOR_CALTYPE_TBL
-                    deg_data = scipy.reshape(cal['deg_data'], (cal['deg_data'].shape[0],1))
-                    ind_data = scipy.reshape(cal['ind_data'], (cal['ind_data'].shape[0],1))
-                    config_struct.motor_cal[i].deg_data = get_c_array_struct(deg_data)
-                    config_struct.motor_cal[i].ind_data = get_c_array_struct(ind_data)
+                    config_struct.motor_cal[i].deg_data = get_c_array_struct(cal['deg_data'])
+                    config_struct.motor_cal[i].ind_data = get_c_array_struct(cal['ind_data'])
                 elif cal['type'] == 'mult':
                     config_struct.motor_cal[i].type = MOTOR_CALTYPE_MUL
                     config_struct.motor_cal[i].deg_per_ind = float(cal['deg_per_ind'])
@@ -281,6 +279,9 @@ lib.get_start_pos.argstype = [
     config_t,
 ]
 
+lib.print_config.argstype = [
+    config_t,
+]
 
 def yawff_ctlr_c_wrapper(setpt, config):
     """
@@ -397,4 +398,9 @@ def get_start_pos(setpt,config):
     return kine
 
 
-    
+def print_config(config):
+    config_struct = create_config_struct(config)
+    lib.print_config(config_struct)
+    return
+
+

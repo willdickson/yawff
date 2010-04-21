@@ -88,7 +88,7 @@ extern void print_array(array_t array);
 // Apply motor calibration
 extern int apply_motor_cal(
     motor_cal_t motor_cal, 
-    double val_deg, 
+    float val_deg, 
     int *val_ind
     ); 
 
@@ -96,8 +96,8 @@ extern int apply_motor_cal(
 extern int interp(
     array_t x_data, 
     array_t y_data, 
-    double x_val, 
-    double *y_val
+    float x_val, 
+    float *y_val
     );
 
 // Print system configuration structure

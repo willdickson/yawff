@@ -818,13 +818,20 @@ int check_motor_cal(motor_cal_t motor_cal)
   int i;
   int size;
   int flag = SUCCESS; 
-  double deg0;
-  double deg1;
+  float deg0;
+  float deg1;
 
   // Specific checks based on calibration type
   switch(motor_cal.type) {
 
     case MOTOR_CALTYPE_TBL:
+      
+      //// DEBUG //////////////////////////////////////
+      //for (i=0; i<motor_cal.deg_data.nrow; i++){
+      //  get_array_val(motor_cal.deg_data,i,0,&deg0);
+      //  printf("deg0: %f\n", deg0);
+      //}
+      /////////////////////////////////////////////////
 
       // --------------------------------------------
       // Checks specific to lookup table calibrations

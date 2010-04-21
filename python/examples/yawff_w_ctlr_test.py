@@ -34,11 +34,11 @@ run_params = {
 
 yawff = libyawff.Yawff_w_Ctlr(run_params, pause_t=1.0)
 
-T = 4.0*yawff.config_dict['kine_period'] 
+T = 2.0*yawff.config_dict['kine_period'] 
 N = int(T/dt) 
 tt = scipy.arange(0.0,N)*dt
 setpt = 5.0*scipy.sin(2.0*scipy.pi*tt/(2.0*yawff.config_dict['kine_period']))
-setpt = setpt.reshape((N,1))
+setpt = 0.0*setpt.reshape((N,1))
 t, pos, vel, torq_flt, torq_raw, kine_dict, u =  yawff.run(setpt=setpt)
 
 pylab.figure(1)

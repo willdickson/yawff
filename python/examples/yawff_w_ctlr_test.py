@@ -21,11 +21,11 @@ run_params = {
     'ff_flag'           : libyawff.FF_ON,
     'ctlr_flag'         : libyawff.CTLR_ON,
     'ctlr_type'         : libyawff.CTLR_TYPE_VEL,
-    'ctlr_pgain'        : 1.0,
+    'ctlr_pgain'        : 2.0,
     'ctlr_dgain'        : 0.0,
     'kine_type'         : 'diff_aoa',
     'kine_period'       : 6.0,
-    'stroke_amp'        : 90.0,
+    'stroke_amp'        : 70.0,
     'rotation_amp'      : 45.0,
     'stroke_k'          : 0.01,
     'rotation_k'        : 1.5,
@@ -34,7 +34,7 @@ run_params = {
 
 yawff = libyawff.Yawff_w_Ctlr(run_params, pause_t=1.0)
 
-T = 2.0*yawff.config_dict['kine_period'] 
+T = 8.0*yawff.config_dict['kine_period'] 
 N = int(T/dt) 
 tt = scipy.arange(0.0,N)*dt
 setpt = 5.0*scipy.sin(2.0*scipy.pi*tt/(2.0*yawff.config_dict['kine_period']))
@@ -61,7 +61,7 @@ pylab.xlabel('time (s)')
 
 pylab.figure(2)
 pylab.subplot(211)
-pylab.plot(t,pos,'b')
+pylab.plot(t,vel,'b')
 pylab.plot(t,setpt,'r')
 pylab.subplot(212)
 pylab.plot(t,u)

@@ -846,11 +846,11 @@ extern int get_ctlr_u(
 
   switch(config.ctlr_param.type) { 
 
-    case CTLR_TYPE_VEL:
+    case CTLR_TYPE_POS:
       ctlr_err[1] = DEG2RAD*setpt - state[1].pos;
       break;
 
-    case CTLR_TYPE_POS:
+    case CTLR_TYPE_VEL:
       ctlr_err[1] = DEG2RAD*setpt - state[1].vel;
       break;
 

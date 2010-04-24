@@ -144,9 +144,10 @@ class Yawff_Base(object):
         config.update(self.run_params)
         return config
 
-    def move_to_pos(self,name_list,pos_list,noreturn=False,vmax=DFLT_MOVE_VMAX, accel=DFLT_MOVE_ACCEL):
+    def move_to_pos(self,name_list,pos_list,noreturn=False,at_zero_ind=True,
+                    vmax=DFLT_MOVE_VMAX, accel=DFLT_MOVE_ACCEL):
         """
-        Move the robot to the given index positions.
+        Move the robot to the given positions in degrees.
         """
         n = self.num_motors()
         pos = scipy.zeros((n,))
@@ -166,8 +167,11 @@ class Yawff_Base(object):
         config = self.config_dict
         # Move to kinematics starting positon
         print 'moving to position'
-        zero_indpos_deg = libmove_motor.get_zero_indpos_deg(self.motor_maps)
-        ramps_deg = libmove_motor.get_ramp_moves(zero_indpos_deg,
+        if at_zero_ind == True:
+            zero_pos = libmove_motor.get_zero_indpos_deg(self.motor_maps)
+        else:
+            zero_pos = scipy.zeros((n,))
+        ramps_deg = libmove_motor.get_ramp_moves(zero_pos,
                                                  pos,
                                                  vmax, 
                                                  accel, 
@@ -181,12 +185,13 @@ class Yawff_Base(object):
             # Return to the zero index position 
             print 'returning to zero index positon'
             ramps_deg = libmove_motor.get_ramp_moves(pos,
-                                                     zero_indpos_deg,
+                                                     zero_pos,
                                                      vmax, 
                                                      accel, 
                                                      self.move_dt)
             ramps_ind = libmove_motor.deg2ind(ramps_deg, self.motor_maps)
             end_pos, ret_val = libmove_motor.outscan_kine(ramps_ind,config,self.move_dt)
+
 
     def move_by_ind(self, name_list, ind_list, noreturn=False,vmax=DFLT_MOVE_VMAX_IND, accel=DFLT_MOVE_ACCEL_IND): 
         """ 
@@ -241,6 +246,16 @@ class Yawff_Base(object):
         Returns motor number given the motor name
         """
         return self.motor_maps[name]['number']
+
+    def get_motor_names(self):
+        """
+        Returns list of motor names sorted by motor number
+        """
+        motor_nums_and_names = [(self.get_motor_num(name),name) for name in self.motor_maps.keys()]
+        motor_nums_and_names.sort()
+        motor_names = [name for num,name in motor_nums_and_names]
+        return motor_names
+
 
 
 class Yawff_w_Ctlr(Yawff_Base):
@@ -1027,6 +1042,16 @@ By default, after the move, the routine will prompt the user press enter and the
 return  the motors to the zero position unless the noreturn option is specified.  
 """
 
+    move2zero_help = """\
+command: move2zero 
+
+usage: %prog [options] move2zero 
+
+Move motors to zero (degree) position. By default, after the move, the routine
+will prompt the user press enter and then return  the motors to the zero
+position unless the noreturn option is specified.  
+"""
+
     move_by_ind_help = """\
 command: move-by-ind 
 
@@ -1090,6 +1115,7 @@ Commands:
 
     zero          - zero yaw and stroke position motors
     move2pos      - move motors to specified positions (in degrees)
+    move2zero     - move motors to zero position (in degrees)
     move-by-ind   - move motor by specified number of indices 
     reset-pwm     - reset pwm output to their default positions
     motor-names   - list motor names
@@ -1103,6 +1129,7 @@ Commands:
         self.cmd_table = {
             'zero' : self.zero,
             'move2pos': self.move2pos,
+            'move2zero' : self.move2zero,
             'move-by-ind': self.move_by_ind,
             'reset-pwm': self.reset_pwm, 
             'motor-names': self.motor_names,
@@ -1112,6 +1139,7 @@ Commands:
         self.help_table = {
             'zero' : yawff_cmd_line.zero_help,
             'move2pos': yawff_cmd_line.move2pos_help,
+            'move2zero': yawff_cmd_line.move2zero_help,
             'move-by-ind': yawff_cmd_line.move_by_ind_help,
             'reset-pwm': yawff_cmd_line.reset_pwm_help,
             'motor-names': yawff_cmd_line.motor_names_help,
@@ -1214,45 +1242,83 @@ Commands:
         yawff = Yawff(self.run_params)
         yawff.move_to_pos(motor_names, values, noreturn = self.options_cmd['noreturn'])
 
+    def move2zero(self):
+        self.args.remove('move2zero')
+        if self.options_cmd['verbose'] == True:
+            if len(motor_names) == len(values):
+                print 'moving motors %s to positions %s'%(motor_names,values)
+            else:
+                print 'moving motors %s to position %s'%(motor_names,values)
+        yawff = Yawff(self.run_params)
+        motor_names = yawff.get_motor_names()
+        pos = scipy.zeros((len(motor_names),))
+        yawff.move_to_pos(motor_names, pos, noreturn = self.options_cmd['noreturn'])
+
     def zero(self):
+
         print 
         print 'zeroing yaw and stroke position motors'
         print '-'*60
         print 
-        print 'Step 1: adjust yaw motor until system is squared with tank'
+
+        print '** Step 1: adjust yaw motor until system is squared with tank'
         print 
         print 'At the prompt enter the angle adjustments to yaw in degrees.'
         print "Enter 'done' when system is squared."
-        print 
+
         yawff = Yawff(self.run_params)
-        done = False
-        while not done:
-
-            ans = raw_input('adj> ')
-            if ans.lower() == 'done':
-                done = True
-                continue
-
-            try:
-                val = float(ans)
-            except ValueError:
-                print 'unable to convert entry to float - please try again'
-
-            yawff.move_to_pos(['yaw'],[val],noreturn=True)
+        motor_names = yawff.get_motor_names()
+        pos = scipy.zeros((len(motor_names),))
+        yawff.move_to_pos(motor_names, pos,noreturn=True,at_zero_ind=True)
+        self.zero_adj_loop(yawff,'yaw')
 
         print
         print 'Rotating system by 90 degrees'
-        yawff.move_to_pos(['yaw'],[-90.0],noreturn=True)
+        pos = scipy.zeros((len(motor_names),))
+        pos[yawff.get_motor_num('yaw')] = 90.0
+        yawff.move_to_pos(motor_names,pos,noreturn=True,at_zero_ind=False)
+        print 
+
+        print '** Step 2: adjust position of stroke_0 until squared with tank'
+        print
+        print 'at prompt enter the position adjustments in motor indices'
+        print "enter 'done' when wing is square"
+        self.zero_adj_loop(yawff, 'stroke_0')
 
         print 
-        print 'Step 2: adjust position of stroke_0 until squared with tank'
-        print
-        print 'At prompt enter the position adjustments in motor indices.'
-        print "Enter 'done' when wing is square."
-        print
+        print 'rotating system to -180 degrees'
+        pos = scipy.zeros((len(motor_names),))
+        pos[yawff.get_motor_num('yaw')] = -180.0 
+        yawff.move_to_pos(motor_names,pos,noreturn=True,at_zero_ind=False)
+        print 
+
+        print '** Step 3: adjust position of stroke_1 until squared with tank'
+        print 
+        print 'at prompt enter position adjustments in indices'
+        print "enter 'done' when wing is square"
+        self.zero_adj_loop(yawff,'stroke_1')
+
+        print 
+        print 'returning to zero position'
+        pos = scipy.zeros((len(motor_names),))
+        pos[yawff.get_motor_num('yaw')] = 90.0 
+        yawff.move_to_pos(motor_names,pos,noreturn=True,at_zero_ind=False)
+
+        print 'returning RC motors to zero index position'
+        pos = libmove_motor.get_zero_indpos_deg(yawff.motor_maps)
+        yawff.move_to_pos(motor_names,pos,noreturn=True,at_zero_ind=False)
+
+    def zero_adj_loop(self, yawff, motor_name):
+        """
+        Yaw and stroke position zeroing routine adjustment loop
+        """
+        motor_names = yawff.get_motor_names()
+        pos = scipy.zeros((len(motor_names),))
+
         done = False
         while not done:
 
+            print
             ans = raw_input('adj> ')
             if ans.lower() == 'done':
                 done = True
@@ -1262,10 +1328,14 @@ Commands:
                 val = float(ans)
             except ValueError:
                 print 'unable to convert entry to float - please try again'
+                continue
 
-        print 
-        print 'Returning to zero position'
-        yawff.move_to_pos(['yaw'],[90.0],noreturn=True)
+            print val
+            pos[yawff.get_motor_num(motor_name)] = val
+            yawff.move_to_pos(motor_names,pos,noreturn=True,at_zero_ind=False)
+
+        return 
+
 
 
     def move_by_ind(self):

@@ -929,7 +929,6 @@ int update_wing_kine(
       u_clamped = u < (float) DIFF_AOA_MAX_U ? u : (float) DIFF_AOA_MAX_U;
       u_clamped = u_clamped > -(float)DIFF_AOA_MAX_U ? u_clamped : -(float)DIFF_AOA_MAX_U;
       
-      // Dummy values need to set this to actual kinematics
       vals[STROKE_0_ID] = (str_amp/asinf(str_k))*asinf(str_k*((float)cos(2.0*M_PI*t/(double)T)));
       vals[STROKE_1_ID] = (str_amp/asinf(str_k))*asinf(str_k*((float)cos(2.0*M_PI*t/(double)T)));
       vals[ROTATION_0_ID] = (rot_amp/tanhf(rot_k))*tanhf(rot_k*((float)sin(2.0*M_PI*t/(double)T))) - u_clamped;
@@ -944,7 +943,6 @@ int update_wing_kine(
       u_clamped = u < DIFF_DEV_MAX_U ? u : DIFF_DEV_MAX_U;
       u_clamped = u_clamped > -DIFF_DEV_MAX_U ? u : -DIFF_DEV_MAX_U;
 
-      // Dummy values need to set this to actual kinematics
       vals[STROKE_0_ID] = (str_amp/asinf(str_k))*asinf(str_k*((float)cos(2.0*M_PI*t/(double)T)));
       vals[STROKE_1_ID] = (str_amp/asinf(str_k))*asinf(str_k*((float)cos(2.0*M_PI*t/(double)T)));
       vals[ROTATION_0_ID] = (rot_amp/tanhf(rot_k))*tanhf(rot_k*((float)sin(2.0*M_PI*t/(double)T)));

@@ -102,8 +102,8 @@
 #define KINE_MAX_STROKE_K 1.0       // Maximum allowed stroke shape parameter
 #define KINE_MIN_ROTATION_K 0.0001  // Minimum allowed rotation shape parameter
 #define NUM_KINE_TYPE 2
-#define DIFF_AOA_MAX_U 20 
-#define DIFF_DEV_MAX_U 15
+#define DIFF_AOA_MAX_U 10 
+#define DIFF_DEV_MAX_U 10
 
 // Motor identifiers - specifies what motor does.
 enum MOTOR_IDS {

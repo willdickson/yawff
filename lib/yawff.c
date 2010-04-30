@@ -840,6 +840,7 @@ extern int get_ctlr_u(
 {
   int rtn_flag = SUCCESS;
   float deriv_ctlr_err;
+  float max_u;
 
   // Get controller error based on controller type
   ctlr_err[0] = ctlr_err[1];
@@ -873,6 +874,25 @@ extern int get_ctlr_u(
   // Compute control signal - simple PD controller 
   *u = config.ctlr_param.pgain*ctlr_err[1] + config.ctlr_param.dgain*deriv_ctlr_err;
   *u = *u*RAD2DEG;
+
+  // Clamp control signal
+  switch (config.kine_param.type) {
+
+      case DIFF_AOA_ID:
+          max_u = DIFF_AOA_MAX_U;
+          break;
+
+      case DIFF_DEV_ID:
+          max_u = DIFF_DEV_MAX_U;
+          break;
+
+      default:
+          PRINT_ERR_MSG("unknown kinematics type");
+          break;
+  }
+
+  *u = *u < (float) max_u ? *u : (float) max_u;
+  *u = *u > -(float) max_u ? *u : -(float)max_u;
 
   return rtn_flag;
 }
@@ -911,7 +931,7 @@ int update_wing_kine(
   float rot_amp;
   float str_k;
   float rot_k;
-  float u_clamped;
+  //float u_clamped;
 
   // Get kinematics parameters from configuration
   T = config.kine_param.period;
@@ -925,30 +945,22 @@ int update_wing_kine(
 
     case DIFF_AOA_ID:
 
-      // Clamp control signal
-      u_clamped = u < (float) DIFF_AOA_MAX_U ? u : (float) DIFF_AOA_MAX_U;
-      u_clamped = u_clamped > -(float)DIFF_AOA_MAX_U ? u_clamped : -(float)DIFF_AOA_MAX_U;
-      
       vals[STROKE_0_ID] = (str_amp/asinf(str_k))*asinf(str_k*((float)cos(2.0*M_PI*t/(double)T)));
       vals[STROKE_1_ID] = (str_amp/asinf(str_k))*asinf(str_k*((float)cos(2.0*M_PI*t/(double)T)));
-      vals[ROTATION_0_ID] = (rot_amp/tanhf(rot_k))*tanhf(rot_k*((float)sin(2.0*M_PI*t/(double)T))) - u_clamped;
-      vals[ROTATION_1_ID] = (rot_amp/tanhf(rot_k))*tanhf(rot_k*((float)sin(2.0*M_PI*t/(double)T))) + u_clamped;
+      vals[ROTATION_0_ID] = (rot_amp/tanhf(rot_k))*tanhf(rot_k*((float)sin(2.0*M_PI*t/(double)T))) - u;
+      vals[ROTATION_1_ID] = (rot_amp/tanhf(rot_k))*tanhf(rot_k*((float)sin(2.0*M_PI*t/(double)T))) + u;
       vals[DEVIATION_0_ID] = 0.0;
       vals[DEVIATION_1_ID] = 0.0;
      break;
 
     case DIFF_DEV_ID:
 
-      // Clamp control signal
-      u_clamped = u < DIFF_DEV_MAX_U ? u : DIFF_DEV_MAX_U;
-      u_clamped = u_clamped > -DIFF_DEV_MAX_U ? u : -DIFF_DEV_MAX_U;
-
       vals[STROKE_0_ID] = (str_amp/asinf(str_k))*asinf(str_k*((float)cos(2.0*M_PI*t/(double)T)));
       vals[STROKE_1_ID] = (str_amp/asinf(str_k))*asinf(str_k*((float)cos(2.0*M_PI*t/(double)T)));
       vals[ROTATION_0_ID] = (rot_amp/tanhf(rot_k))*tanhf(rot_k*((float)sin(2.0*M_PI*t/(double)T)));
       vals[ROTATION_1_ID] = (rot_amp/tanhf(rot_k))*tanhf(rot_k*((float)sin(2.0*M_PI*t/(double)T)));
-      vals[DEVIATION_0_ID] = u_clamped;
-      vals[DEVIATION_1_ID] = -u_clamped; 
+      vals[DEVIATION_0_ID] =  u;
+      vals[DEVIATION_1_ID] = -u; 
      break; 
 
     default:
@@ -1415,7 +1427,8 @@ int update_state(
 
   ///////////////////////////////////////////////////////////////////
   // Constant torque test  - set torque to some know value.
-  // torq_raw = 0.01;
+  // torq_raw = 0.015;
+  // torq_raw = torq_raw + 0.015;
   ///////////////////////////////////////////////////////////////////
 
   // Apply deadband about zero to limit drift

@@ -953,6 +953,42 @@ def step_func(t,mag,t_start,t_stop,epsilon):
         else:
             return 0
 
+def approx_step_func(t,t0,u0,delta_t):
+    """
+    Approximate step function. Transitions from 0 to u0 w/ transition midpoint
+    t0. The transition is linear starting at t0-delta_t and ending at
+    t0+delta_t.
+
+    Inputs:
+      t       = time points
+      t0      = midpoint of step transition
+      u0      = step height
+      delta_t = transition width.
+
+    Returns: array of function values evaluated at the points in t 
+    """
+
+    t_orig_shape = t.shape
+    if len(t.shape) == 2:
+        assert ((t.shape[0] == 1) or (t.shape[1] == 1)), 'array shape must be (n,), (n,1) or (1,n)'
+        if t.shape[1] == 1:
+            tt = scipy.reshape(t,(t.shape[0],))
+        else:
+            tt =scipy.reshape(t,(t.shape[1],))
+    else:
+        tt = t
+
+    mask0 = tt<(t0-0.5*delta_t)
+    mask1 = scipy.logical_and(tt>=(t0-0.5*delta_t), tt<=(t0+0.5*delta_t))
+    mask2 = tt>(t0+0.5*delta_t)
+    vals = scipy.zeros(tt.shape)
+
+    vals[mask0] = 0.0
+    vals[mask1] = (u0/delta_t)*tt[mask1] - (u0/delta_t)*(t0 - 0.5*delta_t)
+    vals[mask2] = u0
+    vals = scipy.reshape(vals,t_orig_shape)
+    return vals
+
 def ramp_to_const_vel(t,vel,accel):
     """
     Generates a ramp trajectory to constant velocity.

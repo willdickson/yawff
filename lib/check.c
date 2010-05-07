@@ -371,8 +371,16 @@ int check_ranges(config_t config)
     if (config.ctlr_param.type == CTLR_TYPE_POS) {
       test = TRUE;
     }
+    if (config.ctlr_param.type == CTLR_TYPE_KBIAS) {
+      test = TRUE;
+    }
     if (test == FALSE) {
       PRINT_ERR_MSG("unknown controller type");
+      flag = FAIL;
+    }
+    // Check controll delay > 0
+    if (config.ctlr_param.delay < 0) {
+      PRINT_ERR_MSG("delay must be > 0");
       flag = FAIL;
     }
 

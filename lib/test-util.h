@@ -89,6 +89,8 @@
 // Controller test paramters
 #define PGAIN 1.0
 #define DGAIN 1.0
+#define BIAS 1.0
+#define DELAY 5
 
 // Lookup table test parameters
 #define LOOKUP_TBL_NROW 50

@@ -48,6 +48,8 @@ config = {
     'ctlr_type'         : libyawff.CTLR_TYPE_VEL,
     'ctlr_pgain'        : 1.0,
     'ctlr_dgain'        : 0.1,
+    'ctlr_bias'         : 1.0,
+    'ctlr_delay'        : 2.0,
     'kine_type'         : 'diff_aoa',
     'kine_period'       : 6.0,
     'stroke_amp'        : 90.0,

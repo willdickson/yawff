@@ -98,6 +98,12 @@ def create_config_struct(config):
             config_struct.ctlr_param.type = int(config['ctlr_type'])
             config_struct.ctlr_param.pgain = float(config['ctlr_pgain'])
             config_struct.ctlr_param.dgain = float(config['ctlr_dgain'])
+            config_struct.ctlr_param.bias = float(config['ctlr_bias'])
+            # Compute delay in indices
+            delay_ind = int(config['ctlr_delay']/config['dt'])
+            if delay_ind < 0:
+                raise ValueError, 'delay must be > 0'
+            config_struct.ctlr_param.delay = delay_ind
 
             config_struct.kine_param.type = int(kine_type_id_dict[config['kine_type']])
             config_struct.kine_param.period = float(config['kine_period'])
@@ -143,6 +149,7 @@ CTLR_ON = lib.define_ctlr_on()
 CTLR_OFF = lib.define_ctlr_off()
 CTLR_TYPE_VEL = lib.define_ctlr_type_vel()
 CTLR_TYPE_POS = lib.define_ctlr_type_pos()
+CTLR_TYPE_KBIAS = lib.define_ctlr_type_kbias()
 MOTOR_CALTYPE_TBL = lib.define_motor_caltype_tbl()
 MOTOR_CALTYPE_MUL = lib.define_motor_caltype_mul()
 
@@ -199,6 +206,8 @@ class ctlr_param_t(ctypes.Structure):
         ('type', ctypes.c_int),
         ('pgain', ctypes.c_float),
         ('dgain', ctypes.c_float),
+        ('bias', ctypes.c_float),
+        ('delay', ctypes.c_int),
     ]
 
 class kine_param_t(ctypes.Structure):

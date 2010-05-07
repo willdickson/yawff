@@ -630,6 +630,7 @@ static void *yawff_ctlr_thread(void *args)
   data_t data;
   torq_info_t torq_info;
   state_t state[2];            // state[0] = previous, state[1] = current 
+  state_t state_est;           // estimated state, for handling delays
   int motor_ind[MAX_MOTOR][2]; // Motor index position [i][0] previous, [i][1] current
   int err_flag = 0;
   int i;
@@ -712,13 +713,16 @@ static void *yawff_ctlr_thread(void *args)
       break;
     }
 
+    // Get state estimate
+    state_est = get_state_est(state,data,i,config.ctlr_param.delay);
+
     // Update controller
     if (get_array_val(setpt,i,0,&curr_setpt) != SUCCESS) {
       PRINT_ERR_MSG("getting setpt value failed");
       err_flag |= RT_TASK_ERROR;
       break;
     }
-    if (get_ctlr_u(ctlr_err, &curr_u, i, curr_setpt, state, config) != SUCCESS) {
+    if (get_ctlr_u(ctlr_err, &curr_u, i, curr_setpt, state_est, config) != SUCCESS) {
       PRINT_ERR_MSG("getting control value failed");
       err_flag |= RT_TASK_ERROR;
       break;
@@ -810,6 +814,48 @@ static void *yawff_ctlr_thread(void *args)
 }
 
 // -------------------------------------------------------------------
+// Function: get_state_est
+//
+// Purpose: get state estimate. Adds any simumated sensor delay to the
+// state information.
+//
+// --------------------------------------------------------------------
+state_t get_state_est(
+    state_t *state,
+    data_t data,
+    int ind,
+    int delay
+    )
+{
+  state_t state_est;
+  int ind_delay;
+  float pos;
+  float vel;
+
+  if (delay == 0) {
+    // No delay
+    pos = state[1].pos;
+    vel = state[1].vel;
+  }
+  else {
+    // Delay is before start
+    ind_delay = ind - delay;
+    if (ind_delay < 0) {
+      pos = 0.0;
+      vel = 0.0;
+    }
+    else {
+      get_array_val(data.pos,ind_delay,0,&pos);
+      get_array_val(data.vel,ind_delay,0,&vel);
+    }
+  }
+  state_est.pos = pos;
+  state_est.vel = vel;
+
+  return state_est;
+}
+
+// -------------------------------------------------------------------
 // Function: get_ctlr_u 
 //
 // Purpose: get control signal value based on the current value of
@@ -834,7 +880,7 @@ extern int get_ctlr_u(
     float *u,
     int ind,
     float setpt,  
-    state_t *state,
+    state_t state_est,
     config_t config
     )
 {
@@ -842,37 +888,45 @@ extern int get_ctlr_u(
   float deriv_ctlr_err;
   float max_u;
 
-  // Get controller error based on controller type
-  ctlr_err[0] = ctlr_err[1];
 
-  switch(config.ctlr_param.type) { 
-
-    case CTLR_TYPE_POS:
-      ctlr_err[1] = DEG2RAD*setpt - state[1].pos;
-      break;
-
-    case CTLR_TYPE_VEL:
-      ctlr_err[1] = DEG2RAD*setpt - state[1].vel;
-      break;
-
-    default:
-      PRINT_ERR_MSG("unknown controller type");
-      rtn_flag = FAIL;
-      break; 
-  }
-
-  // Get time rate of change of control error
-  if (ind != 0) {
-    deriv_ctlr_err = (ctlr_err[1] - ctlr_err[0])/(NS2S*(double) config.dt);
+  if (config.ctlr_param.type == CTLR_TYPE_KBIAS) {
+    *u = RAD2DEG*setpt - config.ctlr_param.pgain*state_est.vel;
   }
   else {
-    // If it the first time through the loop set to zero to avoid
-    // discontinuities.
-    deriv_ctlr_err = 0.0;
+    // Get controller error based on controller type
+    ctlr_err[0] = ctlr_err[1];
+
+    switch (config.ctlr_param.type) { 
+
+      case CTLR_TYPE_POS:
+        ctlr_err[1] = DEG2RAD*setpt - state_est.pos;
+        break;
+
+      case CTLR_TYPE_VEL:
+        ctlr_err[1] = DEG2RAD*setpt - state_est.vel;
+        break;
+
+      default:
+        PRINT_ERR_MSG("unknown controller type");
+        rtn_flag = FAIL;
+        break; 
+    }
+
+    // Get time rate of change of control error
+    if (ind != 0) {
+      deriv_ctlr_err = (ctlr_err[1] - ctlr_err[0])/(NS2S*(double) config.dt);
+    }
+    else {
+      // If it the first time through the loop set to zero to avoid
+      // discontinuities.
+      deriv_ctlr_err = 0.0;
+    }
+
+    // Compute control signal - simple PD controller 
+    *u = config.ctlr_param.pgain*ctlr_err[1] + config.ctlr_param.dgain*deriv_ctlr_err;
   }
 
-  // Compute control signal - simple PD controller 
-  *u = config.ctlr_param.pgain*ctlr_err[1] + config.ctlr_param.dgain*deriv_ctlr_err;
+  // Convert control signal to degrees
   *u = *u*RAD2DEG;
 
   // Clamp control signal
@@ -931,6 +985,7 @@ int update_wing_kine(
   float rot_amp;
   float str_k;
   float rot_k;
+  float bias;
   //float u_clamped;
 
   // Get kinematics parameters from configuration
@@ -945,22 +1000,24 @@ int update_wing_kine(
 
     case DIFF_AOA_ID:
 
+      bias = config.ctlr_param.bias;
       vals[STROKE_0_ID] = (str_amp/asinf(str_k))*asinf(str_k*((float)cos(2.0*M_PI*t/(double)T)));
       vals[STROKE_1_ID] = (str_amp/asinf(str_k))*asinf(str_k*((float)cos(2.0*M_PI*t/(double)T)));
-      vals[ROTATION_0_ID] = (rot_amp/tanhf(rot_k))*tanhf(rot_k*((float)sin(2.0*M_PI*t/(double)T))) - u;
-      vals[ROTATION_1_ID] = (rot_amp/tanhf(rot_k))*tanhf(rot_k*((float)sin(2.0*M_PI*t/(double)T))) + u;
+      vals[ROTATION_0_ID] = (rot_amp/tanhf(rot_k))*tanhf(rot_k*((float)sin(2.0*M_PI*t/(double)T))) - u - bias;
+      vals[ROTATION_1_ID] = (rot_amp/tanhf(rot_k))*tanhf(rot_k*((float)sin(2.0*M_PI*t/(double)T))) + u + bias;
       vals[DEVIATION_0_ID] = 0.0;
       vals[DEVIATION_1_ID] = 0.0;
      break;
 
     case DIFF_DEV_ID:
 
+      bias = config.ctlr_param.bias;
       vals[STROKE_0_ID] = (str_amp/asinf(str_k))*asinf(str_k*((float)cos(2.0*M_PI*t/(double)T)));
       vals[STROKE_1_ID] = (str_amp/asinf(str_k))*asinf(str_k*((float)cos(2.0*M_PI*t/(double)T)));
       vals[ROTATION_0_ID] = (rot_amp/tanhf(rot_k))*tanhf(rot_k*((float)sin(2.0*M_PI*t/(double)T)));
       vals[ROTATION_1_ID] = (rot_amp/tanhf(rot_k))*tanhf(rot_k*((float)sin(2.0*M_PI*t/(double)T)));
-      vals[DEVIATION_0_ID] =  u;
-      vals[DEVIATION_1_ID] = -u; 
+      vals[DEVIATION_0_ID] =  u + bias;
+      vals[DEVIATION_1_ID] = -u - bias; 
      break; 
 
     default:
@@ -1920,12 +1977,11 @@ void sigint_func(int sig) {
 // -----------------------------------------------------------------
 int get_start_pos(float setpt, array_t kine, config_t config)
 {
-  int i;
   int ind;
   float u;
   float ctlr_err[2] = {0.0, 0.0};
   double t;
-  state_t state[2];
+  state_t state;
 
   // Check configuration
   if (check_config(config) != SUCCESS) {
@@ -1944,10 +2000,8 @@ int get_start_pos(float setpt, array_t kine, config_t config)
   }
 
   // Initialize dynamic state, time and  outscan index
-  for (i=0; i<2; i++) {
-    state[i].pos = 0.0;
-    state[i].vel = 0.0;
-  }  
+  state.pos = 0.0;
+  state.vel = 0.0;
   t = 0.0;
   ind = 0;
 

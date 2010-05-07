@@ -88,8 +88,9 @@
 #define RT_TASK_ERROR 2   // Mask used to detect if an error occured in the realtime thread
 #define RT_TASK_SIGINT 4  // Mask used to detect if an sigint stopped the realtime thread
 
-#define CTLR_TYPE_VEL 0   // Specifies velocity controller
-#define CTLR_TYPE_POS 1   // Specifies position controller
+#define CTLR_TYPE_VEL 0       // Specifies velocity controller
+#define CTLR_TYPE_POS 1       // Specifies position controller
+#define CTLR_TYPE_KBIAS 2     // Specifies velocity based damping w/ kinematics bias 
 
 #define MOTOR_CALTYPE_TBL 0  // Lookup table motor calibration
 #define MOTOR_CALTYPE_MUL 1  // Multiplicative motor calibration
@@ -162,6 +163,8 @@ typedef struct {
   int type;
   float pgain;
   float dgain;
+  float bias;
+  int delay;
 } ctlr_param_t;
 
 // Wing kinematics parameter stucture
@@ -326,13 +329,21 @@ extern int update_ind(
     config_t config
     );
 
+// Update state estimate
+extern state_t get_state_est(
+    state_t *state,
+    data_t data,
+    int ind,
+    int delay
+    );
+
 // Get control value 
 extern int get_ctlr_u(
     float ctlr_err[],
     float *u,
     int ind,
     float setpt,  
-    state_t *state,
+    state_t state_est,
     config_t config
     );
 
@@ -364,15 +375,6 @@ extern int update_data(
 // Set clock dio lines to DIO_LO
 extern int set_clks_lo(
     comedi_info_t comedi_info, 
-    config_t config
-    );
-
-// Update feedback controller
-extern int update_ctlr(
-    int i,
-    state_t *state,
-    array_t setpt,
-    array_t u,
     config_t config
     );
 

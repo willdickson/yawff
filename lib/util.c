@@ -729,12 +729,17 @@ void print_config(config_t config)
     else if (config.ctlr_param.type == CTLR_TYPE_POS) {
         printf("CTLR_TYPE_POS\n");
     }
+    else if (config.ctlr_param.type == CTLR_TYPE_KBIAS) {
+        printf("CTLR_TYPE_KBIAS\n");
+    }
     else {
         printf("unknown\n");
     }
     
     printf("  ctlr_pgian:          %1.2f\n", config.ctlr_param.pgain);
     printf("  ctlr_dgian:          %1.2f\n", config.ctlr_param.dgain);
+    printf("  ctlr_bias:           %1.2f\n", config.ctlr_param.bias);
+    printf("  ctlr_delay:          %d\n", config.ctlr_param.delay);
     printf("  stroke amp:          %1.2f\n", config.kine_param.stroke_amp);
     printf("  rotation amp:        %1.2f\n", config.kine_param.rotation_amp);
     printf("  stroke_k:            %1.2f\n", config.kine_param.stroke_k);
@@ -820,6 +825,7 @@ int define_ctlr_on(void) {return CTLR_ON;};
 int define_ctlr_off(void) {return CTLR_OFF;};
 int define_ctlr_type_vel(void) {return CTLR_TYPE_VEL;};
 int define_ctlr_type_pos(void) {return CTLR_TYPE_POS;};
+int define_ctlr_type_kbias(void) {return CTLR_TYPE_KBIAS;};
 int define_motor_caltype_tbl(void) {return MOTOR_CALTYPE_TBL;};
 int define_motor_caltype_mul(void) {return MOTOR_CALTYPE_MUL;};
 

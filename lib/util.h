@@ -136,6 +136,7 @@ extern int define_ctlr_on(void);
 extern int define_ctlr_off(void);
 extern int define_ctlr_type_vel(void);
 extern int define_ctlr_type_pos(void);
+extern int define_ctlr_type_kbias(void);
 extern int define_motor_caltype_tbl(void);
 extern int define_motor_caltype_mul(void);
 

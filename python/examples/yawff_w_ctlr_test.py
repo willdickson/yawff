@@ -20,9 +20,12 @@ run_params = {
     'startup_t'         : 0.0,
     'ff_flag'           : libyawff.FF_ON,
     'ctlr_flag'         : libyawff.CTLR_ON,
-    'ctlr_type'         : libyawff.CTLR_TYPE_VEL,
+    #'ctlr_type'         : libyawff.CTLR_TYPE_VEL,
+    'ctlr_type'         : libyawff.CTLR_TYPE_KBIAS,
     'ctlr_pgain'        : 2.0,
     'ctlr_dgain'        : 0.0,
+    'ctlr_bias'         : 0.0,
+    'ctlr_delay'        : 2.0,
     'kine_type'         : 'diff_aoa',
     'kine_period'       : 6.0,
     'stroke_amp'        : 70.0,
@@ -34,7 +37,7 @@ run_params = {
 
 yawff = libyawff.Yawff_w_Ctlr(run_params, pause_t=1.0)
 
-T = 8.0*yawff.config_dict['kine_period'] 
+T = 1.0*yawff.config_dict['kine_period'] 
 N = int(T/dt) 
 tt = scipy.arange(0.0,N)*dt
 setpt = 5.0*scipy.sin(2.0*scipy.pi*tt/(2.0*yawff.config_dict['kine_period']))

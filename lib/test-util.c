@@ -83,6 +83,8 @@ int init_test_config(config_t *config)
   (config -> ctlr_param).type = CTLR_TYPE_VEL;
   (config -> ctlr_param).pgain = PGAIN;
   (config -> ctlr_param).dgain = DGAIN;
+  (config -> ctlr_param).bias = BIAS;
+  (config -> ctlr_param).delay = DELAY;
 
   for (i=0; i<config->num_motor; i++) {
 

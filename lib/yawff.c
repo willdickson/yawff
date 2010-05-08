@@ -888,9 +888,8 @@ extern int get_ctlr_u(
   float deriv_ctlr_err;
   float max_u;
 
-
   if (config.ctlr_param.type == CTLR_TYPE_KBIAS) {
-    *u = RAD2DEG*setpt - config.ctlr_param.pgain*state_est.vel;
+    *u = DEG2RAD*setpt - config.ctlr_param.pgain*state_est.vel;
   }
   else {
     // Get controller error based on controller type

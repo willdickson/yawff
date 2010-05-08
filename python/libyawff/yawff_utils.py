@@ -348,6 +348,11 @@ class Yawff_w_Ctlr(Yawff_Base):
         torq_flt = torq[:,0]
         torq_raw = torq[:,1]
 
+        # Reshape t, pos, vel to be (N,) instead of (N,1) 
+        t = scipy.reshape(t,(t.shape[0],))
+        pos = scipy.reshape(pos,(pos.shape[0],))
+        vel = scipy.reshape(vel,(vel.shape[0],))
+
         # Create kinematics dictionary
         kine_dict = {}
         for i in range(0,config['num_motor']):
@@ -1035,7 +1040,7 @@ def get_cable_test_kine(yaw_range,yaw_step,T_meas,dt,max_vel=10.0,accel=10.0):
         pos_last =  pos
     t = scipy.arange(0,yaw_kine.shape[0])*dt
     return t, yaw_kine, pos_array
-    
+
 def resample(x,n):
     """
     Resample data in array x with step size n.
@@ -1044,6 +1049,16 @@ def resample(x,n):
         return x[0:-1:n]
     else:
         return x[0:-1:n,:]
+
+def resample_tuple(data_tuple,n):
+    return tuple([resample(x,n) for x in data_tuple])
+
+def resample_dict(data_dict,n):
+    data_dict_new = {}
+    for k,v in data_dict.iteritems():
+        data_dict_new[k] = resample(v,n)
+    return data_dict_new
+
 
 
 # ------------------------------------------------------------------------------
